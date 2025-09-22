@@ -1,9 +1,9 @@
-// src/components/Navbar.tsx
-"use client";
+"use client"
 
-import { usePathname } from "next/navigation";
+import React from "react"
+import { usePathname } from "next/navigation"
 
-const pathToTitle: Record<string, string> = {
+const NAV_ITEMS: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/leads": "Leads",
   "/deals": "Deals",
@@ -16,23 +16,23 @@ const pathToTitle: Record<string, string> = {
   "/hr/leave": "Leave",
   "/hr/holiday": "Holiday",
   "/hr/appreciation": "Appreciation",
-  "/message": "Message",
+  "/messages": "Message",
   "/settings": "Settings",
-};
+}
 
-export default function Navbar() {
-  const pathname = usePathname();
-  const pageTitle = pathToTitle[pathname] ?? "Qurilo"; // fallback
+export const CommonNavbar: React.FC = () => {
+  const pathname = usePathname()
+  const pageTitle = NAV_ITEMS[pathname] || "Page"
 
   return (
-    <nav className="w-full bg-white shadow px-6 py-3 flex justify-between">
-      <h1 className="text-2xl font-semibold">{pageTitle}</h1>
+    <nav className="w-full bg-amber-100 text-black shadow-md">
+      <div className="flex w-full items-center justify-between px-6 py-3">
+        {/* Brand / Logo */}
+        <h1 className="text-lg font-bold">Qurilo</h1>
 
-      {/* Right-side actions (optional) */}
-      <div className="flex gap-4">
-        {/* Example placeholder */}
-        <span className="text-gray-600">User</span>
+        {/* Page Title */}
+        <h2 className="text-base font-medium">{pageTitle}</h2>
       </div>
     </nav>
-  );
+  )
 }

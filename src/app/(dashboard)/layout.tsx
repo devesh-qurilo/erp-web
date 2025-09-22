@@ -1,6 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
-import Navbar from "@/components/Navbar"
+import { CommonNavbar } from "@/components/Navbar"
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,15 +12,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Main Content Area */}
         <div className="flex flex-col flex-1">
           {/* ✅ Sticky Navbar */}
-          <div className="sticky top-0 z-10 bg-white shadow-sm flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger />
-              <Navbar />
-            </div>
-          </div>
+          <header className="sticky top-0 z-55">
+            <CommonNavbar />
+          </header>
 
           {/* ✅ Scrollable Page Content */}
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1  p-9">
+            {children}
+          </main>
         </div>
       </div>
     </SidebarProvider>

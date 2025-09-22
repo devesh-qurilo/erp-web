@@ -168,7 +168,7 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/message">
+                <a href="/messages">
                   <MessageSquare className="size-7" />
                   <span>Message</span>
                 </a>

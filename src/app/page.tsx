@@ -1,83 +1,44 @@
-"use client";
+import Link from "next/link";
 
-import React, { useState } from "react";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  QueryClient,
-  QueryClientProvider,
-} from "@tanstack/react-query";
-
-// --- Mock Database ---
-let mockTodos = [
-  { id: 1, title: "Buy groceries" },
-  { id: 2, title: "Walk the dog" },
-  { id: 3, title: "Finish React project" },
-];
-
-// --- Mock API Functions ---
-async function getTodos() {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 500));
-  return mockTodos;
-}
-
-async function postTodo(newTodo: { id: number; title: string }) {
-  // Simulate network delay
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  mockTodos = [...mockTodos, newTodo];
-  return newTodo;
-}
-
-// --- React Query Client ---
-const queryClient = new QueryClient();
-
-export default function App() {
+export default function Home() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Todos />
-    </QueryClientProvider>
-  );
-}
+    <div className="flex items-center justify-center min-h-screen bg-blue-100">
+      <div className="bg-white rounded-2xl shadow-md p-10 w-full max-w-md text-center">
+        <h1 className="text-2xl font-semibold text-gray-800 mb-6">
+          Welcome Back
+        </h1>
 
-function Todos() {
-  const queryClient = useQueryClient();
+        {/* Divider */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="h-px w-1/4 bg-gray-300"></div>
+          <span className="px-4 text-gray-500 text-sm">Login As</span>
+          <div className="h-px w-1/4 bg-gray-300"></div>
+        </div>
 
-  // Fetch todos
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["todos"],
-    queryFn: getTodos,
-  });
+        <div className="space-y-4">
+          {/* Admin Button */}
+          <button className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-300 rounded-xl py-3 hover:bg-gray-100 transition">
+            <img
+              src="https://img.icons8.com/office/40/conference-call.png"
+              alt="Admin Icon"
+              className="w-6 h-6"
+            />
+            <span className="text-gray-800 font-medium">Admin</span>
+          </button>
 
-  // Handle mutations
-  const mutation = useMutation({
-    mutationFn: postTodo,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["todos"] });
-    },
-  });
-
-  if (isLoading) return <p>Loading todos...</p>;
-  if (isError) return <p>Something went wrong!</p>;
-
-  return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">Todo List</h1>
-      <ul className="list-disc list-inside space-y-1">
-        {data?.map((todo) => (
-          <li key={todo.id}>{todo.title}</li>
-        ))}
-      </ul>
-
-      <button
-        className="px-4 py-2 bg-blue-500 text-white rounded"
-        onClick={() =>
-          mutation.mutate({ id: Date.now(), title: "Do Laundry" })
-        }
-      >
-        Add Todo
-      </button>
+          {/* Employee Button */}
+          <Link href="/login" className="block">
+            <button className="w-full flex items-center justify-center space-x-3 bg-white border border-gray-300 rounded-xl py-3 hover:bg-gray-100 transition">
+              <img
+                src="https://img.icons8.com/office/40/conference-call.png"
+                alt="Employee Icon"
+                className="w-6 h-6"
+              />
+              <span className="text-gray-800 font-medium">Employee</span>
+            </button>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
