@@ -29,7 +29,9 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <h1 className="px-7 py-2 text-xl text-center font-bold">Qurilo</h1>
+        <div className="flex items-center justify-center px-4 py-6">
+          {/* <h1 className="text-2xl font-bold text-sidebar-primary">Qurilo</h1> */}
+        </div>
       </SidebarHeader>
 
       <SidebarContent>
@@ -39,7 +41,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/dashboard">
-                  <LayoutDashboard className="size-7" />
+                  <LayoutDashboard className="size-5" />
                   <span>Dashboard</span>
                 </a>
               </SidebarMenuButton>
@@ -54,7 +56,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/leads">
-                  <Users className="size-7" />
+                  <Users className="size-5" />
                   <span>Leads</span>
                 </a>
               </SidebarMenuButton>
@@ -62,7 +64,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/deals">
-                  <Briefcase className="size-7" />
+                  <Briefcase className="size-5" />
                   <span>Deals</span>
                 </a>
               </SidebarMenuButton>
@@ -77,7 +79,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/client">
-                  <Building className="size-7" />
+                  <Building className="size-5" />
                   <span>Client</span>
                 </a>
               </SidebarMenuButton>
@@ -92,7 +94,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/work/project">
-                  <ClipboardList className="size-7" />
+                  <ClipboardList className="size-5" />
                   <span>Project</span>
                 </a>
               </SidebarMenuButton>
@@ -100,7 +102,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/work/task">
-                  <ClipboardList className="size-7" />
+                  <ClipboardList className="size-5" />
                   <span>Task</span>
                 </a>
               </SidebarMenuButton>
@@ -108,7 +110,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/work/timesheet">
-                  <Clock className="size-7" />
+                  <Clock className="size-5" />
                   <span>Timesheet</span>
                 </a>
               </SidebarMenuButton>
@@ -116,7 +118,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/work/roadmap">
-                  <Map className="size-7" />
+                  <Map className="size-5" />
                   <span>Project Roadmap</span>
                 </a>
               </SidebarMenuButton>
@@ -131,7 +133,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/hr/attendance">
-                  <CalendarCheck className="size-7" />
+                  <CalendarCheck className="size-5" />
                   <span>Attendance</span>
                 </a>
               </SidebarMenuButton>
@@ -139,7 +141,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/hr/leave">
-                  <CalendarX className="size-7" />
+                  <CalendarX className="size-5" />
                   <span>Leave</span>
                 </a>
               </SidebarMenuButton>
@@ -147,7 +149,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/hr/holiday">
-                  <CalendarDays className="size-7" />
+                  <CalendarDays className="size-5" />
                   <span>Holiday</span>
                 </a>
               </SidebarMenuButton>
@@ -155,7 +157,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/hr/appreciation">
-                  <Award className="size-7" />
+                  <Award className="size-5" />
                   <span>Appreciation</span>
                 </a>
               </SidebarMenuButton>
@@ -169,7 +171,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/messages">
-                  <MessageSquare className="size-7" />
+                  <MessageSquare className="size-5" />
                   <span>Message</span>
                 </a>
               </SidebarMenuButton>
@@ -177,7 +179,7 @@ export function AppSidebar() {
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/settings">
-                  <Settings className="size-7" />
+                  <Settings className="size-5" />
                   <span>Setting</span>
                 </a>
               </SidebarMenuButton>
@@ -187,7 +189,9 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="p-7 text-sm text-gray-500">© 2025 MyApp</div>
+        <div className="p-4 text-xs text-sidebar-foreground/60 text-center border-t border-sidebar-border">
+          © 2025 Qurilo
+        </div>
       </SidebarFooter>
     </Sidebar>
   )

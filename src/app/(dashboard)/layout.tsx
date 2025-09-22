@@ -1,26 +1,24 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import type React from "react"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { CommonNavbar } from "@/components/Navbar"
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex min-h-screen w-full">
         {/* Sidebar */}
         <AppSidebar />
 
-        {/* Main Content Area */}
-        <div className="flex flex-col flex-1">
-          {/* ✅ Sticky Navbar */}
-          <header className="sticky top-0 z-55">
-            <CommonNavbar />
-          </header>
+        {/* Main content area */}
+        <SidebarInset>
+          {/* Fixed Navbar */}
+          <CommonNavbar />
 
-          {/* ✅ Scrollable Page Content */}
-          <main className="flex-1  p-9">
-            {children}
-          </main>
-        </div>
+          {/* Page Content */}
+          <main className="flex-1 p-6 pt-20">{children}</main>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   )

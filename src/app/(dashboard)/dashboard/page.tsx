@@ -47,7 +47,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="max-w-screen-xl bg-gradient-to-br from-background via-muted/20 to-background p-6">
+    <div className="max-w-screen-xl p-6">
       <div className="max-w-9xl mx-auto space-y-15">
         <div className="bg-red-400 from-primary to-secondary rounded-2xl p-8 text-primary-foreground shadow-xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
