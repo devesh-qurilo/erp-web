@@ -13,24 +13,52 @@ export async function POST(request: NextRequest) {
     }
 
     // Make request to external API
-    const response = await fetch('https://6jnqmj85-8080.inc1.devtunnels.ms/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ employeeId, password }),
-    });
+    const response = await fetch(
+      'https://6jnqmj85-8080.inc1.devtunnels.ms/auth/login',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json', // 👈 added
+        },
+        body: JSON.stringify({ employeeId, password }),
+      }
+    );
 
-    const data = await response.json();
+    // Debug logs
+    console.log("Response Status:", response.status);
+    console.log("Response Headers:", response.headers.get('content-type'));
 
-    if (!response.ok) {
+    const rawBody = await response.text();
+    console.log("Raw Body:", rawBody);
+
+    let data: any = {};
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        data = JSON.parse(rawBody);
+      } catch (err) {
+        console.error("JSON parse failed:", err);
+        return NextResponse.json(
+          { error: 'Invalid JSON returned from auth server', raw: rawBody },
+          { status: 502 }
+        );
+      }
+    } else {
       return NextResponse.json(
-        { error: data.message || 'Login failed' },
+        { error: 'Auth server did not return JSON', raw: rawBody },
         { status: response.status }
       );
     }
 
-    // Return the response from the external API
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: data.message || 'Login failed', raw: data },
+        { status: response.status }
+      );
+    }
+
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     console.error('Error in login API:', error);

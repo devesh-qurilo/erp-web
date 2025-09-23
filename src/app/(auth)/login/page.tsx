@@ -44,7 +44,7 @@ export default function EmployeeLogin() {
       if (data.role === 'ROLE_ADMIN') {
         router.push('/dashboard');
       } else {
-        router.push('/dashboard');
+        router.push('/emp-dashboard');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during login');

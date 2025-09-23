@@ -1,6 +1,6 @@
 
 // src/app/layout.tsx
-import QueryProvider from "@/providers/QueryProvider";
+
 import "./globals.css";
 
 
