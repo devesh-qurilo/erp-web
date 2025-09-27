@@ -1,4 +1,4 @@
-// app/api/departments/route.ts
+// app/api/hr/department/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {

@@ -1,293 +1,103 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
+import * as React from "react"
+import useSWR from "swr"
 
-interface Department {
-  id: number;
-  departmentName: string;
-  parentDepartmentId: number | null;
-  parentDepartmentName: string | null;
-  createAt: string;
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { List, Network, Search } from "lucide-react"
+import { Department } from "@/types/departments"
+import { CreateDepartmentForm } from "./_components/department-form"
+import { DepartmentTable } from "./_components/department-table"
+
+const fetcher = async (url: string) => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  if (!token) throw new Error("Access token not found")
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+  if (!res.ok) throw new Error("Failed to fetch departments")
+  return res.json()
 }
 
-export default function DepartmentPage() {
-  const [departments, setDepartments] = useState<Department[]>([]);
-  const [searchId, setSearchId] = useState('');
-  const [searchResult, setSearchResult] = useState<Department | null>(null);
-  const [departmentName, setDepartmentName] = useState('');
-  const [parentDepartmentId, setParentDepartmentId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+export default function DepartmentsPage() {
+  const { data, error, isLoading, mutate } = useSWR<Department[]>("/api/hr/department", fetcher)
+  const [query, setQuery] = React.useState("")
+  const [open, setOpen] = React.useState(false)
 
-  // Update Department State
-  const [updateId, setUpdateId] = useState('');
-  const [updateName, setUpdateName] = useState('');
-  const [updateParentId, setUpdateParentId] = useState<number | null>(null);
-
-  const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-
-  // Fetch all departments
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        if (!accessToken) throw new Error('Access token not found');
-
-        const res = await fetch('/api/hr/department', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch departments');
-
-        const data: Department[] = await res.json();
-        setDepartments(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDepartments();
-  }, [accessToken]);
-
-  // Search department by ID
-  const handleSearch = async () => {
-    try {
-      if (!accessToken) throw new Error('Access token not found');
-      if (!searchId) return setSearchResult(null);
-
-      const res = await fetch(`/api/hr/department/${searchId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Department not found');
-      }
-
-      const data: Department = await res.json();
-      setSearchResult(data);
-      setError('');
-    } catch (err: any) {
-      setError(err.message);
-      setSearchResult(null);
-    }
-  };
-
-  // Create a new department
-  const handleCreate = async () => {
-    try {
-      if (!accessToken) throw new Error('Access token not found');
-      if (!departmentName) return setError('Department name is required');
-
-      const res = await fetch('/api/hr/department', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ departmentName, parentDepartmentId }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to create department');
-      }
-
-      const data: Department = await res.json();
-      setDepartments((prev) => [...prev, data]);
-      setDepartmentName('');
-      setParentDepartmentId(null);
-      setSuccess(`Department "${data.departmentName}" created successfully`);
-      setError('');
-    } catch (err: any) {
-      setError(err.message);
-      setSuccess('');
-    }
-  };
-
-  // Update existing department
-  const handleUpdate = async () => {
-    try {
-      if (!accessToken) throw new Error('Access token not found');
-      if (!updateId) return setError('Department ID is required for update');
-      if (!updateName) return setError('Department name is required');
-
-      const res = await fetch(`/api/hr/department/${updateId}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ departmentName: updateName, parentDepartmentId: updateParentId }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to update department');
-      }
-
-      const data: Department = await res.json();
-      setDepartments((prev) =>
-        prev.map((dept) => (dept.id === data.id ? data : dept))
-      );
-      setUpdateId('');
-      setUpdateName('');
-      setUpdateParentId(null);
-      setSuccess(`Department "${data.departmentName}" updated successfully`);
-      setError('');
-    } catch (err: any) {
-      setError(err.message);
-      setSuccess('');
-    }
-  };
-  const handleDelete = async (id: number) => {
-    try {
-      if (!accessToken) throw new Error('Access token not found');
-  
-      const res = await fetch(`/api/hr/department/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-  
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to delete department');
-      }
-  
-      const data = await res.json();
-      if (data.status === 'success') {
-        setDepartments((prev) => prev.filter((dept) => dept.id !== id));
-        setSuccess(`Department deleted successfully`);
-        setError('');
-      }
-    } catch (err: any) {
-      setError(err.message);
-      setSuccess('');
-    }
-  };
-  
-  if (loading) return <p>Loading departments...</p>;
+  const list = React.useMemo(() => {
+    if (!data) return []
+    const q = query.trim().toLowerCase()
+    if (!q) return data
+    return data.filter((d) => {
+      const byName = d.departmentName.toLowerCase().includes(q)
+      const byId = String(d.id) === q
+      const byParent = d.parentDepartmentName?.toLowerCase().includes(q)
+      return byName || byParent || byId
+    })
+  }, [data, query])
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Departments</h1>
+    <main className="container mx-auto max-w-6xl p-4 md:p-6">
+      <header className="mb-4 flex items-center justify-between">
+        {/* Add Department Dialog */}
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>+ Add Department</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Department</DialogTitle>
+            </DialogHeader>
+            <CreateDepartmentForm
+              parents={data ?? []}
+              onSuccess={async () => {
+                setOpen(false)
+                await mutate()
+              }}
+            />
+          </DialogContent>
+        </Dialog>
 
-      {/* Search Department */}
-      <div className="mb-4 flex gap-2">
-        <input
-          type="number"
-          placeholder="Enter Department ID"
-          value={searchId}
-          onChange={(e) => setSearchId(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-        >
-          Search
-        </button>
-      </div>
-
-      {searchResult && (
-        <div className="mb-4 p-2 border rounded bg-gray-50">
-          <strong>{searchResult.departmentName}</strong>
-          {searchResult.parentDepartmentName && (
-            <span className="text-gray-500"> (Parent: {searchResult.parentDepartmentName})</span>
-          )}
-          <div className="text-sm text-gray-400">Created at: {searchResult.createAt}</div>
+        {/* Search + View controls */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-64">
+            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search"
+              className="pl-8"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" size="icon" aria-label="List view">
+            <List className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" aria-label="Hierarchy view">
+            <Network className="h-4 w-4" />
+          </Button>
         </div>
-      )}
+      </header>
 
-      {/* Create Department Form */}
-      <div className="mb-4 p-4 border rounded bg-gray-50">
-        <h2 className="font-semibold mb-2">Create New Department</h2>
-        <input
-          type="text"
-          placeholder="Department Name"
-          value={departmentName}
-          onChange={(e) => setDepartmentName(e.target.value)}
-          className="border p-2 rounded mb-2 w-full"
-        />
-        <select
-          value={parentDepartmentId ?? ''}
-          onChange={(e) => setParentDepartmentId(Number(e.target.value) || null)}
-          className="border p-2 rounded mb-2 w-full"
-        >
-          <option value="">No Parent</option>
-          {departments.map((dept) => (
-            <option key={dept.id} value={dept.id}>
-              {dept.departmentName}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleCreate}
-          className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
-        >
-          Create Department
-        </button>
-      </div>
-
-      {/* Update Department Form */}
-      <div className="mb-4 p-4 border rounded bg-gray-50">
-        <h2 className="font-semibold mb-2">Update Department</h2>
-        <input
-          type="number"
-          placeholder="Department ID"
-          value={updateId}
-          onChange={(e) => setUpdateId(e.target.value)}
-          className="border p-2 rounded mb-2 w-full"
-        />
-        <input
-          type="text"
-          placeholder="Department Name"
-          value={updateName}
-          onChange={(e) => setUpdateName(e.target.value)}
-          className="border p-2 rounded mb-2 w-full"
-        />
-        <select
-          value={updateParentId ?? ''}
-          onChange={(e) => setUpdateParentId(Number(e.target.value) || null)}
-          className="border p-2 rounded mb-2 w-full"
-        >
-          <option value="">No Parent</option>
-          {departments.map((dept) => (
-            <option key={dept.id} value={dept.id}>
-              {dept.departmentName}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleUpdate}
-          className="bg-yellow-500 text-white p-2 rounded hover:bg-yellow-600"
-        >
-          Update Department
-        </button>
-      </div>
-
-      {success && <p className="text-green-500 mb-2">{success}</p>}
-      {error && <p className="text-red-500 mb-2">{error}</p>}
-
-      {/* Departments List */}
-    {/* Departments List with Delete Button */}
-<ul className="space-y-2">
-  {departments.map((dept) => (
-    <li key={dept.id} className="p-2 border rounded flex justify-between items-center">
-      <div>
-        <strong>{dept.departmentName}</strong>
-        {dept.parentDepartmentName && (
-          <span className="text-gray-500"> (Parent: {dept.parentDepartmentName})</span>
-        )}
-        <div className="text-sm text-gray-400">Created at: {dept.createAt}</div>
-      </div>
-      <button
-        onClick={() => handleDelete(dept.id)}
-        className="bg-red-500 text-white p-1 px-2 rounded hover:bg-red-600"
-      >
-        Delete
-      </button>
-    </li>
-  ))}
-</ul>
-
-    </div>
-  );
+      {/* Departments Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-pretty">Departments</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {isLoading && <div className="text-sm text-muted-foreground">Loading departments...</div>}
+          {error && <div className="text-sm text-destructive">Failed to load: {String(error)}</div>}
+          {!isLoading && !error && (
+            <DepartmentTable data={list} onDeleted={async () => await mutate()} />
+          )}
+          <Separator />
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>Result per page - 9</span>
+            <span>Page 1 of 1</span>
+          </div>
+        </CardContent>
+      </Card>
+    </main>
+  )
 }
