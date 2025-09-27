@@ -146,6 +146,14 @@ export function AppSidebar() {
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <a href="/hr/employee">
+                  <CalendarX className="size-5" />
+                  <span>Employee</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
              <SidebarMenuItem>
               <SidebarMenuButton asChild>
                 <a href="/hr/designation">
