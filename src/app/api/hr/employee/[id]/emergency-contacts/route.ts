@@ -1,0 +1,28 @@
+import { type NextRequest, NextResponse } from "next/server"
+
+const API_BASE = "https://6jnqmj85-8080.inc1.devtunnels.ms/employee"
+
+// Proxy: GET /api/hr/employee/[id]/emergency-contacts -> external /employee/{id}/emergency-contacts
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const id = params.id
+    const url = `${API_BASE}/${encodeURIComponent(id)}/emergency-contacts`
+
+    const res = await fetch(url, {
+      headers: {
+        Authorization: request.headers.get("authorization") || "",
+      },
+      cache: "no-store",
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      return NextResponse.json({ error: text }, { status: res.status })
+    }
+
+    const data = await res.json()
+    return NextResponse.json(data)
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
