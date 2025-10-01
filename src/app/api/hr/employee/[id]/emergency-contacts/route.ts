@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const authHeader = request.headers.get("authorization") || undefined
     const body = await request.text()
     const id = params.id
-    const url = `${API_BASE}/employee/${encodeURIComponent(id)}/emergency-contacts`
+    const url = `${API_BASE}/${encodeURIComponent(id)}/emergency-contacts`
 
     const upstream = await fetch(url, {
       method: "POST",

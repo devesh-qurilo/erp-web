@@ -83,7 +83,7 @@ export default function AddEmergencyContactPage() {
       }
 
       alert("Emergency contact saved successfully");
-      router.push(`/dashboard/hr/employee/${employeeId}`);
+      router.push(`/hr/employee/${employeeId}`);
     } catch (err: any) {
       setError(err?.message || "Unexpected error");
     } finally {
