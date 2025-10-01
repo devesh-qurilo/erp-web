@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Award, Plus } from "lucide-react"
+import { Award, Plus, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
@@ -24,16 +24,15 @@ export default function AwardsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // ✅ Fetch all awards
   useEffect(() => {
     async function fetchAwards() {
       try {
-        // You can add your token here if needed
         const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
         if (!token) throw new Error("Access token not found")
+
         const res = await fetch("/api/hr/awards", {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-          },
+          headers: { Authorization: `Bearer ${token}` },
         })
 
         if (!res.ok) {
@@ -51,6 +50,31 @@ export default function AwardsPage() {
 
     fetchAwards()
   }, [])
+
+  // ✅ Delete Award
+  async function handleDelete(id: number) {
+    if (!confirm("Are you sure you want to delete this award?")) return
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) throw new Error("Access token not found")
+
+        const res = await fetch(`/api/hr/awards/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        
+
+      if (!res.ok) {
+        throw new Error("Failed to delete award")
+      }
+
+      // Update state after delete
+      setAwards((prev) => prev.filter((award) => award.id !== id))
+    } catch (err: any) {
+      alert(err.message)
+    }
+  }
 
   if (loading) {
     return (
@@ -89,12 +113,14 @@ export default function AwardsPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
-          <Award className="h-10 w-10" />
-          Awards
-        </h1>
-        <p className="text-muted-foreground text-lg">Browse all available awards and achievements</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+            <Award className="h-10 w-10" />
+            Awards
+          </h1>
+          <p className="text-muted-foreground text-lg">Browse all available awards and achievements</p>
+        </div>
 
         <Link href="/hr/awards/new">
           <Button>
@@ -127,9 +153,26 @@ export default function AwardsPage() {
                 <CardTitle className="text-xl">{award.title}</CardTitle>
                 <CardDescription className="line-clamp-2">{award.summary}</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">
                   {award.updatedAt && <p>Updated: {new Date(award.updatedAt).toLocaleDateString()}</p>}
+                </div>
+                <div className="flex gap-2">
+                  {/* Edit button */}
+                  <Link href={`/hr/awards/${award.id}`}>
+                    <Button size="sm" variant="outline">
+                      <Pencil className="h-4 w-4 mr-1" /> Edit
+                    </Button>
+                  </Link>
+
+                  {/* Delete button */}
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(award.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  </Button>
                 </div>
               </CardContent>
             </Card>
