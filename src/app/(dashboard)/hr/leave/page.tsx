@@ -27,17 +27,19 @@ export default function LeavesList() {
   const [loadingId, setLoadingId] = useState<number | null>(null);
 
   // Fetch leaves
-  useEffect(() => {
+  const fetchLeaves = async () => {
     const token = localStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch("/api/hr/leave", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setLeaves(data));
+    const res = await fetch("/api/hr/leave", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    setLeaves(data);
+  };
+
+  useEffect(() => {
+    fetchLeaves();
   }, []);
 
   // Approve leave
@@ -53,20 +55,38 @@ export default function LeavesList() {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      body: JSON.stringify({ status: "APPROVED" }),
+    });
+
+    await fetchLeaves();
+    setLoadingId(null);
+  };
+
+  // Reject leave
+  const rejectLeave = async (leaveId: number, reason: string) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    if (!reason) {
+      alert("Please enter a reason for rejection.");
+      return;
+    }
+
+    setLoadingId(leaveId);
+
+    await fetch(`/api/hr/leave/${leaveId}/status`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        status: "APPROVED",
+        status: "REJECTED",
+        rejectionReason: reason,
       }),
     });
 
-    // Refresh list after approval
-    fetch("/api/hr/leave", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => setLeaves(data));
-
+    await fetchLeaves();
     setLoadingId(null);
   };
 
@@ -77,20 +97,37 @@ export default function LeavesList() {
         {leaves.map((leave) => (
           <li
             key={leave.id}
-            className="border p-2 mb-2 flex justify-between items-center"
+            className="border p-2 mb-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-2"
           >
             <div>
               <strong>{leave.employeeName}</strong> ({leave.leaveType}) -{" "}
               {leave.status}
+              {leave.status === "REJECTED" && leave.rejectionReason && (
+                <div className="text-red-600">Reason: {leave.rejectionReason}</div>
+              )}
             </div>
-            {leave.status !== "APPROVED" && (
-              <button
-                onClick={() => approveLeave(leave.id)}
-                disabled={loadingId === leave.id}
-                className="px-3 py-1 bg-green-600 text-white rounded"
-              >
-                {loadingId === leave.id ? "Approving..." : "Approve"}
-              </button>
+
+            {leave.status === "PENDING" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => approveLeave(leave.id)}
+                  disabled={loadingId === leave.id}
+                  className="px-3 py-1 bg-green-600 text-white rounded"
+                >
+                  {loadingId === leave.id ? "Processing..." : "Approve"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    const reason = prompt("Enter rejection reason") || "";
+                    rejectLeave(leave.id, reason);
+                  }}
+                  disabled={loadingId === leave.id}
+                  className="px-3 py-1 bg-red-600 text-white rounded"
+                >
+                  {loadingId === leave.id ? "Processing..." : "Reject"}
+                </button>
+              </div>
             )}
           </li>
         ))}
