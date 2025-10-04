@@ -34,29 +34,63 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  export async function POST(request: NextRequest) {
+
+
+  export async function POST(req: NextRequest) {
     try {
-      const token = request.headers.get("authorization")
-      const body = await request.json()
+      // Parse FormData
+      const formData = await req.formData();
+      const awardId = formData.get("awardId");
+      const givenToEmployeeId = formData.get("givenToEmployeeId");
+      const date = formData.get("date");
+      const summary = formData.get("summary");
+      const photoFile = formData.get("photoFile");
   
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          Authorization: formatAuthHeader(token),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      })
-  
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ error: "Failed to create appreciation" }))
-        return NextResponse.json(errorData, { status: res.status })
+      // Validate fields
+      if (!awardId || !givenToEmployeeId || !date || !summary || !photoFile) {
+        return NextResponse.json(
+          { message: "All fields are required" },
+          { status: 400 }
+        );
       }
   
-      const data = await res.json()
-      return NextResponse.json(data, { status: 201 })
-    } catch (error) {
-      console.error("Error creating appreciation:", error)
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+      // Extract token from headers
+      const authHeader = req.headers.get("authorization");
+      console.log("Authorization header:", authHeader); // DEBUG
+      const accessToken = authHeader?.replace("Bearer ", "");
+  
+      if (!accessToken) {
+        return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      }
+  
+      // Forward FormData to external API
+      const externalResponse = await fetch(
+        "https://6jnqmj85-8080.inc1.devtunnels.ms/employee/appreciations",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`, // keep token
+          },
+          body: formData, // DO NOT set Content-Type manually
+        }
+      );
+  
+      const text = await externalResponse.text();
+      let data;
+  
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text || "No response from external API" };
+      }
+  
+      return NextResponse.json(data, { status: externalResponse.status });
+    } catch (error: any) {
+      console.error("Error in /api/hr/appreciations POST:", error);
+      return NextResponse.json(
+        { message: error.message || "Internal server error" },
+        { status: 500 }
+      );
     }
   }
+  
