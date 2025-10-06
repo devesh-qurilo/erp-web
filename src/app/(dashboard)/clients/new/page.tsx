@@ -186,7 +186,7 @@ export default function NewClientPage() {
 
   return (
     <div>
-      <div className="max-w-5xl mx-auto">
+      <div className="container mx-auto ">
         <div className="bg-white shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6">
