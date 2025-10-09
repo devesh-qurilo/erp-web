@@ -10,15 +10,12 @@ import KanbanBoard from "./_components/kanban-board"
 import { Button } from "@/components/ui/button"
 
 export default function StagesPage() {
-  const [stages, setStages] = useState<Stage[]>([])
-  const [deals, setDeals] = useState<Deal[]>([])
   const [token, setToken] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
+  // Fetch token once on mount
   useEffect(() => {
     const t = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
     setToken(t)
@@ -45,20 +42,19 @@ export default function StagesPage() {
     mutate: mutateDeals,
   } = useSWR<Deal[]>(token ? "/api/deals/get" : null, fetchWithAuth)
 
-  useEffect(() => {
-    setStages(stagesData)
-    setDeals(dealsData)
-    setLoading(stagesLoading || dealsLoading)
-    setError(stagesError?.message || dealsError?.message || null)
-  }, [stagesData, dealsData, stagesLoading, dealsLoading, stagesError, dealsError])
+  // Combine loading and error states
+  const loading = stagesLoading || dealsLoading
+  const error = stagesError?.message || dealsError?.message || null
 
+  // Compute stageDeals using memoization
   const stageDeals = useMemo(() => {
-    return stages.map((stage) => ({
+    return stagesData.map((stage) => ({
       ...stage,
-      deals: deals.filter((deal) => deal.dealStage === stage.name),
+      deals: dealsData.filter((deal) => deal.dealStage === stage.name),
     }))
-  }, [stages, deals])
+  }, [stagesData, dealsData])
 
+  // Compute filters using memoization
   const resolvedFilters = useMemo(
     () => ({
       pipeline: pipelineFilter || undefined,
@@ -103,8 +99,8 @@ export default function StagesPage() {
 
         <main className="flex-1 overflow-x-auto">
           <KanbanBoard
-            stages={stages}
-            deals={deals}
+            stages={stagesData}
+            deals={dealsData}
             search={search}
             filters={resolvedFilters}
           />
