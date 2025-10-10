@@ -1,65 +1,66 @@
-"use client";
+"use client"
 
-import { useEffect, useState, useCallback } from "react";
+import type React from "react"
+
+import { useEffect, useState, useCallback } from "react"
 
 interface DealTagsProps {
-  dealId: string;
+  dealId: string
 }
 
 export default function DealTags({ dealId }: DealTagsProps) {
-  const [tags, setTags] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [newTag, setNewTag] = useState("");
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-  const isLoggedIn = !!token;
+  const [newTag, setNewTag] = useState("")
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
+
+  const [deletingTag, setDeletingTag] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  const isLoggedIn = !!token
 
   // -----------------------------------------------------------------
   const fetchTags = useCallback(async () => {
     if (!dealId) {
-      setError("Deal ID not found");
-      setLoading(false);
-      return;
+      setError("Deal ID not found")
+      setLoading(false)
+      return
     }
-
     try {
       const res = await fetch(`/api/deals/get/${dealId}/tags`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-      });
-
-      if (!res.ok) throw new Error(`Failed to fetch tags: ${res.statusText}`);
-
-      const data = await res.json();
-      if (!Array.isArray(data.data)) throw new Error("Invalid data format");
-      setTags(data.data);
-      setError(null);
+      })
+      if (!res.ok) throw new Error(`Failed to fetch tags: ${res.statusText}`)
+      const data = await res.json()
+      if (!Array.isArray(data.data)) throw new Error("Invalid data format")
+      setTags(data.data)
+      setError(null)
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to load tags");
+      console.error(err)
+      setError(err.message || "Failed to load tags")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [dealId, token]);
+  }, [dealId, token])
 
   // -----------------------------------------------------------------
   useEffect(() => {
-    fetchTags();
-  }, [fetchTags]);
+    fetchTags()
+  }, [fetchTags])
 
   // -----------------------------------------------------------------
   const handleAddTag = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTag.trim()) return;
-
-    setAdding(true);
-    setAddError(null);
+    e.preventDefault()
+    if (!newTag.trim()) return
+    setAdding(true)
+    setAddError(null)
     try {
       const res = await fetch(`/api/deals/get/${dealId}/tags`, {
         method: "POST",
@@ -67,24 +68,48 @@ export default function DealTags({ dealId }: DealTagsProps) {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        // ✅ FIXED: send tagName instead of tags[]
         body: JSON.stringify({ tagName: newTag.trim() }),
-      });
-
+      })
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to add tag");
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to add tag")
       }
-
-      const { data } = await res.json();
-      setTags(data);
-      setNewTag("");
+      const { data } = await res.json()
+      setTags(data)
+      setNewTag("")
     } catch (err: any) {
-      setAddError(err.message || "Could not add tag");
+      setAddError(err.message || "Could not add tag")
     } finally {
-      setAdding(false);
+      setAdding(false)
     }
-  };
+  }
+
+  // -----------------------------------------------------------------
+  const handleDeleteTag = async (tag: string) => {
+    if (!tag) return
+    setDeletingTag(tag)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/deals/get/${dealId}/tags`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tagName: tag }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || "Failed to delete tag")
+      }
+      const { data } = await res.json()
+      setTags(data)
+    } catch (err: any) {
+      setDeleteError(err.message || "Could not delete tag")
+    } finally {
+      setDeletingTag(null)
+    }
+  }
 
   // -----------------------------------------------------------------
   if (loading) {
@@ -93,10 +118,10 @@ export default function DealTags({ dealId }: DealTagsProps) {
         <h3 className="text-lg font-semibold mb-4">Tags</h3>
         <p className="text-sm text-gray-500">Loading tags...</p>
       </div>
-    );
+    )
   }
 
-  if (error || (!tags.length && !isLoggedIn)) return null;
+  if (error || (!tags.length && !isLoggedIn)) return null
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border">
@@ -106,15 +131,25 @@ export default function DealTags({ dealId }: DealTagsProps) {
       <div className="flex flex-wrap gap-2 mb-4">
         {tags.map((tag, i) => (
           <span
-            key={i}
-            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+            key={`${tag}-${i}`}
+            className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
           >
-            {tag}
+            <span>{tag}</span>
+            {isLoggedIn && (
+              <button
+                type="button"
+                aria-label={`Remove ${tag}`}
+                onClick={() => handleDeleteTag(tag)}
+                disabled={deletingTag === tag}
+                className="rounded-md px-1.5 py-0.5 bg-blue-200 text-blue-900 hover:bg-blue-300 disabled:opacity-50"
+                title="Remove tag"
+              >
+                {deletingTag === tag ? "…" : "×"}
+              </button>
+            )}
           </span>
         ))}
-        {!tags.length && (
-          <span className="text-gray-400 italic">No tags yet</span>
-        )}
+        {!tags.length && <span className="text-gray-400 italic">No tags yet</span>}
       </div>
 
       {/* Add-tag form */}
@@ -138,8 +173,9 @@ export default function DealTags({ dealId }: DealTagsProps) {
             </button>
           </div>
           {addError && <p className="text-sm text-red-500">{addError}</p>}
+          {deleteError && <p className="text-sm text-red-500">{deleteError}</p>}
         </form>
       )}
     </div>
-  );
+  )
 }

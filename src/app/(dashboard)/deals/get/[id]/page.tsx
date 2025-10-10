@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Deal } from "@/types/deals";
 import DealTags from "../../_components/DealTags";
-
+import CommentForm from "../../_components/comment";
 
 
 export default function DealDetailPage() {
@@ -151,20 +151,7 @@ export default function DealDetailPage() {
             </div>
           </div>
 
-          {/* Additional Details */}
-          {/* {deal.description && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h3 className="text-lg font-semibold mb-3">Description</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{deal.description}</p>
-            </div>
-          )} */}
-
-          {/* {deal.notes && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h3 className="text-lg font-semibold mb-3">Notes</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{deal.notes}</p>
-            </div>
-          )} */}
+      
         </div>
 
         {/* Metadata & Timeline */}
@@ -185,103 +172,12 @@ export default function DealDetailPage() {
             </div>
           </div>
 
-          {/* Files Section
-          {deal.attachments && deal.attachments.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h3 className="text-lg font-semibold mb-4">Files</h3>
-              <ul className="space-y-2 text-sm">
-                {deal.attachments.map((file) => (
-                  <li key={file.id} className="flex items-center gap-2">
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline truncate"
-                    >
-                      {file.name}
-                    </a>
-                    <span className="text-gray-500 text-xs">({file.type})</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )} */}
+        
 
-          {/* Follow Up Section */}
-          {/* {deal.followUps && deal.followUps.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h3 className="text-lg font-semibold mb-4">Follow Ups</h3>
-              <ul className="space-y-3 text-sm">
-                {deal.followUps.map((followUp) => (
-                  <li key={followUp.id} className="border-b pb-2 last:border-b-0">
-                    <p className="font-medium">
-                      {new Date(followUp.date).toLocaleDateString()}
-                    </p>
-                    <p className="text-gray-700">{followUp.description}</p>
-                    <span
-                      className={`inline-block mt-1 px-2 py-1 rounded text-xs font-medium ${
-                        followUp.status.toUpperCase() === "PENDING"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : followUp.status.toUpperCase() === "COMPLETED"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {followUp.status}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )} */}
-
-          {/* People Section */}
-          {/* {deal.people && deal.people.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h3 className="text-lg font-semibold mb-4">People</h3>
-              <ul className="space-y-3 text-sm">
-                {deal.people.map((person) => (
-                  <li key={person.id} className="flex items-center gap-3">
-                    <div>
-                      <p className="font-medium">{person.name}</p>
-                      <p className="text-gray-500">{person.role}</p>
-                      {person.email && (
-                        <a
-                          href={`mailto:${person.email}`}
-                          className="text-blue-600 hover:underline text-xs"
-                        >
-                          {person.email}
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )} */}
-
-          {/* Comments Section */}
-          {/* {deal.comments && deal.comments.length > 0 && (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border">
-              <h3 className="text-lg font-semibold mb-4">Comments</h3>
-              <ul className="space-y-4 text-sm">
-                {deal.comments.map((comment) => (
-                  <li key={comment.id} className="border-b pb-3 last:border-b-0">
-                    <div className="flex justify-between">
-                      <p className="font-medium">{comment.author}</p>
-                      <p className="text-gray-500 text-xs">
-                        {new Date(comment.createdAt).toLocaleString()}
-                      </p>
-                    </div>
-                    <p className="text-gray-700 mt-1">{comment.content}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )} */}
-
+        
           {/* Tags Section */}
           <DealTags dealId={dealId} />
+          <CommentForm dealId={dealId} />
         </div>
       </div>
     </div>
