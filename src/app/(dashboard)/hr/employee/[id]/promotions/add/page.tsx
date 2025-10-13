@@ -73,7 +73,7 @@ export default function AddPromotionPage() {
 
       // Success UX: simple alert then navigate back to employee profile or promotions list
       alert("Promotion saved successfully")
-      router.push(`/dashboard/hr/employee/${employeeId}`)
+      router.push(`/hr/employee/${employeeId}`)
     } catch (err: any) {
       setError(err?.message || "Unexpected error")
     } finally {
