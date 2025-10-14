@@ -38,12 +38,9 @@ interface ChatWindowProps {
 }
 
 const fetcher = async (url: string) => {
-  const token = localStorage.getItem("accessToken")
-  if (!token) throw new Error("No access token found")
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  })
+  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+  const res = await fetch(url, { headers, cache: "no-store" })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(err?.error || "Failed to fetch")
@@ -98,7 +95,7 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
               <div key={msg.id} className={`flex items-start gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
                 {!isMine && (
                   <Image
-                    src={msg.senderDetails.profileUrl || "/placeholder-user.jpg"}
+                    src={msg.senderDetails.profileUrl || "/placeholder.svg?height=32&width=32&query=User%20avatar"}
                     alt={msg.senderDetails.name}
                     width={32}
                     height={32}
@@ -116,7 +113,7 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
             <div key={msg.id} className={`flex items-start gap-2 ${isMine ? "justify-end" : "justify-start"}`}>
               {!isMine && (
                 <Image
-                  src={msg.senderDetails.profileUrl || "/placeholder-user.jpg"}
+                  src={msg.senderDetails.profileUrl || "/placeholder.svg?height=32&width=32&query=User%20avatar"}
                   alt={msg.senderDetails.name}
                   width={32}
                   height={32}
@@ -124,7 +121,7 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
                 />
               )}
               <div
-                className={`px-3 py-2 rounded-xl max-w-xs break-words ${
+                className={`px-3 py-2 rounded-xl max-w-[75%] sm:max-w-md md:max-w-lg break-words ${
                   isMine ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
                 }`}
               >

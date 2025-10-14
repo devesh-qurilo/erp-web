@@ -43,12 +43,9 @@ export default function ChatRoomsList() {
     const fetchRooms = async () => {
       try {
         const token = localStorage.getItem("accessToken")
-        if (!token) {
-          setError("No access token found. Please log in.")
-          return
-        }
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
         const res = await fetch("/api/chats/rooms", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
           cache: "no-store",
         })
         if (!res.ok) throw new Error("Failed to fetch chat rooms")
@@ -86,7 +83,7 @@ export default function ChatRoomsList() {
             aria-label={`Open chat with ${partner.name}`}
           >
             <Image
-              src={partner.profileUrl || "/placeholder-user.jpg"}
+              src={partner.profileUrl || "/placeholder.svg?height=48&width=48&query=User%20avatar"}
               alt={partner.name}
               width={48}
               height={48}

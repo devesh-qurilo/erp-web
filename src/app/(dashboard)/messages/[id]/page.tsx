@@ -18,7 +18,12 @@ export default function ChatPage({
   // Get logged-in employee ID from localStorage
   useEffect(() => {
     const id = localStorage.getItem("employeeId")
-    if (id) setEmployeeId(id)
+    if (id) {
+      setEmployeeId(id)
+    } else {
+      localStorage.setItem("employeeId", "EMP-009")
+      setEmployeeId("EMP-009")
+    }
   }, [])
 
   // Build chatRoomId dynamically (consistent naming)

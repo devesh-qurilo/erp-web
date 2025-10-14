@@ -53,7 +53,8 @@ export default function ChatInput({
 
       if (!res.ok) {
         console.error("Send message error details:", data)
-        const messageFromServer = typeof data === "object" && data !== null ? (data.error || data.message) : String(data || "")
+        const messageFromServer =
+          typeof data === "object" && data !== null ? data.error || data.message : String(data || "")
         throw new Error(messageFromServer || "Failed to send message")
       }
 
@@ -68,19 +69,23 @@ export default function ChatInput({
   }
 
   return (
-    <form onSubmit={handleSendMessage} className="flex gap-2 items-center p-2 border-t bg-white">
+    <form onSubmit={handleSendMessage} className="flex gap-2 items-center p-2 border-t border-border bg-background">
       <input
         type="text"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Type a message..."
-        className="flex-1 border rounded px-3 py-2"
+        className="flex-1 border border-border rounded px-3 py-2 bg-background text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
       />
       <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="hidden" id="fileInput" />
-      <label htmlFor="fileInput" className="cursor-pointer bg-gray-200 px-3 py-2 rounded">
-        📎
+      <label htmlFor="fileInput" className="cursor-pointer bg-muted text-foreground px-3 py-2 rounded">
+        {"📎"}
       </label>
-      <button type="submit" disabled={loading} className="bg-blue-500 text-white px-4 py-2 rounded">
+      <button
+        type="submit"
+        disabled={loading}
+        className="bg-primary text-primary-foreground px-4 py-2 rounded disabled:opacity-50 hover:opacity-90"
+      >
         {loading ? "Sending..." : "Send"}
       </button>
     </form>

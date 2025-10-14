@@ -1,32 +1,22 @@
-// app/layout.tsx
-import ChatRoomsList from './_components/ChatRoomsList';
+import type React from "react"
+import ChatRoomsList from "./_components/ChatRoomsList"
 
-import { ReactNode } from 'react';
-
-
-interface LayoutProps {
-  children: ReactNode;
-}
-
-export const metadata = {
-  title: 'My App',
-  description: 'A Next.js 13+ Application',
-};
-
-export default function RootLayout({ children }: LayoutProps) {
+export default function MessagesLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en">
-      <head>
-        {/* Meta tags can also go here if not using metadata */}
-      </head>
-      <body className="min-h-screen flex flex-col">
-
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-6">
-        <ChatRoomsList />
-          {children}
-        </main>
-  
-      </body>
-    </html>
-  );
+    <div className="h-screen md:h-[calc(100vh-0rem)] flex flex-col md:flex-row">
+      <aside className="w-full md:w-80 border-b md:border-b-0 md:border-r border-border bg-card">
+        <div className="p-4 border-b border-border">
+          <h2 className="text-lg font-semibold text-foreground text-pretty">Chats</h2>
+        </div>
+        <div className="h-[calc(100vh-4rem)] md:h-screen overflow-y-auto">
+          <ChatRoomsList />
+        </div>
+      </aside>
+      <main className="flex-1 min-w-0 bg-background">{children}</main>
+    </div>
+  )
 }

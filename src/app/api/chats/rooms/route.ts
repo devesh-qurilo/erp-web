@@ -1,7 +1,7 @@
 // app/api/chat/rooms/route.ts
 import { NextResponse } from "next/server";
 
-const BASE_URL = "https://6jnqmj85-8080.inc1.devtunnels.ms/api/chat/rooms";
+const BASE_URL = "http://192.168.1.24/api/chat/rooms";
 
 export async function GET(request: Request ) {
   try {
