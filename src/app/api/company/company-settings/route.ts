@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = "https://6jnqmj85-8080.inc1.devtunnels.ms/employee/company";
+const API_URL = "http://192.168.1.24/employee/company";
 
 export async function POST(req: NextRequest) {
   try {

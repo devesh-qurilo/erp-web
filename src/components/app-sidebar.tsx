@@ -188,8 +188,31 @@ export function AppSidebar() {
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
+        {/* Setting */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Finance</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <a href="/finance/invoices">
+                  <CalendarCheck className="size-5" />
+                  <span> Invoices</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <a href="/finance/credit-notes">
+                  <CalendarX className="size-5" />
+                  <span>Credit Notes</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+           
+          </SidebarMenu>
+        </SidebarGroup>
 
-        {/* Message + Setting */}
+        {/* Message */}
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -200,14 +223,30 @@ export function AppSidebar() {
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
+{/* Setting */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/settings">
-                  <Settings className="size-5" />
-                  <span>Setting</span>
+                <a href="/settings/company-settings">
+                  <CalendarCheck className="size-5" />
+                  <span>Company Settings</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <a href="/settings/profile-settings">
+                  <CalendarX className="size-5" />
+                  <span>Profile Settings</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+           
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
