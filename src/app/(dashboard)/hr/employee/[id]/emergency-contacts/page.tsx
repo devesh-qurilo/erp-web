@@ -69,7 +69,7 @@ export default function EmployeeEmergencyContactsPage() {
 
   return (
     <main className="container mx-auto p-4">
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <Link href="/hr/employee" className="text-sm text-primary underline">
           ← Back to Employees
         </Link>
@@ -88,13 +88,13 @@ export default function EmployeeEmergencyContactsPage() {
             <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-muted">
               {employee?.profilePictureUrl ? (
                 <img
-                  src={employee.profilePictureUrl || "/placeholder.svg"}
+                  src={employee.profilePictureUrl}
                   alt={`${employee.name} avatar`}
                   className="h-full w-full object-cover"
                   crossOrigin="anonymous"
                 />
               ) : (
-                <img src="/employee-avatar.png" alt="" className="h-full w-full object-cover" />
+                <img src="/placeholder.svg" alt="" className="h-full w-full object-cover" />
               )}
             </div>
             <div>

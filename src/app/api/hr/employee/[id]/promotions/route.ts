@@ -33,14 +33,21 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
   }
   
-  
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+
+  export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
     try {
+      if (!params?.id) {
+        return new Response(JSON.stringify({ error: "Missing employee ID" }), {
+          status: 400,
+          headers: { "content-type": "application/json" },
+        })
+      }
+  
       const authHeader = request.headers.get("authorization") || undefined
       const body = await request.text()
-
-      const url = `${API_BASE}/admin/api/promotions/employee/${params.id}`
-
+  
+      const url = `${API_BASE}/admin/api/promotions/employee/${encodeURIComponent(params.id)}`
+  
       const upstream = await fetch(url, {
         method: "POST",
         headers: {
@@ -50,18 +57,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         body,
         cache: "no-store",
       })
-
+  
       const responseBody = await upstream.text()
       const contentType = upstream.headers.get("content-type") || "application/json"
-
+  
       return new Response(responseBody, {
         status: upstream.status,
         headers: { "content-type": contentType },
       })
     } catch (e) {
+      console.error("Failed to create promotion:", e)
       return new Response(JSON.stringify({ error: "Failed to create promotion" }), {
         status: 500,
         headers: { "content-type": "application/json" },
       })
     }
   }
+  

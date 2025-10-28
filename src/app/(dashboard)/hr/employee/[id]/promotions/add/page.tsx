@@ -33,49 +33,57 @@ export default function AddPromotionPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
     if (!employeeId) {
-      setError("Missing employee id in route")
+      setError("Missing employee ID in route")
       return
     }
+
+    if (!form.oldDesignationId || !form.newDesignationId) {
+      setError("Both old and new designation IDs are required")
+      return
+    }
+
     setSubmitting(true)
     setError(null)
+
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+      if (!token) throw new Error("Authentication required")
+
       const res = await fetch(`/api/hr/employee/${employeeId}/promotions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(form),
       })
 
       const contentType = res.headers.get("content-type") || "application/json"
       const raw = await res.text()
-      let data: any = null
-      if (raw && contentType.includes("application/json")) {
+
+      let data: any = raw
+      if (contentType.includes("application/json")) {
         try {
           data = JSON.parse(raw)
         } catch {
-          // leave data as raw text fallback
-          data = raw
+          // fallback to raw string
         }
-      } else {
-        data = raw
       }
 
       if (!res.ok) {
-        const message = typeof data === "string" && data.trim().length > 0
-          ? data
-          : (data?.message || `Failed to create promotion (status ${res.status})`)
+        const message =
+          typeof data === "string" && data.trim().length > 0
+            ? data
+            : data?.message || `Failed to create promotion (status ${res.status})`
         throw new Error(message)
       }
 
-      // Success UX: simple alert then navigate back to employee profile or promotions list
       alert("Promotion saved successfully")
       router.push(`/hr/employee/${employeeId}`)
     } catch (err: any) {
-      setError(err?.message || "Unexpected error")
+      setError(err?.message || "Unexpected error occurred")
     } finally {
       setSubmitting(false)
     }
@@ -84,63 +92,31 @@ export default function AddPromotionPage() {
   return (
     <div className="p-4 max-w-2xl">
       <h1 className="text-xl font-semibold mb-4">Add Promotion</h1>
-      {error ? (
-        <div className="mb-4 text-red-600 text-sm">{error}</div>
-      ) : null}
+
+      {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">Old Designation ID</span>
-            <input
-              type="number"
-              className="border rounded px-3 py-2"
-              value={form.oldDesignationId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, oldDesignationId: Number(e.target.value) }))
-              }
-              required
-              min={1}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">Old Department ID</span>
-            <input
-              type="number"
-              className="border rounded px-3 py-2"
-              value={form.oldDepartmentId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, oldDepartmentId: Number(e.target.value) }))
-              }
-              required
-              min={1}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">New Department ID</span>
-            <input
-              type="number"
-              className="border rounded px-3 py-2"
-              value={form.newDepartmentId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, newDepartmentId: Number(e.target.value) }))
-              }
-              required
-              min={1}
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-sm">New Designation ID</span>
-            <input
-              type="number"
-              className="border rounded px-3 py-2"
-              value={form.newDesignationId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, newDesignationId: Number(e.target.value) }))
-              }
-              required
-              min={1}
-            />
-          </label>
+          {[
+            { label: "Old Designation ID", key: "oldDesignationId" },
+            { label: "Old Department ID", key: "oldDepartmentId" },
+            { label: "New Department ID", key: "newDepartmentId" },
+            { label: "New Designation ID", key: "newDesignationId" },
+          ].map(({ label, key }) => (
+            <label key={key} className="flex flex-col gap-1">
+              <span className="text-sm">{label}</span>
+              <input
+                type="number"
+                className="border rounded px-3 py-2"
+                value={form[key as keyof PromotionPayload] as number}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, [key]: Number(e.target.value) }))
+                }
+                required
+                min={1}
+              />
+            </label>
+          ))}
         </div>
 
         <div className="flex items-center gap-4">
@@ -152,6 +128,7 @@ export default function AddPromotionPage() {
             />
             <span className="text-sm">Is Promotion</span>
           </label>
+
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
@@ -194,5 +171,3 @@ export default function AddPromotionPage() {
     </div>
   )
 }
-
-

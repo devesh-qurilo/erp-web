@@ -6,18 +6,21 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const year = searchParams.get("year");
     const month = searchParams.get("month");
-    const authHeader = req.headers.get("authorization");
+   
 
-    if (!authHeader) {
-      return NextResponse.json({ error: "Missing Authorization Header" }, { status: 401 });
-    }
 
+      const authHeader = req.headers.get("authorization");
+  
+      if (!authHeader) {
+        return NextResponse.json({ error: "Missing Authorization Header" }, { status: 401 });
+      }
+  
     if (!year || !month) {
       return NextResponse.json({ error: "Year and Month are required" }, { status: 400 });
     }
 
     const response = await fetch(
-      `https://6jnqmj85-8080.inc1.devtunnels.ms/employee/api/holidays/month?year=${year}&month=${month}`,
+      `https://chat.swiftandgo.in/employee/api/holidays/month?year=${year}&month=${month}`,
       {
         headers: {
           Authorization: authHeader,

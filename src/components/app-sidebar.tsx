@@ -140,7 +140,7 @@ export function AppSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/hr/leave">
+                <a href="/hr/leave/admin">
                   <CalendarX className="size-5" />
                   <span>Leave</span>
                 </a>

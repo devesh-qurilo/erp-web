@@ -13,7 +13,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
 
     const response = await fetch(
-      `https://6jnqmj85-8080.inc1.devtunnels.ms/employee/api/holidays/${id}`,
+      `https://chat.swiftandgo.in/employee/api/holidays/${id}`,
       {
         method: "PUT",
         headers: {

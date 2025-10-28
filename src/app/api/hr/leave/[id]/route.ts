@@ -1,15 +1,20 @@
+// app/api/hr/leave/[id]/route.ts (GET handler for fetching a single leave)
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    // take accessToken from browser's localStorage equivalent (client must send it in headers)
     const accessToken = req.headers.get("authorization")?.replace("Bearer ", "");
 
     if (!accessToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const res = await fetch("https://chat.swiftandgo.in/employee/api/leaves", {
+    const { id: leaveId } = await params;
+
+    const res = await fetch(`https://chat.swiftandgo.in/employee/api/leaves/${leaveId}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${accessToken}`,
