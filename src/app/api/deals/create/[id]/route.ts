@@ -10,7 +10,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const accessToken = authHeader.split(" ")[1];
     const body = await request.json();
 
-    const res = await fetch(`https://6jnqmj85-8080.inc1.devtunnels.ms/deals/${params.id}`, {
+    console.log("🟡 PUT /api/deals/create/[id]", params.id, body);
+
+    const res = await fetch(`https://chat.swiftandgo.in/deals/${params.id}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -20,12 +22,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       body: JSON.stringify(body),
     });
 
+    console.log("🟠 Remote API response:", res.status, res.statusText);
+
+    const text = await res.text();
+    console.log("🔵 Remote API raw body:", text);
+
     if (!res.ok) {
-      throw new Error(`Failed to update deal: ${res.statusText}`);
+      return NextResponse.json(
+        { error: `Upstream failed: ${res.status} ${res.statusText}`, details: text },
+        { status: res.status }
+      );
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
+    return NextResponse.json(JSON.parse(text));
   } catch (error: any) {
     console.error("Error updating deal:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     }
 
     const accessToken = authHeader.split(" ")[1];
-    const res = await fetch("https://6jnqmj85-8080.inc1.devtunnels.ms/stages", {
+    const res = await fetch("https://chat.swiftandgo.in/stages", {
       cache: "no-store",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     const accessToken = authHeader.split(" ")[1];
     const body = await request.json();
 
-    const res = await fetch("https://6jnqmj85-8080.inc1.devtunnels.ms/stages", {
+    const res = await fetch("https://chat.swiftandgo.in/stages", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,

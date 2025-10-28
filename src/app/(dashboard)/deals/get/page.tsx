@@ -134,17 +134,7 @@ export default function DealsPage() {
               <TableRow key={deal.id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    {deal.dealAgentMeta?.profileUrl ? (
-                      <Image
-                        src={deal.dealAgentMeta.profileUrl || "/placeholder.svg"}
-                        alt={deal.dealAgentMeta.name}
-                        width={36}
-                        height={36}
-                        className="rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-9 w-9 rounded-full bg-muted" aria-hidden="true" />
-                    )}
+                 
                     <div className="min-w-0">
                       <Link href={`/deals/get/${deal.id}`} className="line-clamp-1 font-medium hover:underline">
                         {deal.title}
@@ -175,7 +165,7 @@ export default function DealsPage() {
                         <Link href={`/deals/get/${deal.id}`}>View</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href={`/deals/edit/${deal.id}`}>Edit</Link>
+                        <Link href={`/deals/create/${deal.id}`}>Edit</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => console.log("[v0] Delete clicked for deal:", deal.id)}>
                         Delete
