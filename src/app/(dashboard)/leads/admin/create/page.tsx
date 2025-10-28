@@ -130,61 +130,77 @@ export default function LeadCreatePage() {
             };
         });
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
         setIsSubmitting(true);
-
+      
         // Basic validation
         if (!formData.name || !formData.email || !formData.companyName) {
-            setError("Name, email, and company name are required.");
-            setIsSubmitting(false);
-            return;
+          setError("Name, email, and company name are required.");
+          setIsSubmitting(false);
+          return;
         }
-
+      
         if (
-            formData.autoConvertToClient &&
-            formData.createDeal &&
-            (!formData.deal?.title ||
-                !formData.deal?.value ||
-                !formData.deal?.expectedCloseDate ||
-                !formData.deal?.dealAgent)
+          formData.autoConvertToClient &&
+          formData.createDeal &&
+          (!formData.deal?.title ||
+            !formData.deal?.value ||
+            !formData.deal?.expectedCloseDate ||
+            !formData.deal?.dealAgent)
         ) {
-            setError("Deal title, value, expected close date, and deal agent are required when creating a deal.");
-            setIsSubmitting(false);
-            return;
+          setError("Deal title, value, expected close date, and deal agent are required when creating a deal.");
+          setIsSubmitting(false);
+          return;
         }
-
+      
         try {
-            const accessToken = localStorage.getItem("accessToken");
-            if (!accessToken) {
-                throw new Error("No access token found. Please log in.");
-            }
-
-            const response = await fetch("/api/leads/admin/get", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                    Accept: "application/json",
-                },
-                body: JSON.stringify(formData),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.details || errorData.error || "Failed to create lead.");
-            }
-
-            const data = await response.json();
-            router.push(`/leads/admin/get`); // Redirect to the new lead's detail page
+          const accessToken = localStorage.getItem("accessToken");
+          if (!accessToken) {
+            throw new Error("No access token found. Please log in.");
+          }
+      
+          // 🧹 Clean payload — ensure only IDs for employee-related fields
+          const cleanDeal = formData.deal
+            ? {
+                ...formData.deal,
+                dealAgent: formData.deal.dealAgent || "",
+                dealWatchers: (formData.deal.dealWatchers || []).map((id) => id),
+              }
+            : undefined;
+      
+          const payload = {
+            ...formData,
+            leadOwner: formData.leadOwner || "",
+            addedBy: formData.addedBy || "",
+            deal: cleanDeal,
+          };
+      
+          const response = await fetch("/api/leads/admin/create", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+      
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.details || errorData.error || "Failed to create lead.");
+          }
+      
+          const data = await response.json();
+          router.push(`/leads/admin/get`);
         } catch (err: any) {
-            setError(err.message || "An unexpected error occurred.");
+          setError(err.message || "An unexpected error occurred.");
         } finally {
-            setIsSubmitting(false);
+          setIsSubmitting(false);
         }
-    };
+      };
+      
 
     return (
         <main className="container mx-auto max-w-6xl px-4 py-8">
@@ -336,7 +352,7 @@ export default function LeadCreatePage() {
                                     </option>
                                     {employees.map((employee) => (
                                         <option key={employee.employeeId} value={employee.employeeId}>
-                                            {employee.name} ({employee.employeeId})
+                                          {employee.name}   ({employee.employeeId})
                                         </option>
                                     ))}
                                 </select>

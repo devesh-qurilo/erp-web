@@ -55,7 +55,7 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/leads">
+                <a href="/leads/admin/get">
                   <Users className="size-5" />
                   <span>Leads</span>
                 </a>
@@ -63,7 +63,7 @@ export function AppSidebar() {
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <a href="/deals">
+                <a href="/deals/get">
                   <Briefcase className="size-5" />
                   <span>Deals</span>
                 </a>

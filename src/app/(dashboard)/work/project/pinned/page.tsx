@@ -42,7 +42,7 @@ interface Project {
   isArchived?: boolean
 }
 
-export default function AllProjectsPage() {
+export default function PinnedProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState<string | null>(null)
@@ -56,6 +56,7 @@ export default function AllProjectsPage() {
 
   const getProjects = useCallback(
     async (accessToken: string) => {
+      setLoading(true)
       try {
         const params = new URLSearchParams({
           page: currentPage.toString(),
@@ -64,6 +65,7 @@ export default function AllProjectsPage() {
           status: statusFilter !== "all" ? statusFilter : "",
           progress: progressFilter !== "all" ? progressFilter : "",
           duration: durationFilter !== "all" ? durationFilter : "",
+          pinned: "true",
         })
 
         const res = await fetch(`/api/work/project?${params}`, {
@@ -127,49 +129,36 @@ export default function AllProjectsPage() {
     console.log("Edit project:", projectId)
   }
 
- // ... (imports and other state unchanged)
-
-// Updated handlePin
-const handlePin = async (projectId: number) => {
+  const handlePin = async (projectId: number) => {
     const projectIndex = projects.findIndex(p => p.id === projectId)
     if (projectIndex === -1) return
-  
-    const currentProject = projects[projectIndex]
-    const newPinnedStatus = !currentProject.isPinned
-  
-    // Optimistic update
-    setProjects(prev => prev.map((p, i) => 
-      i === projectIndex ? { ...p, isPinned: newPinnedStatus } : p
-    ))
-  
+
+    // Optimistic update: Remove from list
+    const optimisticProjects = projects.filter(p => p.id !== projectId)
+    setProjects(optimisticProjects)
+
     try {
       const res = await fetch(`/api/work/project/${projectId}/pin`, {
-        method: "POST",
+        method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token!}`, // Assume token is set
+          Authorization: `Bearer ${token!}`,
           "Content-Type": "application/json",
         },
-        // Optional: body: JSON.stringify({ pinned: newPinnedStatus }) if API needs it
       })
-  
+
       if (!res.ok) {
-        throw new Error(`Failed to ${newPinnedStatus ? 'pin' : 'unpin'} project`)
+        throw new Error("Failed to unpin project")
       }
-  
-      // On success, refetch to ensure sync (in case API updates other fields)
+
+      // On success, refetch to update the list
       await getProjects(token!)
-      console.log(`${newPinnedStatus ? 'Pinned' : 'Unpinned'} project:`, projectId)
+      console.log("Unpinned project:", projectId)
     } catch (err) {
-      // Rollback optimistic update
-      setProjects(prev => prev.map((p, i) => 
-        i === projectIndex ? { ...p, isPinned: !newPinnedStatus } : p
-      ))
-      console.error("Failed to pin/unpin:", err)
-      // Optional: Show user-facing error (e.g., alert or toast)
+      // Rollback: Restore the project
+      setProjects(projects)
+      console.error("Failed to unpin:", err)
     }
   }
-  
-  
 
   const handleArchive = (projectId: number) => {
     console.log("Archive project:", projectId)
@@ -281,7 +270,6 @@ const handlePin = async (projectId: number) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-            
               <DropdownMenuItem onClick={() => handleView(project.id)} className="gap-2">
                             <Eye className="h-4 w-4" />
                             <Link href={`/work/project/${project.id}`} >
@@ -296,7 +284,7 @@ const handlePin = async (projectId: number) => {
 </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handlePin(project.id)} className="gap-2">
                 <Pin className="h-4 w-4" />
-                {project.isPinned ? "Unpin" : "Pin"} Project
+                Unpin Project
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleArchive(project.id)} className="gap-2">
@@ -375,8 +363,11 @@ const handlePin = async (projectId: number) => {
       </div>
 
       <div className="bg-white rounded-lg border overflow-hidden">
-        <div className="bg-gray-50 px-6 py-3 border-b">
-          <h2 className="font-semibold text-gray-900">All Projects ({projects.length})</h2>
+        <div className="bg-blue-50 px-6 py-3 border-b">
+          <h2 className="font-semibold text-blue-900 flex items-center gap-2">
+            <Pin className="w-4 h-4" />
+            Pinned Projects ({projects.length})
+          </h2>
         </div>
         <Table>
           <TableHeader>
@@ -398,7 +389,7 @@ const handlePin = async (projectId: number) => {
             ) : (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-gray-500">
-                  No projects found
+                  No pinned projects yet. Pin a project to see it here.
                 </TableCell>
               </TableRow>
             )}
@@ -406,31 +397,33 @@ const handlePin = async (projectId: number) => {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
-          Page {currentPage} of {totalPages}
-        </p>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+      {projects.length > 0 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-600">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

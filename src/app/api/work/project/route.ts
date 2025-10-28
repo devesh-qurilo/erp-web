@@ -129,3 +129,50 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Server Error" }, { status: 500 });
     }
   }
+
+  export async function PUT(request: Request) {
+    try {
+      const authHeader = request.headers.get("Authorization")
+      if (!authHeader?.startsWith("Bearer ")) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+  
+      const accessToken = authHeader.split(" ")[1]
+      const { searchParams } = new URL(request.url)
+      const projectId = searchParams.get("id")
+  
+      if (!projectId) {
+        return NextResponse.json({ error: "Project ID is required" }, { status: 400 })
+      }
+  
+      const contentType = request.headers.get("content-type")
+      let body
+  
+      if (contentType?.includes("application/json")) {
+        body = await request.json()
+      } else {
+        body = await request.formData()
+      }
+  
+      const res = await fetch(`https://chat.swiftandgo.in/api/projects/${projectId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...(contentType?.includes("application/json") && { "Content-Type": "application/json" }),
+        },
+        body: contentType?.includes("application/json") ? JSON.stringify(body) : body,
+      })
+  
+      const data = await res.json()
+  
+      if (!res.ok) {
+        return NextResponse.json({ error: data || "Failed to update project" }, { status: res.status })
+      }
+  
+      return NextResponse.json(data)
+    } catch (error) {
+      console.error("Error updating project:", error)
+      return NextResponse.json({ message: "Server Error" }, { status: 500 })
+    }
+  }
+  
