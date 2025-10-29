@@ -1,8 +1,9 @@
 "use client"
+
 import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import useSWR from "swr"
-import ChatInput from "./ChatInput" // ✅ import ChatInput here
+import ChatInput from "./ChatInput"
 
 interface Message {
   id: number
@@ -62,10 +63,17 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
   const { data, error, isLoading, mutate } = useSWR<Message[]>(
     receiverId ? `/api/chats/history/${receiverId}` : null,
     fetcher,
-    { revalidateOnFocus: true },
+    { revalidateOnFocus: true }
   )
 
   const messages = data || []
+
+  // Extract receiver details for header
+  const receiverDetails =
+    messages.length > 0
+      ? messages.find((m) => m.receiverDetails.employeeId === receiverId)?.receiverDetails ||
+        messages[0]?.senderDetails
+      : null
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -85,6 +93,25 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
 
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-background">
+      {/* 👤 Chat Header */}
+      {receiverDetails && (
+        <div className="flex items-center gap-3 bg-muted px-4 py-3 border-b border-border">
+          <Image
+            src={receiverDetails.profileUrl || "/placeholder.svg?height=48&width=48&query=User%20avatar"}
+            alt={receiverDetails.name}
+            width={48}
+            height={48}
+            className="rounded-full"
+          />
+          <div>
+            <h2 className="font-semibold text-foreground">{receiverDetails.name}</h2>
+            <p className="text-sm text-muted-foreground">
+              {receiverDetails.designation || "No designation"} · {receiverDetails.department || "No department"}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* 💬 Messages list */}
       <div className="flex-1 p-4 overflow-y-auto space-y-3">
         {messages.map((msg) => {
@@ -143,7 +170,7 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 📨 ChatInput integrated here */}
+      {/* 📨 ChatInput */}
       <ChatInput
         chatRoomId={chatRoomId}
         senderId={currentUserId}

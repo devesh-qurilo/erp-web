@@ -34,46 +34,68 @@ interface ChatRoom {
   unreadCount: number
 }
 
+interface CurrentUser {
+  employeeId: string
+}
+
 export default function ChatRoomsList() {
   const [rooms, setRooms] = useState<ChatRoom[]>([])
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem("accessToken")
-        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
-        const res = await fetch("/api/chats/rooms", {
-          headers,
-          cache: "no-store",
-        })
-        if (!res.ok) throw new Error("Failed to fetch chat rooms")
-        const data = await res.json()
-        setRooms(data)
+        if (!token) {
+          throw new Error("No access token found")
+        }
+
+        const headers: HeadersInit = { Authorization: `Bearer ${token}` }
+
+        const [profileRes, roomsRes] = await Promise.all([
+          fetch("/api/profile", { headers }),
+          fetch("/api/chats/rooms", { headers, cache: "no-store" })
+        ])
+
+        if (!profileRes.ok) {
+          throw new Error("Failed to fetch profile")
+        }
+        if (!roomsRes.ok) {
+          throw new Error("Failed to fetch chat rooms")
+        }
+
+        const profileData = await profileRes.json()
+        setCurrentUser({ employeeId: profileData.employeeId })
+
+        const roomsData = await roomsRes.json()
+        setRooms(roomsData)
       } catch (err: any) {
         console.error(err)
-        setError(err.message || "Failed to fetch chat rooms")
+        setError(err.message || "An error occurred")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchRooms()
+    fetchData()
   }, [])
 
   if (loading) return <p className="text-center text-muted-foreground">Loading chats...</p>
   if (error) return <p className="text-center text-destructive">{error}</p>
 
-  if (!rooms.length) return <p className="text-center text-muted-foreground">No chat rooms found.</p>
+  if (!currentUser) {
+    return <p className="text-center text-muted-foreground">Unable to load user profile.</p>
+  }
 
-  const currentUserId = "EMP-009" // from auth/session in real case
+  if (!rooms.length) return <p className="text-center text-muted-foreground">No chat rooms found.</p>
 
   return (
     <div className="space-y-3 p-4 bg-background">
       {rooms.map((room) => {
         const partner =
-          room.participant1Details.employeeId === currentUserId ? room.participant2Details : room.participant1Details
+          room.participant1Details.employeeId === currentUser.employeeId ? room.participant2Details : room.participant1Details
 
         return (
           <Link
