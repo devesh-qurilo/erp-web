@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const BASE_URL = "https://chat.swiftandgo.in/api/chat/history";
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  // Ensure params.id is accessed safely
-  const id = params.id;
+  const { id } = await params;
 
   // Validate the id
   if (!id) {
@@ -36,8 +35,8 @@ export async function GET(
 
     const data = await res.json();
     return NextResponse.json(data);
-  } catch (error: any) {
-    console.error("Error fetching chat history:", error.message);
+  } catch (error: unknown) {
+    console.error("Error fetching chat history:", error instanceof Error ? error.message : "Unknown error");
     return NextResponse.json(
       { error: "Failed to fetch chat history" },
       { status: 500 }
