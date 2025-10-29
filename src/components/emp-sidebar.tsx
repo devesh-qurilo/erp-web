@@ -114,39 +114,26 @@ export function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link href="/employee/hr/leave/admin">
+                <Link href="/employee/hr/leave">
                   <CalendarX className="size-5" />
                   <span>Leave</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-
-            <SidebarMenuItem>
+ <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link href="/employee/hr/awards">
-                  <Award className="size-5" />
-                  <span>Awards</span>
+                <Link href="/employee/hr/attendance">
+                  <CalendarDays className="size-5" />
+                  <span>Attendance</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/employee/hr/employee">
-                  <Users className="size-5" />
-                  <span>Employee</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+           
 
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/employee/hr/designation">
-                  <Briefcase className="size-5" />
-                  <span>Designation</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+          
+
+         
 
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
@@ -165,32 +152,19 @@ export function AppSidebar() {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
 
-        {/* Finance */}
-        <SidebarGroup>
-          <SidebarGroupLabel>Finance</SidebarGroupLabel>
-          <SidebarMenu>
-            <SidebarMenuItem>
+              <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link href="/employee/finance/invoices">
-                  <CalendarCheck className="size-5" />
-                  <span>Invoices</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="/employee/finance/credit-notes">
-                  <CalendarX className="size-5" />
-                  <span>Credit Notes</span>
+                <Link href="/employee/hr/awards">
+                  <Award className="size-5" />
+                  <span>Awards</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
+
+       
 
         {/* Messages */}
         <SidebarGroup>
