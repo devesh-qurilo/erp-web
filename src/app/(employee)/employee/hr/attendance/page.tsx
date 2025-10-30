@@ -1,11 +1,29 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import React from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, Search, ChevronLeft, ChevronRight } from "lucide-react"
+import {
+  Calendar,
+} from "@/components/ui/calendar"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type Attendance = {
   date: string
@@ -36,7 +54,7 @@ const STATUS_CONFIG = {
   halfDay: { label: "Half Day", color: "bg-blue-100 text-blue-800", symbol: "◐" },
   leave: { label: "Leave", color: "bg-purple-100 text-purple-800", symbol: "🏖" },
   holiday: { label: "Holiday", color: "bg-gray-100 text-gray-800", symbol: "★" },
-}
+} as const
 
 const getStatusBadge = (attendance: Attendance) => {
   if (attendance.holiday) return STATUS_CONFIG.holiday
@@ -45,6 +63,15 @@ const getStatusBadge = (attendance: Attendance) => {
   if (attendance.late) return STATUS_CONFIG.late
   if (attendance.isPresent) return STATUS_CONFIG.present
   return STATUS_CONFIG.absent
+}
+
+const getStatusKey = (attendance: Attendance): keyof typeof STATUS_CONFIG => {
+  if (attendance.holiday) return "holiday"
+  if (attendance.leave) return "leave"
+  if (attendance.halfDay) return "halfDay"
+  if (attendance.late) return "late"
+  if (attendance.isPresent) return "present"
+  return "absent"
 }
 
 const ITEMS_PER_PAGE = 10
@@ -58,37 +85,139 @@ export default function AttendancePage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
 
-  useEffect(() => {
-    const fetchAttendance = async () => {
-      try {
-        const token = localStorage.getItem("accessToken")
-        if (!token) {
-          setError("No access token found. Please login again.")
-          setLoading(false)
-          return
-        }
+  const [month, setMonth] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [tempStatus, setTempStatus] = useState<keyof typeof STATUS_CONFIG>("absent")
 
-        const res = await fetch("/api/hr/attendance", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch attendance")
-        }
-
-        const data = await res.json()
-        setAttendance(data)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
+  const fetchAttendance = useCallback(async () => {
+    setLoading(true)
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) {
+        setError("No access token found. Please login again.")
         setLoading(false)
+        return
       }
-    }
 
-    fetchAttendance()
+      const res = await fetch("/api/hr/attendance", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!res.ok) {
+        throw new Error("Failed to fetch attendance")
+      }
+
+      const data = await res.json()
+      setAttendance(data)
+      setError(null)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchAttendance()
+  }, [fetchAttendance])
+
+  const dateToAttendance = useMemo(() => {
+    return attendance.reduce((acc, rec) => {
+      acc[rec.date] = rec
+      return acc
+    }, {} as Record<string, Attendance>)
+  }, [attendance])
+
+  useEffect(() => {
+    if (selectedDate) {
+      const att = dateToAttendance[selectedDate]
+      setTempStatus(att ? getStatusKey(att) : "absent")
+    }
+  }, [selectedDate, dateToAttendance])
+
+  const flagMap: Record<keyof typeof STATUS_CONFIG, Partial<Attendance>> = {
+    present: { isPresent: true, late: false, halfDay: false, leave: false, holiday: false },
+    absent: { isPresent: false, late: false, halfDay: false, leave: false, holiday: false },
+    late: { isPresent: true, late: true, halfDay: false, leave: false, holiday: false },
+    halfDay: { isPresent: true, late: false, halfDay: true, leave: false, holiday: false },
+    leave: { leave: true, isPresent: false, late: false, halfDay: false, holiday: false },
+    holiday: { holiday: true, isPresent: false, late: false, halfDay: false, leave: false },
+  }
+
+  const handleUpdate = async (statusKey: keyof typeof STATUS_CONFIG) => {
+    if (!selectedDate) return
+
+    const att = dateToAttendance[selectedDate]
+    const updates = flagMap[statusKey]
+    const url = att ? `/api/hr/attendance/${att.attendanceId}` : "/api/hr/attendance"
+    const method = att ? "PUT" : "POST"
+    const currentEmployeeId = attendance[0]?.employeeId || ""
+    const currentEmployeeName = attendance[0]?.employeeName || ""
+    const bodyObj = att ? updates : { ...updates, date: selectedDate, employeeId: currentEmployeeId, employeeName: currentEmployeeName }
+    const body = JSON.stringify(bodyObj)
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body,
+      })
+
+      if (!res.ok) {
+        throw new Error(`Failed to ${method.toLowerCase()} attendance`)
+      }
+
+      await fetchAttendance()
+      setSelectedDate(null)
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  const CustomDayButton = React.forwardRef<
+    HTMLButtonElement,
+    React.ButtonHTMLAttributes<HTMLButtonElement> & {
+      day: { date: Date }
+      modifiers?: Record<string, boolean>
+    }
+  >(({ className, day, ...props }, ref) => {
+    const dateStr = day.date.toISOString().split("T")[0]
+    const att = dateToAttendance[dateStr]
+    const badge = att ? getStatusBadge(att) : null
+
+   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    props.onClick?.(e);
+    setSelectedDate(dateStr);
+  };
+
+    return (
+      <button
+        ref={ref}
+        className={className}
+        onClick={handleClick}
+        {...props}
+      >
+        <div className="relative flex h-full w-full items-center justify-center p-0">
+          <span className="text-sm font-medium">{day.date.getDate()}</span>
+          {badge && (
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 text-[0.6rem] font-bold ${badge.color}`}
+            >
+              {badge.symbol}
+            </span>
+          )}
+        </div>
+      </button>
+    )
+  })
+
+  CustomDayButton.displayName = "CustomDayButton"
 
   const filteredAttendance = useMemo(() => {
     return attendance.filter((record) => {
@@ -97,9 +226,9 @@ export default function AttendancePage() {
       if (statusFilter === "all") return matchesSearch
 
       const badge = getStatusBadge(record)
-      const statusKey = Object.entries(STATUS_CONFIG).find(([_, config]) => config.label === statusFilter)?.[0]
+      const statusKey = Object.entries(STATUS_CONFIG).find(([_, config]) => config.label === statusFilter)?.[0] as keyof typeof STATUS_CONFIG
 
-      return matchesSearch && badge === STATUS_CONFIG[statusKey as keyof typeof STATUS_CONFIG]
+      return matchesSearch && badge === STATUS_CONFIG[statusKey]
     })
   }, [attendance, searchTerm, statusFilter])
 
@@ -157,6 +286,21 @@ export default function AttendancePage() {
             Showing {paginatedAttendance.length} of {filteredAttendance.length} records
           </p>
         </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="font-semibold mb-4">Calendar View</h3>
+        <Calendar
+          mode="single"
+          selected={undefined}
+          onSelect={() => {}}
+          month={month}
+          onMonthChange={setMonth}
+          components={{
+            DayButton: (props: any) => <CustomDayButton {...props} />,
+          }}
+          className="rounded-md border shadow-sm"
+        />
       </Card>
 
       <Card className="p-6">
@@ -231,6 +375,39 @@ export default function AttendancePage() {
           </div>
         )}
       </Card>
+
+      <Dialog open={selectedDate !== null} onOpenChange={(open) => { if (!open) setSelectedDate(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Attendance for {selectedDate}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={tempStatus} onValueChange={(value: keyof typeof STATUS_CONFIG) => setTempStatus(value)}>
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                    <SelectItem key={key} value={key as keyof typeof STATUS_CONFIG}>
+                      {config.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setSelectedDate(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => handleUpdate(tempStatus)}>
+                Update
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Card className="p-6 bg-gray-50">
         <h3 className="font-semibold mb-4">Status Legend</h3>
