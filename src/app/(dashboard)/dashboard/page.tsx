@@ -12,7 +12,6 @@ import {
   Target,
   AlertCircle,
 } from "lucide-react";
-import Link from "next/link";
 
 interface Employee {
   employeeId: string;
@@ -180,9 +179,7 @@ const Dashboard = () => {
                 <p className="text-lg">Clock in: {currentTime}</p>
               </div>
             </div>
-           
             <div className="bg-red-500 backdrop-blur-sm rounded-xl p-4 text-right border border-white/20">
-             <link href={"/profile"} >
               <p className="text-xl font-semibold">{employee.name}</p>
               <p className="text-primary-foreground/80">
                 {employee.designationName} · {employee.departmentName}
@@ -190,11 +187,8 @@ const Dashboard = () => {
               <p className="text-sm text-primary-foreground/60">
                 Employee Code: {employee.employeeId}
               </p>
-              </link>
             </div>
-           
           </div>
-          
         </div>
 
         {/* ✅ Summary Cards */}
