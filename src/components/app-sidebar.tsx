@@ -31,7 +31,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center justify-center px-4 py-6">
+        <div className="flex items-center justify-center bg-amber-400 px-4 py-6">
           {/* <h1 className="text-2xl font-bold text-sidebar-primary">Qurilo</h1> */}
         </div>
       </SidebarHeader>
