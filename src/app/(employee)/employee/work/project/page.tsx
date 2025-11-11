@@ -170,7 +170,7 @@ export default function ProjectsPage() {
                   <TableHeader className="bg-muted/50">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="font-semibold">Code</TableHead>
-                      <TableHead className="font-semibold">Project Name</TableHead>
+                      <TableHead className="font-semibold">Project Name  nandini</TableHead>
                       <TableHead className="font-semibold">Category</TableHead>
                       <TableHead className="font-semibold text-right">Budget</TableHead>
                       <TableHead className="font-semibold">Client</TableHead>

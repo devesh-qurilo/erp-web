@@ -1,12 +1,12 @@
 'use client';
-
+import { setAuthToken, getAPI, postAPI } from "../../api/apiHelper";
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-
+import { setStorage } from "../../../lib/storage/storege";
 export default function LoginPage() {
   const [role, setRole] = useState<'employee' | 'admin'>('employee');
   const [employeeId, setEmployeeId] = useState('');
@@ -21,25 +21,20 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employeeId, password }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Login failed');
-
-      // Store tokens and role
-      localStorage.setItem('accessToken', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('employeeId', data.employeeId);
-      localStorage.setItem('role', data.role);
+  const resp = await postAPI("/api/auth/login", { employeeId, password });
+  const data = resp.data;
+  // setAuthToken will store token into localStorage (as implemented)
+  setAuthToken(data.accessToken);
+  localStorage.setItem("refreshToken", data.refreshToken); // optional, already setAuthToken stored access
+  localStorage.setItem("employeeId", data.employeeId);
+  localStorage.setItem("role", data.role);
 
       // Redirect
       if (data.role === 'ROLE_ADMIN') {
+        setStorage(data.accessToken);
         router.push('/dashboard');
       } else {
+         setStorage(data.accessToken);
         router.push('/employee');
       }
     } catch (err) {

@@ -251,7 +251,7 @@ export default function ProjectDetailPage() {
               )}
               {project.archived && (
                 <Badge variant="destructive" className="gap-1">
-                  <Archive className="w-3 h-3" /> Archived
+                  <Archive className="w-3 h-3" /> Archived nandiuni
                 </Badge>
               )}
             </div>
@@ -295,7 +295,7 @@ export default function ProjectDetailPage() {
           <Card className="lg:col-span-2 border-(--color-border) shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-xl">
-                <FileText className="w-5 h-5 text-(--color-primary)" /> Project Overview
+                <FileText className="w-5 h-5 text-(--color-primary)" /> Project Overview mmmmmmmm
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
