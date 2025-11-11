@@ -7,6 +7,9 @@ import { UserIcon } from "@heroicons/react/24/outline";
 import { FileText as FileTextIcon, Activity as ActivityIcon, Notebook } from "lucide-react";
 import TasksTable from "../components/TasksTable";
 import ProjectMembersTable from "../components/ProjectMembersTable";
+import TimesheetsTable from "../components/TimesheetsTableNew";
+import MilestonesTable from "../components/MilestonesTable";
+import TimesheetsTableNew from "../components/TimesheetsTableNew";
 
 interface Project {
   id: number;
@@ -272,9 +275,9 @@ export default function ProjectDetailsPage() {
             </div>
 
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h4 className="text-lg font-medium mb-2">Project Details</h4>
+              <h4 className="text-lg font-medium mb-2">Project Summary</h4>
               <div className="text-xs text-gray-500 space-y-2">
-                <div>Created by: {project.createdBy}</div>
+                <div>Created by: {project.summary}</div>
                 <div>Created on: {new Date(project.createdAt || '').toLocaleDateString()}</div>
                 {project.pinned && <div>Pinned on: {new Date(project.pinnedAt || '').toLocaleDateString()}</div>}
                 {project.archived && <div>Archived on: {new Date(project.archivedAt || '').toLocaleDateString()}</div>}
@@ -286,6 +289,9 @@ export default function ProjectDetailsPage() {
 
        {project && <TasksTable projectId={project.id} />}
        <ProjectMembersTable projectId={project.id} />;
+       <TimesheetsTableNew gatewayPath="https://chat.swiftandgo.in/timesheets" />
+       <MilestonesTable projectId={22} />
+
        
     </div>
     

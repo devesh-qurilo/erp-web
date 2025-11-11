@@ -130,9 +130,9 @@ export default function ProjectMembersTableFetch({ projectId }: { projectId: num
     try {
       const url = `https://chat.swiftandgo.in/api/projects/${projectId}/assign`;
       console.log("[members] POST assign", url, employeeIds);
-      const res=  await doFetch(url, {
+      const res = await doFetch(url, {
         method: "POST",
-        headers: headersWithAuth({ "Content-Type": "application/json" ,Authorization: `Bearer ${getStorage()}`}),
+        headers: headersWithAuth({ "Content-Type": "application/json" }),
         body: JSON.stringify({ employeeIds }),
         credentials: "same-origin",
       });
@@ -223,16 +223,24 @@ export default function ProjectMembersTableFetch({ projectId }: { projectId: num
   });
 
   return (
+    
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Members</h2>
 
+    <h2 className="text-xl font-semibold mb-4 ">Member</h2>
+
+      {/* Top controls: Add button moved to left as requested */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
+           
           <button onClick={() => { setShowAddModal(true); setNewMemberInput(""); }} className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700">
             + Add Project Members
           </button>
+         
+        </div>
 
+        <div className="flex items-center gap-3">
           <input type="search" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="border px-3 py-2 rounded-md text-sm" />
+          <button onClick={fetchProject} className="bg-gray-100 px-3 py-2 rounded text-sm border hover:bg-gray-200">Refresh</button>
         </div>
       </div>
 

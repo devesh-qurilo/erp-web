@@ -74,8 +74,6 @@ export default function TasksTable({ projectId }: { projectId: number }) {
   // axios instance
   const axiosInstance = axios.create({
     baseURL: MAIN || undefined,
-    // Add Authorization header if needed:
-    // headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
   });
 
   const base = (path: string) => (MAIN ? `${MAIN}${path}` : path);
@@ -84,17 +82,15 @@ export default function TasksTable({ projectId }: { projectId: number }) {
     setLoading(true);
     setError(null);
     try {
-        const token = getStorage();
-      
-      const url = `https://chat.swiftandgo.in/projects/22/tasks`;
-      const res = await axios.get(url, 
-        {headers:{
-            "Content-Type": "application/json",
-            Authorization:`Bearer ${token}`
-        }}
-      );
-      console.log("axois error",res)
-      setTasks( res.data);
+      const token = getStorage();
+      const url = `https://chat.swiftandgo.in/projects/${projectId}/tasks`;
+      const res = await axios.get(url, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setTasks(res.data);
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Failed to load tasks");
     } finally {
@@ -214,12 +210,20 @@ export default function TasksTable({ projectId }: { projectId: number }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold mb-4">Tasks</h2>
+      {/* HEADER: Add Task moved to LEFT, Search remains RIGHT */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Tasks</h2>
-        <div className="flex items-center gap-3">
-          <button onClick={() => { setForm({ ...emptyForm, projectId }); setShowCreate(true); }} className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => { setForm({ ...emptyForm, projectId }); setShowCreate(true); }}
+            className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700"
+          >
             + Add Task
           </button>
+          
+        </div>
+
+        <div className="flex items-center gap-3">
           <input
             type="search"
             placeholder="Search"
@@ -254,7 +258,7 @@ export default function TasksTable({ projectId }: { projectId: number }) {
             <tbody>
               {tasks.map((t) => (
                 <tr key={t.id} className="border-b last:border-b-0 bg-white">
-                  <td className="px-4 py-4 align-top">{/* you can show project shortCode if available */}RTA-{t.id}</td>
+                  <td className="px-4 py-4 align-top">RTA-{t.id}</td>
                   <td className="px-4 py-4 align-top">
                     <div className="font-medium">{t.title}</div>
                     {t.description && <div className="text-xs text-gray-500 mt-1">{t.description.slice(0, 80)}{t.description.length > 80 ? "..." : ""}</div>}
