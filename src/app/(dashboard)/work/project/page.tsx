@@ -1,8 +1,7 @@
 // app/(your-folder)/AllProjectsPage.tsx
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import Link from "next/link";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,7 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import {
   Table,
   TableBody,
@@ -21,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,6 +81,12 @@ interface Project {
   assignedEmployees?: Employee[];
   pinned?: boolean;
   archived?: boolean;
+  summary?: string;
+  category?: string | number | null;
+  department?: string | null;
+  needsApproval?: boolean;
+  calculateProgressThroughTasks?: boolean | null;
+  addedBy?: string | null;
 }
 
 interface Category {
@@ -94,12 +97,12 @@ interface Category {
 const OVERRIDES_KEY = "projectProgressOverrides";
 
 export default function AllProjectsPage() {
-  // STATES
+  // STATES (kept from your file)
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
 
-  // visible filters
+  // Filters & UI
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -116,22 +119,21 @@ export default function AllProjectsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 9;
 
-  // ADD PROJECT MODAL STATE
+  // Add project modal & form
   const [showAddModal, setShowAddModal] = useState(false);
-  // form fields (use "none" sentinel for selects)
   const [shortCode, setShortCode] = useState("");
   const [projectName, setProjectName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [deadline, setDeadline] = useState("");
   const [noDeadline, setNoDeadline] = useState(false);
-  const [category, setCategory] = useState("none"); // selected category id or "none"
+  const [category, setCategory] = useState("none");
   const [department, setDepartment] = useState("none");
   const [client, setClientField] = useState("none");
   const [summary, setSummary] = useState("");
   const [needsApproval, setNeedsApproval] = useState(true);
-  const [members, setMembers] = useState<string[] | string>(""); // comma-separated input
+  const [members, setMembers] = useState<string[] | string>("");
 
-  // Company Details — first copy
+  // Company Details
   const [file, setFile] = useState<File | null>(null);
   const [currency, setCurrency] = useState("USD");
   const [budget, setBudget] = useState<string>("");
@@ -139,27 +141,33 @@ export default function AllProjectsPage() {
   const [allowManualTimeLogs, setAllowManualTimeLogs] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Company Details — second copy (same UI)
-  const [file2, setFile2] = useState<File | null>(null);
-  const [currency2, setCurrency2] = useState("USD");
-  const [budget2, setBudget2] = useState<string>("");
-  const [hoursEstimate2, setHoursEstimate2] = useState<string>("");
-  const [allowManualTimeLogs2, setAllowManualTimeLogs2] = useState(false);
-  const fileInputRef2 = useRef<HTMLInputElement | null>(null);
+  // addedBy
+  const [addedBy, setAddedBy] = useState<string>("you");
 
   const [submitting, setSubmitting] = useState(false);
 
-  // CATEGORY MODAL states
+  // Category modal
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [catLoading, setCatLoading] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [catSubmitting, setCatSubmitting] = useState(false);
 
+  // Update modal
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateProjectId, setUpdateProjectId] = useState<number | null>(null);
+
+  // UI: view mode & quick filters
+  type ViewMode = "grid" | "list" | "calendar";
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
   // LOCK BODY SCROLL WHEN DRAWER OR MODAL OPEN
   useEffect(() => {
-    document.body.style.overflow = showFilters || showAddModal || showCategoryModal ? "hidden" : "auto";
-  }, [showFilters, showAddModal, showCategoryModal]);
+    document.body.style.overflow = showFilters || showAddModal || showCategoryModal || showUpdateModal || calendarOpen ? "hidden" : "auto";
+  }, [showFilters, showAddModal, showCategoryModal, showUpdateModal, calendarOpen]);
 
   // Build select options from fetched projects
   const projectOptions = Array.from(new Set(projects.map((p) => p.name))).filter(Boolean);
@@ -284,14 +292,12 @@ export default function AllProjectsPage() {
         cache: "no-store",
       });
       if (!res.ok) {
-        // fallback: keep categories empty
         console.warn("Failed to load categories, status:", res.status);
         setCategories([]);
         setCatLoading(false);
         return;
       }
       const data = await res.json();
-      // expect data to be array of {id, name} or array of strings
       if (Array.isArray(data)) {
         if (data.length > 0 && typeof data[0] === "string") {
           setCategories(data.map((n, i) => ({ id: i + 1, name: String(n) })));
@@ -324,7 +330,6 @@ export default function AllProjectsPage() {
     if (!name) return alert("Category name required");
     setCatSubmitting(true);
     const prev = categories.slice();
-    // optimistic add (generate temporary id)
     const temp: Category = { id: `temp-${Date.now()}`, name };
     setCategories((c) => [...c, temp]);
     try {
@@ -347,14 +352,10 @@ export default function AllProjectsPage() {
       }
       const created = await res.json().catch(() => null);
       if (created && (created.id || created.name)) {
-        // replace temp with created
         setCategories((cur) => cur.map((c) => (c.id === temp.id ? { id: created.id ?? created.name ?? Math.random(), name: created.name ?? name } : c)));
-        // set selected category to the new one
         setCategory(String(created.id ?? created.name ?? name));
       } else {
-        // fallback: reload categories from server (best effort)
         await loadCategories();
-        // attempt to set selection to name
         const found = categories.find((c) => c.name === name);
         if (found) setCategory(String(found.id));
       }
@@ -428,7 +429,7 @@ export default function AllProjectsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getProjects, token, currentPage, searchQuery, statusFilter, progressFilter, durationFilter, filterProject, filterMember, filterClient]);
 
-  // UPDATES (status/progress/pin/delete/archive) - unchanged logic
+  // UPDATES (status/progress/pin/delete/archive)
   async function patchStatus(projectId: number, newStatus: StatusOption) {
     if (!token) return alert("Not authenticated");
     const prev = projects;
@@ -524,7 +525,7 @@ export default function AllProjectsPage() {
     const newPinned = !projects[idx].pinned;
     setProjects((ps) => ps.map((pr) => (pr.id === projectId ? { ...pr, pinned: newPinned } : pr)));
     try {
-      const res = await fetch(`${MAIN}/api/projects/${projectId}/pin`, {
+      const res = await fetch(`${MAIN}/projects/${projectId}/pin`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ pinned: newPinned }),
@@ -551,10 +552,9 @@ export default function AllProjectsPage() {
     const idx = projects.findIndex((p) => p.id === projectId);
     if (idx === -1) return;
     const newArchived = !projects[idx].archived;
-    // optimistic UI
     setProjects((ps) => ps.map((pr) => (pr.id === projectId ? { ...pr, archived: newArchived } : pr)));
     try {
-      const res = await fetch(`${MAIN}/api/projects/${projectId}/archive`, {
+      const res = await fetch(`${MAIN}/projects/${projectId}/archive`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({ archived: newArchived }),
@@ -610,58 +610,48 @@ export default function AllProjectsPage() {
     setSummary("");
     setNeedsApproval(true);
     setMembers("");
-    // reset first company details
     setFile(null);
     setCurrency("USD");
     setBudget("");
     setHoursEstimate("");
     setAllowManualTimeLogs(false);
-    // reset second company details
-    setFile2(null);
-    setCurrency2("USD");
-    setBudget2("");
-    setHoursEstimate2("");
-    setAllowManualTimeLogs2(false);
+    setAddedBy("you");
     setSubmitting(false);
   };
 
   const handleChooseFileClick = () => fileInputRef.current?.click();
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null);
 
-  const handleChooseFileClick2 = () => fileInputRef2.current?.click();
-  const handleFileInputChange2 = (e: React.ChangeEvent<HTMLInputElement>) => setFile2(e.target.files?.[0] ?? null);
-
   const createProject = async () => {
     if (!projectName.trim()) return alert("Project Name is required");
     setSubmitting(true);
 
     const fd = new FormData();
-    fd.append("shortCode", shortCode || "");
+    if (shortCode) fd.append("shortCode", shortCode);
     fd.append("name", projectName);
-    fd.append("startDate", startDate || "");
-    fd.append("deadline", noDeadline ? "" : deadline || "");
+    if (startDate) fd.append("startDate", startDate);
+    if (!noDeadline && deadline) fd.append("deadline", deadline);
     fd.append("noDeadline", String(Boolean(noDeadline)));
-    // send selected category id or name
     fd.append("category", category === "none" ? "" : category);
     fd.append("department", department === "none" ? "" : department);
-    fd.append("client", client === "none" ? "" : client);
+    fd.append("clientId", client === "none" ? "" : client);
     fd.append("summary", summary || "");
-    fd.append("needsApproval", String(Boolean(needsApproval)));
-    fd.append("members", Array.isArray(members) ? members.join(",") : String(members || ""));
+    fd.append("tasksNeedAdminApproval", String(Boolean(needsApproval)));
 
-    // first company details
-    if (file) fd.append("file", file);
+    const assignedArray = Array.isArray(members) ? members : String(members || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (assignedArray.length > 0) {
+      fd.append("assignedEmployeeIds", JSON.stringify(assignedArray));
+      fd.append("members", Array.isArray(members) ? members.join(",") : String(members || ""));
+    }
+
+    if (file) fd.append("companyFile", file);
     fd.append("currency", currency || "");
     fd.append("budget", budget || "");
     fd.append("hoursEstimate", hoursEstimate || "");
     fd.append("allowManualTimeLogs", String(Boolean(allowManualTimeLogs)));
 
-    // second (duplicate) company details — using different keys so backend can distinguish if needed
-    if (file2) fd.append("file2", file2);
-    fd.append("currency2", currency2 || "");
-    fd.append("budget2", budget2 || "");
-    fd.append("hoursEstimate2", hoursEstimate2 || "");
-    fd.append("allowManualTimeLogs2", String(Boolean(allowManualTimeLogs2)));
+    // addedBy
+    fd.append("addedBy", String(addedBy || ""));
 
     const resolvedToken = token || (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null);
 
@@ -694,6 +684,732 @@ export default function AllProjectsPage() {
       setSubmitting(false);
     }
   };
+
+  // ---------- UPDATE (Edit) modal logic ----------
+  function UpdateProjectModal({
+    projectId,
+    onClose,
+    onSaved,
+  }: {
+    projectId: number | null;
+    onClose: () => void;
+    onSaved: () => void;
+  }) {
+    const [loadingLocal, setLoadingLocal] = useState(false);
+    const [saving, setSaving] = useState(false);
+
+    const [ucShortCode, setUcShortCode] = useState("");
+    const [ucProjectName, setUcProjectName] = useState("");
+    const [ucStartDate, setUcStartDate] = useState("");
+    const [ucDeadline, setUcDeadline] = useState("");
+    const [ucNoDeadline, setUcNoDeadline] = useState(false);
+    const [ucCategory, setUcCategory] = useState("none");
+    const [ucDepartment, setUcDepartment] = useState("none");
+    const [ucClient, setUcClient] = useState("none");
+    const [ucSummary, setUcSummary] = useState("");
+    const [ucNeedsApproval, setUcNeedsApproval] = useState(true);
+    const [ucMembers, setUcMembers] = useState<string | string[]>("");
+
+    const [ucFile, setUcFile] = useState<File | null>(null);
+    const ucFileRef = useRef<HTMLInputElement | null>(null);
+    const [ucCurrency, setUcCurrency] = useState("USD");
+    const [ucBudget, setUcBudget] = useState("");
+    const [ucHours, setUcHours] = useState("");
+    const [ucAllowManualTime, setUcAllowManualTime] = useState(false);
+
+    const [ucProjectStatus, setUcProjectStatus] = useState<StatusOption | "none">("none");
+    const [ucProgress, setUcProgress] = useState<number>(0);
+    const [ucCalculateThroughTasks, setUcCalculateThroughTasks] = useState<boolean>(false);
+
+    const [ucAddedBy, setUcAddedBy] = useState<string>("you");
+
+    const resetLocal = () => {
+      setUcShortCode("");
+      setUcProjectName("");
+      setUcStartDate("");
+      setUcDeadline("");
+      setUcNoDeadline(false);
+      setUcCategory("none");
+      setUcDepartment("none");
+      setUcClient("none");
+      setUcSummary("");
+      setUcNeedsApproval(true);
+      setUcMembers("");
+      setUcFile(null);
+      setUcCurrency("USD");
+      setUcBudget("");
+      setUcHours("");
+      setUcAllowManualTime(false);
+      setUcProjectStatus("none");
+      setUcProgress(0);
+      setUcCalculateThroughTasks(false);
+      setUcAddedBy("you");
+    };
+
+    useEffect(() => {
+      if (!projectId) return;
+      let mounted = true;
+      (async () => {
+        setLoadingLocal(true);
+        try {
+          const resolvedToken = token || (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null);
+          const res = await fetch(`${MAIN}/api/projects/${projectId}`, {
+            headers: resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : undefined,
+            cache: "no-store",
+          });
+          if (!res.ok) {
+            const text = await res.text().catch(() => "");
+            console.error("Failed to fetch project", res.status, text);
+            if (mounted) alert("Failed to load project details");
+            return;
+          }
+          const data = await res.json();
+          if (!mounted) return;
+          setUcShortCode(data.shortCode ?? data.code ?? data.projectCode ?? "");
+          setUcProjectName(data.name ?? "");
+          setUcStartDate(data.startDate ? data.startDate.split("T")[0] : (data.startDate ?? ""));
+          setUcDeadline(data.deadline ? (data.deadline.split("T")[0]) : (data.deadline ?? ""));
+          setUcNoDeadline(Boolean(data.noDeadline));
+          setUcCategory(data.category ? String(data.category) : "none");
+          setUcDepartment(data.department ?? "none");
+          setUcClient(data.client?.name ?? data.client ?? "none");
+          setUcSummary(data.summary ?? "");
+          setUcNeedsApproval(Boolean(data.needsApproval ?? true));
+          setUcMembers(Array.isArray(data.assignedEmployees) ? data.assignedEmployees.map((e: any) => e.name).join(",") : (data.members ?? ""));
+          setUcCurrency(data.currency ?? "USD");
+          setUcBudget(data.budget != null ? String(data.budget) : "");
+          setUcHours(data.hoursEstimate != null ? String(data.hoursEstimate) : "");
+          setUcAllowManualTime(Boolean(data.allowManualTimeLogs ?? false));
+          setUcProjectStatus((data.projectStatus ?? "none") as StatusOption | "none");
+          setUcProgress(Number(data.progressPercent ?? 0));
+          setUcCalculateThroughTasks(Boolean(data.calculateProgressThroughTasks ?? false));
+          setUcAddedBy(data.addedBy ?? "you");
+        } catch (err) {
+          console.error("Error loading project:", err);
+          if (mounted) alert("Failed to load project details");
+        } finally {
+          if (mounted) setLoadingLocal(false);
+        }
+      })();
+      return () => { mounted = false; };
+    }, [projectId, token]);
+
+    const pickFile = () => ucFileRef.current?.click();
+    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => setUcFile(e.target.files?.[0] ?? null);
+
+    const saveUpdate = async () => {
+      if (!projectId) return;
+      if (!ucProjectName.trim()) return alert("Project name required");
+      setSaving(true);
+      try {
+        const fd = new FormData();
+        if (ucShortCode) fd.append("shortCode", ucShortCode);
+        fd.append("name", ucProjectName);
+        if (ucStartDate) fd.append("startDate", ucStartDate);
+        if (!ucNoDeadline && ucDeadline) fd.append("deadline", ucDeadline);
+        fd.append("noDeadline", String(Boolean(ucNoDeadline)));
+        fd.append("category", ucCategory === "none" ? "" : ucCategory);
+        fd.append("department", ucDepartment === "none" ? "" : ucDepartment);
+        fd.append("clientId", ucClient === "none" ? "" : ucClient);
+        fd.append("summary", ucSummary || "");
+        fd.append("tasksNeedAdminApproval", String(Boolean(ucNeedsApproval)));
+        const assignedArray = Array.isArray(ucMembers) ? ucMembers : String(ucMembers || "").split(",").map((s) => s.trim()).filter(Boolean);
+        if (assignedArray.length > 0) {
+          fd.append("assignedEmployeeIds", JSON.stringify(assignedArray));
+          fd.append("members", Array.isArray(ucMembers) ? ucMembers.join(",") : String(ucMembers || ""));
+        }
+
+        if (ucFile) fd.append("companyFile", ucFile);
+        fd.append("currency", ucCurrency || "");
+        fd.append("budget", ucBudget || "");
+        fd.append("hoursEstimate", ucHours || "");
+        fd.append("allowManualTimeLogs", String(Boolean(ucAllowManualTime)));
+
+        if (ucProjectStatus && ucProjectStatus !== "none") fd.append("projectStatus", String(ucProjectStatus));
+        if (typeof ucProgress !== "undefined" && ucProgress !== null && !Number.isNaN(Number(ucProgress))) {
+          fd.append("progressPercent", String(Math.max(0, Math.min(100, Math.round(ucProgress || 0)))));
+        }
+        fd.append("calculateProgressThroughTasks", String(Boolean(ucCalculateThroughTasks)));
+
+        fd.append("addedBy", String(ucAddedBy || ""));
+
+        const resolvedToken = token || (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null);
+
+        const res = await fetch(`${MAIN}/api/projects/${projectId}`, {
+          method: "PUT",
+          body: fd,
+          headers: resolvedToken ? { Authorization: `Bearer ${resolvedToken}` } : undefined,
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          console.error("Update failed", res.status, text);
+          alert("Failed to update project");
+          return;
+        }
+
+        let json: any = null;
+        try { json = await res.json(); } catch { json = null; }
+
+        if (json && json.id) {
+          setProjects((ps) => ps.map((p) => (p.id === json.id ? { ...p, ...json } : p)));
+        } else {
+          await getProjects(resolvedToken);
+        }
+
+        onSaved();
+        onClose();
+        resetLocal();
+      } catch (err) {
+        console.error("Update error:", err);
+        alert("Failed to update project");
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const getProgressColor = (p?: number | null) => {
+      if (p === undefined || p === null) return "bg-gray-300";
+      if (p < 33) return "bg-red-500";
+      if (p < 66) return "bg-yellow-400";
+      return "bg-green-500";
+    };
+
+    return (
+      <div className="fixed inset-0 z-[12000] flex items-start justify-center pt-12 px-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40" onClick={() => { onClose(); resetLocal(); }} />
+        <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-y-auto z-10">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Update Project</h3>
+            <button onClick={() => { onClose(); resetLocal(); }} className="p-2 rounded hover:bg-gray-100"><X className="w-5 h-5" /></button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {loadingLocal ? (
+              <p className="p-4 text-center">Loading project...</p>
+            ) : (
+              <>
+                {/* Project Details */}
+                <div className="rounded-lg border p-4">
+                  <h4 className="font-medium mb-3">Project Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Short Code *</label>
+                      <Input value={ucShortCode} onChange={(e) => setUcShortCode(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Project Name *</label>
+                      <Input value={ucProjectName} onChange={(e) => setUcProjectName(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Start Date *</label>
+                      <Input type="date" value={ucStartDate} onChange={(e) => setUcStartDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="text-sm text-gray-600">Deadline *</label>
+                          <Input type="date" value={ucDeadline} onChange={(e) => setUcDeadline(e.target.value)} disabled={ucNoDeadline} />
+                        </div>
+                        <div className="pt-6">
+                          <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+                            <input type="checkbox" checked={ucNoDeadline} onChange={(e) => setUcNoDeadline(e.target.checked)} />
+                            <span className="text-xs">There is no project deadline</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Project Category *</label>
+                      <div className="flex gap-2">
+                        <Select value={ucCategory} onValueChange={(v) => setUcCategory(v)}>
+                          <SelectTrigger className="w-full"><SelectValue placeholder="--" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">--</SelectItem>
+                            {categoryOptions.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="outline" onClick={openCategoryModal}>Add</Button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Department *</label>
+                      <Select value={ucDepartment} onValueChange={(v) => setUcDepartment(v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="--" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">--</SelectItem>
+                          <SelectItem value="engineering">Engineering</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Client *</label>
+                      <Select value={ucClient} onValueChange={(v) => setUcClient(v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="--" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">--</SelectItem>
+                          {clientOptions.length === 0 && <SelectItem value="acme">Acme Corp</SelectItem>}
+                          {clientOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="text-sm text-gray-600">Project Summary</label>
+                      <textarea rows={4} value={ucSummary} onChange={(e) => setUcSummary(e.target.value)} className="w-full p-2 border rounded" />
+                    </div>
+
+                    <div>
+                      <div className="text-sm text-gray-600 mb-1">Tasks needs approval by Admin</div>
+                      <div className="flex items-center gap-4">
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="ucApproval" checked={ucNeedsApproval === true} onChange={() => setUcNeedsApproval(true)} />
+                          <span className="text-sm">Yes</span>
+                        </label>
+                        <label className="inline-flex items-center gap-2">
+                          <input type="radio" name="ucApproval" checked={ucNeedsApproval === false} onChange={() => setUcNeedsApproval(false)} />
+                          <span className="text-sm">No</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Assigned to *</label>
+                      <Input placeholder="Comma separated names or ids" value={Array.isArray(ucMembers) ? ucMembers.join(",") : ucMembers} onChange={(e) => setUcMembers(e.target.value)} />
+                    </div>
+
+                    {/* NEW: Project Status + Project Progress Status row (spans two columns) */}
+                    <div className="col-span-2">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <label className="text-sm text-gray-600">Project Status</label>
+                          <Select value={ucProjectStatus} onValueChange={(v) => setUcProjectStatus(v as StatusOption | "none")}>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="Select status" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">--</SelectItem>
+                              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                              <SelectItem value="NOT_STARTED">Not Started</SelectItem>
+                              <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                              <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                              <SelectItem value="FINISHED">Finished</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="w-1/2">
+                          <label className="text-sm text-gray-600">Project Progress Status</label>
+                          <div className="mt-2">
+                            <div className="relative bg-gray-200 h-4 rounded-full overflow-hidden">
+                              <div className={`h-4 rounded-full ${getProgressColor(ucProgress)}`} style={{ width: `${Math.max(0, Math.min(100, ucProgress))}%` }} />
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-xs font-semibold text-white drop-shadow-sm">{Math.round(ucProgress)}%</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <input type="range" min={0} max={100} value={ucProgress} onChange={(e) => setUcProgress(Number(e.target.value))} className="flex-1" />
+                              <label className="inline-flex items-center gap-2 text-sm">
+                                <input type="checkbox" checked={ucCalculateThroughTasks} onChange={(e) => setUcCalculateThroughTasks(e.target.checked)} />
+                                <span className="text-xs">Calculate Progress through tasks</span>
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Company Details (single) */}
+                <div className="rounded-lg border p-4">
+                  <h4 className="font-medium mb-3">Company Details</h4>
+
+                  <div className="mb-4">
+                    <label className="text-sm text-gray-600 mb-2 block">Add File</label>
+                    <div onClick={pickFile} className="border-2 border-dashed rounded-lg h-28 flex items-center justify-center cursor-pointer text-gray-500">
+                      {ucFile ? <div>{ucFile.name}</div> : <div>Choose File</div>}
+                      <input ref={ucFileRef} type="file" className="hidden" onChange={onFileChange} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-sm text-gray-600">Currency</label>
+                      <Select value={ucCurrency} onValueChange={(v) => setUcCurrency(v)}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="USD" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD $</SelectItem>
+                          <SelectItem value="INR">INR ₹</SelectItem>
+                          <SelectItem value="EUR">EUR €</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Project Budget</label>
+                      <Input value={ucBudget} onChange={(e) => setUcBudget(e.target.value)} />
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-600">Hours Estimate (In Hours)</label>
+                      <Input value={ucHours} onChange={(e) => setUcHours(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <label className="inline-flex items-center gap-2">
+                        <input type="checkbox" checked={ucAllowManualTime} onChange={(e) => setUcAllowManualTime(e.target.checked)} />
+                        <span className="text-sm text-gray-600">Allow manual time logs</span>
+                      </label>
+                    </div>
+
+                    {/* NEW: Added by select (right aligned) */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600 mr-2">Added by*</label>
+                      <Select value={ucAddedBy} onValueChange={(v) => setUcAddedBy(v)}>
+                        <SelectTrigger className="w-44"><SelectValue placeholder="You" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="you">You</SelectItem>
+                          {memberOptions.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-3">
+                  <Button variant="outline" onClick={() => { onClose(); resetLocal(); }}>Cancel</Button>
+                  <Button className="bg-blue-600 text-white" onClick={saveUpdate} disabled={saving}>
+                    {saving ? "Updating..." : "Update"}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------- Calendar view component (month grid with multi-day bars) ----------
+  function CalendarView({
+    open,
+    onClose,
+    projects,
+  }: {
+    open: boolean;
+    onClose: () => void;
+    projects: Project[];
+  }) {
+    // current displayed month (first day)
+    const [cursor, setCursor] = useState(() => {
+      const d = new Date();
+      d.setDate(1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    });
+
+    // control: visible lanes per week
+    const VISIBLE_LANES = 4;
+
+    // helper date utils (strings YYYY-MM-DD)
+    const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+    const parseISO = (s?: string) => (s ? new Date(s.slice(0, 10) + "T00:00:00") : null);
+
+    const startOfMonth = (d: Date) => {
+      const x = new Date(d.getFullYear(), d.getMonth(), 1);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    const endOfMonth = (d: Date) => {
+      const x = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      x.setHours(23, 59, 59, 999);
+      return x;
+    };
+    const startOfWeek = (d: Date) => {
+      // week starts Sunday
+      const day = d.getDay();
+      const x = new Date(d);
+      x.setDate(d.getDate() - day);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+    const addDays = (d: Date, n: number) => {
+      const x = new Date(d);
+      x.setDate(d.getDate() + n);
+      x.setHours(0, 0, 0, 0);
+      return x;
+    };
+
+    // Build visible grid weeks for month
+    const weeks = useMemo(() => {
+      const first = startOfWeek(startOfMonth(cursor));
+      const last = endOfMonth(cursor);
+      // last week end
+      const lastWeekEnd = addDays(startOfWeek(last), 6);
+      const out: Date[] = [];
+      for (let day = first; day <= lastWeekEnd; day = addDays(day, 1)) {
+        out.push(new Date(day));
+      }
+      // chunk into weeks of 7
+      const chunked: Date[][] = [];
+      for (let i = 0; i < out.length; i += 7) chunked.push(out.slice(i, i + 7));
+      return chunked;
+    }, [cursor]);
+
+    // Convert projects to events with start/end date objects
+    const events = useMemo(() => {
+      return projects.map((p) => {
+        const s = parseISO(p.startDate) ?? null;
+        const e = p.noDeadline ? s : (parseISO(p.deadline) ?? s);
+        return {
+          id: p.id,
+          title: p.name,
+          project: p,
+          start: s,
+          end: e,
+        };
+      }).filter((ev) => ev.start); // require a start date for calendar rendering
+    }, [projects]);
+
+    // For each week, compute lanes (non-overlapping event placement) and 'more' counts per day
+    const weeksLayout = useMemo(() => {
+      // returns array per week: { lanes: Array<Array<EventSegment>> , dayMoreCounts: Record<dayIndex, number>, dayCells: Record<dIndex, segmentsStartingHere> }
+      return weeks.map((weekDates) => {
+        // events that intersect this week
+        const weekStart = weekDates[0];
+        const weekEnd = weekDates[6];
+        const intersects = events.filter((ev) => {
+          if (!ev.start) return false;
+          const evStart = ev.start!;
+          const evEnd = ev.end ?? evStart;
+          // intersects if evStart <= weekEnd && evEnd >= weekStart
+          return evStart <= weekEnd && evEnd >= weekStart;
+        });
+
+        // for each intersecting event determine startIdx and endIdx within week (0..6)
+        type Segment = { ev: any; startIdx: number; endIdx: number; length: number; };
+        const segments: Segment[] = intersects.map((ev) => {
+          const sIdx = Math.max(0, Math.floor(( (ev.start! as Date).getTime() - weekStart.getTime()) / (1000*60*60*24)));
+          const eIdx = Math.min(6, Math.floor(((ev.end ?? ev.start!) .getTime() - weekStart.getTime()) / (1000*60*60*24)));
+          return { ev, startIdx: sIdx, endIdx: eIdx, length: eIdx - sIdx + 1 };
+        }).sort((a,b) => {
+          // sort by start then longer first so longer spans occupy lanes early
+          if (a.startIdx !== b.startIdx) return a.startIdx - b.startIdx;
+          return b.length - a.length;
+        });
+
+        // allocate lanes
+        const lanes: Segment[][] = [];
+        segments.forEach((seg) => {
+          let placed = false;
+          for (let i = 0; i < lanes.length; i++) {
+            const lane = lanes[i];
+            // no overlap with last of lane?
+            const last = lane[lane.length - 1];
+            if (!last || seg.startIdx > last.endIdx) {
+              lane.push(seg);
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) lanes.push([seg]);
+        });
+
+        // compute more counts per day: for each day, count events that include that day but are not visible due to limited lanes
+        const dayMoreCounts: Record<number, number> = {};
+        for (let day = 0; day < 7; day++) {
+          // visible count on this day = number of lanes that have segment covering this day
+          let visible = 0;
+          for (let li = 0; li < Math.min(VISIBLE_LANES, lanes.length); li++) {
+            const lane = lanes[li];
+            const covers = lane.some(s => s.startIdx <= day && s.endIdx >= day);
+            if (covers) visible++;
+          }
+          // total events covering this day
+          const total = segments.filter(s => s.startIdx <= day && s.endIdx >= day).length;
+          dayMoreCounts[day] = Math.max(0, total - visible);
+        }
+
+        return { weekDates, lanes, dayMoreCounts, segments };
+      });
+    }, [weeks, events]);
+
+    // navigation
+    const prevMonth = () => setCursor((c) => new Date(c.getFullYear(), c.getMonth() - 1, 1));
+    const nextMonth = () => setCursor((c) => new Date(c.getFullYear(), c.getMonth() + 1, 1));
+    const goToday = () => { const d = new Date(); d.setDate(1); setCursor(d); };
+
+    // expand day popup state
+    const [expandedDay, setExpandedDay] = useState<string | null>(null);
+
+    if (!open) return null;
+
+    return (
+      <div className="fixed inset-0 z-[12000] flex items-start justify-center pt-8 px-4 pb-8 overflow-auto">
+        <div className="fixed inset-0 bg-black/40" onClick={() => { onClose(); }} />
+        <div className="relative w-full max-w-[1200px] bg-white rounded-lg shadow-2xl overflow-hidden z-10">
+          {/* header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={prevMonth}><ChevronLeft /></Button>
+              <Button variant="ghost" size="sm" onClick={goToday}>Today</Button>
+              <Button variant="ghost" size="sm" onClick={nextMonth}><ChevronRight /></Button>
+              <div className="ml-4 text-sm text-gray-600">Project Calendar</div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-sm text-gray-500"> {cursor.toLocaleString(undefined, { month: "long", year: "numeric" })} </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button onClick={() => { setCalendarOpen(false); setViewMode("grid"); }} variant="ghost" size="sm">Close</Button>
+            </div>
+          </div>
+
+          {/* weekday header */}
+          <div className="grid grid-cols-7 text-xs bg-gray-50 border-b">
+            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((wd) => (
+              <div key={wd} className="p-2 text-center text-gray-600">{wd}</div>
+            ))}
+          </div>
+
+          {/* weeks */}
+          <div className="p-4 space-y-4">
+            {weeksLayout.map((wl, wi) => (
+              <div key={wi} className="border rounded-lg overflow-hidden">
+                {/* each week row: two parts: day cells header and absolute-positioned event rows using CSS grid */}
+                <div className="grid grid-cols-7 gap-0">
+                  {wl.weekDates.map((dt, di) => {
+                    const isCurrentMonth = dt.getMonth() === cursor.getMonth();
+                    const dayStr = dt.getDate();
+                    const iso = toISODate(dt);
+                    const dayEvents = events.filter(ev => {
+                      const s = ev.start!;
+                      const e = ev.end ?? s;
+                      return s <= dt && e >= dt;
+                    });
+                    return (
+                      <div key={di} className={`min-h-[96px] border-r last:border-r-0 p-2 bg-white ${isCurrentMonth ? "" : "bg-gray-50 text-gray-400"}`}>
+                        <div className="flex items-start justify-between">
+                          <div className="text-sm font-medium">{dayStr}</div>
+                          <div className="text-xs text-gray-400">{isCurrentMonth ? "" : ""}</div>
+                        </div>
+
+                        {/* small area for 'inline' events when expanded for this day */}
+                        <div className="mt-2">
+                          {/* show small preview: up to 2 events starting today (or covering) */}
+                          {dayEvents.slice(0, 2).map((ev: any) => (
+                            <div key={ev.id} className="text-xs truncate bg-blue-500 text-white px-2 py-1 rounded mb-1 cursor-pointer" onClick={() => window.location.assign(`/work/project/${ev.project.id}`)}>
+                              {ev.title}
+                            </div>
+                          ))}
+                          {wl.dayMoreCounts[di] > 0 && (
+                            <button className="text-xs text-blue-600 mt-1" onClick={() => setExpandedDay(iso)}>+{wl.dayMoreCounts[di]} more</button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* event lanes rendered on top of week grid: we use CSS grid with 7 columns and place spans */}
+                <div className="relative">
+                  {/* lanes: up to VISIBLE_LANES visible */}
+                  <div className="grid grid-cols-7 gap-0 -mt-[10px]">
+                    {/* This invisible grid saves structure; actual bars will use absolute positioning relative to the container below */}
+                    {Array.from({ length: 7 }).map((_, i) => <div key={i} className="h-0" />)}
+                  </div>
+
+                  <div className="absolute inset-x-0 -mt-2 px-2 pb-4">
+                    {/* each lane is a row of bars; compute top position by lane index */}
+                    {wl.lanes.slice(0, VISIBLE_LANES).map((lane, li) => (
+                      <div key={li} className="relative" style={{ height: 28 }}>
+                        {lane.map((seg, sidx) => {
+                          const colStart = seg.startIdx + 1; // grid column start (1-based)
+                          const colSpan = seg.length;
+                          // compute left and width as percentages (each day column = 100/7%)
+                          const left = (seg.startIdx / 7) * 100;
+                          const width = (colSpan / 7) * 100;
+                          return (
+                            <div
+                              key={sidx}
+                              onClick={() => window.location.assign(`/work/project/${seg.ev.project.id}`)}
+                              title={seg.ev.title}
+                              className="absolute left-0 top-0 h-7 rounded text-white text-xs px-2 py-1 flex items-center overflow-hidden cursor-pointer"
+                              style={{
+                                left: `${left}%`,
+                                width: `${width}%`,
+                                background: "#0ea5e9", // cyan
+                                boxShadow: "0 1px 0 rgba(0,0,0,0.06)",
+                              }}
+                            >
+                              <span className="truncate">{seg.ev.title}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+
+                    {/* if more lanes exist beyond visible, display small '+N more' rows aligned to days */}
+                    {wl.lanes.length > VISIBLE_LANES && (
+                      <div className="mt-1 grid grid-cols-7 gap-0">
+                        {wl.weekDates.map((_, di) => (
+                          <div key={di} className="p-0 text-right pr-2">
+                            {wl.dayMoreCounts[di] > 0 && <button className="text-xs text-sky-600" onClick={() => setExpandedDay(toISODate(wl.weekDates[di]))}>+{wl.dayMoreCounts[di]} more</button>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* expanded day panel: if expandedDay in this week, show details */}
+                {expandedDay && wl.weekDates.some(d => toISODate(d) === expandedDay) && (
+                  <div className="p-3 border-t bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold">Events on {expandedDay}</div>
+                      <div>
+                        <button className="text-sm mr-2" onClick={() => setExpandedDay(null)}>Close</button>
+                      </div>
+                    </div>
+                    <div className="mt-2 grid gap-2">
+                      {/* show all events for that expanded day */}
+                      {events.filter(ev => {
+                        const s = ev.start!;
+                        const e = ev.end ?? s;
+                        const d = parseISO(expandedDay)!;
+                        return s <= d && e >= d;
+                      }).map(ev => (
+                        <div key={ev.id} className="p-2 bg-white rounded shadow-sm flex items-center justify-between">
+                          <div>
+                            <div className="font-medium">{ev.title}</div>
+                            <div className="text-xs text-gray-500">{ev.project.client?.name ?? ""} · {ev.start ? ev.start.toISOString().slice(0,10) : ""} → {ev.end ? ev.end.toISOString().slice(0,10) : ""}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => window.location.assign(`/work/project/${ev.project.id}`)}>Open</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // ---------- end CalendarView ----------
 
   // ---------- UI helpers ----------
   const getProgressColor = (p?: number | null) => {
@@ -741,9 +1457,27 @@ export default function AllProjectsPage() {
     setCurrentPage(1);
   };
 
+  // ---- Compute filteredProjects based on quick toggles and search ----
+  const filteredProjects = projects
+    .filter((p) => {
+      // archived toggle
+      if (showArchivedOnly) return Boolean(p.archived);
+      if (!showArchivedOnly && p.archived) return false; // hide archived by default
+      return true;
+    })
+    .filter((p) => {
+      if (showPinnedOnly) return Boolean(p.pinned);
+      return true;
+    })
+    .filter((p) => {
+      if (!searchQuery) return true;
+      const q = searchQuery.toLowerCase();
+      return String(p.name || "").toLowerCase().includes(q) || String(p.shortCode || p.code || p.projectCode || "").toLowerCase().includes(q) || String(p.client?.name || "").toLowerCase().includes(q);
+    });
+
   if (loading) return <p className="p-8 text-center">Loading projects...</p>;
 
-  // Table row
+  // Row component reused (same as your file)
   const ProjectRow: React.FC<{ p: Project }> = ({ p }) => {
     const start = p.startDate ? new Date(p.startDate).toLocaleDateString() : "-";
     const dl = p.noDeadline ? "No Deadline" : p.deadline ? new Date(p.deadline).toLocaleDateString() : "-";
@@ -838,13 +1572,12 @@ export default function AllProjectsPage() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => window.location.assign(`/work/project/${p.id}`)}><Eye className="h-4 w-4 mr-2" /> View</DropdownMenuItem>
 
-              <DropdownMenuItem asChild>
-                <Link href={`/work/project/${p.id}/update`} className="flex items-center gap-2"><Edit2 className="h-4 w-4" /> Edit</Link>
+              <DropdownMenuItem onClick={() => { setUpdateProjectId(p.id); setShowUpdateModal(true); }}>
+                <Edit2 className="h-4 w-4 mr-2" /> Edit
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => handlePin(p.id)}><Pin className="h-4 w-4 mr-2" /> {p.pinned ? "Unpin" : "Pin"} Project</DropdownMenuItem>
 
-              {/* Archive / Unarchive option added here */}
               <DropdownMenuItem onClick={() => handleArchive(p.id)}>
                 <Archive className="h-4 w-4 mr-2" /> {p.archived ? "Unarchive" : "Archive"}
               </DropdownMenuItem>
@@ -859,7 +1592,30 @@ export default function AllProjectsPage() {
     );
   };
 
-  // MAIN RENDER
+  // ------------- Top-right action handlers -------------
+  const toggleView = (mode: ViewMode) => {
+    if (mode === "calendar") {
+      setCalendarOpen(!calendarOpen);
+      setViewMode(calendarOpen ? "grid" : "calendar");
+    } else {
+      setCalendarOpen(false);
+      setViewMode(mode);
+    }
+  };
+
+  const toggleArchivedOnly = () => {
+    setShowArchivedOnly((s) => !s);
+    // when viewing archived only, disable pinned-only to avoid confusion
+    if (!showArchivedOnly && showPinnedOnly) setShowPinnedOnly(false);
+  };
+
+  const togglePinnedOnly = () => {
+    setShowPinnedOnly((s) => !s);
+    // when enabling pinned-only, disable archived-only to avoid confusion unless user wants both
+    if (!showPinnedOnly && showArchivedOnly) setShowArchivedOnly(false);
+  };
+
+  // ---------- Render ----------
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="w-full">
@@ -899,12 +1655,12 @@ export default function AllProjectsPage() {
               </Select>
             </div>
 
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-4">
               <button onClick={openFilters} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"><Filter className="w-5 h-5" /> Filters</button>
             </div>
           </div>
 
-          {/* ROW: Add Project + Search */}
+          {/* ROW: Add Project + Search + Top-right icons */}
           <div className="flex items-center justify-between mb-4">
             <div><Button className="bg-blue-600 text-white" onClick={() => setShowAddModal(true)}>+ Add Project</Button></div>
 
@@ -915,48 +1671,120 @@ export default function AllProjectsPage() {
               </div>
 
               <div className="flex items-center bg-white border rounded-lg overflow-hidden">
-                <button className="px-3 py-2 hover:bg-gray-50"><List className="w-4 h-4" /></button>
-                <button className="px-3 py-2 bg-violet-600 text-white"><Grid className="w-4 h-4" /></button>
-                <button className="px-3 py-2 hover:bg-gray-50" />
+                {/* List */}
+                <button
+                  onClick={() => toggleView("list")}
+                  className={`px-3 py-2 hover:bg-gray-50 ${viewMode === "list" && !calendarOpen ? "bg-gray-100" : ""}`}
+                  title="List view"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+
+                {/* Grid / Table (default) */}
+                <button
+                  onClick={() => toggleView("grid")}
+                  className={`px-3 py-2 hover:bg-gray-50 ${viewMode === "grid" && !calendarOpen ? "bg-violet-600 text-white" : ""}`}
+                  title="Grid / Table view"
+                >
+                  <Grid className="w-4 h-4" />
+                </button>
+
+                {/* Archive toggle */}
+                <button
+                  onClick={() => { toggleArchivedOnly(); }}
+                  className={`px-3 py-2 hover:bg-gray-50 ${showArchivedOnly ? "bg-gray-100" : ""}`}
+                  title={showArchivedOnly ? "Showing archived projects" : "Show archived projects"}
+                >
+                  <Archive className="w-4 h-4" />
+                </button>
+
+                {/* Pin toggle */}
+                <button
+                  onClick={() => { togglePinnedOnly(); }}
+                  className={`px-3 py-2 hover:bg-gray-50 ${showPinnedOnly ? "bg-gray-100" : ""}`}
+                  title={showPinnedOnly ? "Showing pinned only" : "Show pinned only"}
+                >
+                  <Pin className="w-4 h-4" />
+                </button>
               </div>
 
-              <button className="w-10 h-10 rounded bg-white border flex items-center justify-center"><Calendar className="w-4 h-4 text-gray-600" /></button>
+              {/* Calendar toggle (separate button to the right) */}
+              <button
+                onClick={() => toggleView("calendar")}
+                className={`w-10 h-10 rounded bg-white border flex items-center justify-center ${calendarOpen ? "ring-2 ring-indigo-300" : ""}`}
+                title="Calendar view"
+              >
+                <Calendar className="w-4 h-4 text-gray-600" />
+              </button>
             </div>
           </div>
 
-          {/* TABLE */}
+          {/* MAIN content area */}
           <div className="bg-white rounded-lg border overflow-hidden">
-            <div className="bg-blue-50 px-6 py-3 border-b"><h2 className="font-semibold text-gray-900">Projects ({projects.length})</h2></div>
+            <div className="bg-blue-50 px-6 py-3 border-b flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900">Projects ({filteredProjects.length})</h2>
+              <div className="text-sm text-gray-600">{showArchivedOnly ? "Viewing: Archived" : showPinnedOnly ? "Viewing: Pinned" : "All active"}</div>
+            </div>
 
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-blue-50">
-                    <TableHead className="px-4 py-3">Code</TableHead>
-                    <TableHead className="px-4 py-3">Project Name</TableHead>
-                    <TableHead className="px-4 py-3">Members</TableHead>
-                    <TableHead className="px-4 py-3">Start Date</TableHead>
-                    <TableHead className="px-4 py-3">Deadline</TableHead>
-                    <TableHead className="px-4 py-3">Client</TableHead>
-                    <TableHead className="px-4 py-3">Status</TableHead>
-                    <TableHead className="px-4 py-3 text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-
-                <TableBody>
-                  {projects.length === 0 ? (
-                    <TableRow><TableCell colSpan={8} className="py-8 text-center text-gray-500">No projects found</TableCell></TableRow>
+            <div className="overflow-auto p-4">
+              {viewMode === "calendar" || calendarOpen ? (
+                <CalendarView open={calendarOpen} onClose={() => { setCalendarOpen(false); setViewMode("grid"); }} projects={filteredProjects} />
+              ) : viewMode === "list" ? (
+                // Compact list
+                <div>
+                  {filteredProjects.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500">No projects found</div>
                   ) : (
-                    projects.map((p) => <ProjectRow key={p.id} p={p} />)
+                    <div className="space-y-3">
+                      {filteredProjects.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between border rounded p-3 bg-white">
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm font-medium w-28">{projectCodeFor(p)}</div>
+                            <div className="font-medium">{p.name}</div>
+                            <div className="text-xs text-gray-500">{p.client?.name ?? "Client"}</div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="text-sm">{p.progressPercent ?? 0}%</div>
+                            <Button variant="ghost" size="sm" onClick={() => window.location.assign(`/work/project/${p.id}`)}>View</Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                </TableBody>
-              </Table>
+                </div>
+              ) : (
+                // grid / table (default)
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-blue-50">
+                        <TableHead className="px-4 py-3">Code</TableHead>
+                        <TableHead className="px-4 py-3">Project Name</TableHead>
+                        <TableHead className="px-4 py-3">Members</TableHead>
+                        <TableHead className="px-4 py-3">Start Date</TableHead>
+                        <TableHead className="px-4 py-3">Deadline</TableHead>
+                        <TableHead className="px-4 py-3">Client</TableHead>
+                        <TableHead className="px-4 py-3">Status</TableHead>
+                        <TableHead className="px-4 py-3 text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {filteredProjects.length === 0 ? (
+                        <TableRow><TableCell colSpan={8} className="py-8 text-center text-gray-500">No projects found</TableCell></TableRow>
+                      ) : (
+                        filteredProjects.map((p) => <ProjectRow key={p.id} p={p} />)
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </div>
           </div>
 
           {/* PAGINATION */}
           <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-gray-600">Result per page - {projects.length ? projects.length : 0}</div>
+            <div className="text-sm text-gray-600">Result per page - {filteredProjects.length ? filteredProjects.length : 0}</div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" onClick={() => { setCurrentPage((c) => Math.max(1, c - 1)); }} disabled={currentPage === 1}><ChevronLeft /> Prev</Button>
               <div className="text-sm text-gray-600">Page {currentPage} of {totalPages}</div>
@@ -1128,7 +1956,7 @@ export default function AllProjectsPage() {
                 </div>
               </div>
 
-              {/* Company Details — FIRST */}
+              {/* Company Details — SINGLE (below Project Details) */}
               <div className="rounded-lg border p-4">
                 <h4 className="font-medium mb-3">Company Details</h4>
 
@@ -1164,55 +1992,25 @@ export default function AllProjectsPage() {
                   </div>
                 </div>
 
-                <div className="mt-3">
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={allowManualTimeLogs} onChange={(e) => setAllowManualTimeLogs(e.target.checked)} />
-                    <span className="text-sm text-gray-600">Allow manual time logs</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Company Details — SECOND (duplicate, immediately below) */}
-              <div className="rounded-lg border p-4">
-                <h4 className="font-medium mb-3">Company Details</h4>
-
-                <div className="mb-4">
-                  <label className="text-sm text-gray-600 mb-2 block">Add File</label>
-                  <div onClick={handleChooseFileClick2} className="border-2 border-dashed rounded-lg h-28 flex items-center justify-center cursor-pointer text-gray-500">
-                    {file2 ? <div>{file2.name}</div> : <div>Choose File</div>}
-                    <input ref={fileInputRef2} type="file" className="hidden" onChange={handleFileInputChange2} />
+                <div className="mt-3 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <label className="inline-flex items-center gap-2">
+                      <input type="checkbox" checked={allowManualTimeLogs} onChange={(e) => setAllowManualTimeLogs(e.target.checked)} />
+                      <span className="text-sm text-gray-600">Allow manual time logs</span>
+                    </label>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-600">Currency</label>
-                    <Select value={currency2} onValueChange={(v) => setCurrency2(v)}>
-                      <SelectTrigger className="w-full"><SelectValue placeholder="USD" /></SelectTrigger>
+                  {/* NEW: Added by select */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-600 mr-2">Added by*</label>
+                    <Select value={addedBy} onValueChange={(v) => setAddedBy(v)}>
+                      <SelectTrigger className="w-44"><SelectValue placeholder="You" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="USD">USD $</SelectItem>
-                        <SelectItem value="INR">INR ₹</SelectItem>
-                        <SelectItem value="EUR">EUR €</SelectItem>
+                        <SelectItem value="you">You</SelectItem>
+                        {memberOptions.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600">Project Budget</label>
-                    <Input value={budget2} onChange={(e) => setBudget2(e.target.value)} />
-                  </div>
-
-                  <div>
-                    <label className="text-sm text-gray-600">Hours Estimate (In Hours)</label>
-                    <Input value={hoursEstimate2} onChange={(e) => setHoursEstimate2(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={allowManualTimeLogs2} onChange={(e) => setAllowManualTimeLogs2(e.target.checked)} />
-                    <span className="text-sm text-gray-600">Allow manual time logs</span>
-                  </label>
                 </div>
               </div>
 
@@ -1226,7 +2024,7 @@ export default function AllProjectsPage() {
         </div>
       )}
 
-      {/* CATEGORY MODAL (table + add) */}
+      {/* CATEGORY MODAL */}
       {showCategoryModal && (
         <div className="fixed inset-0 z-[11000] flex items-center justify-center px-4">
           <div className="fixed inset-0 bg-black/40" onClick={() => closeCategoryModal()} />
@@ -1283,6 +2081,33 @@ export default function AllProjectsPage() {
           </div>
         </div>
       )}
+
+      {/* UPDATE MODAL */}
+      {showUpdateModal && updateProjectId != null && (
+        <UpdateProjectModal
+          projectId={updateProjectId}
+          onClose={() => { setShowUpdateModal(false); setUpdateProjectId(null); }}
+          onSaved={() => { getProjects(token ?? null); }}
+        />
+      )}
     </div>
   );
+
+  // Helper to group projects by start date string
+  function groupByStartDate(items: Project[]) {
+    const map: Record<string, Project[]> = {};
+    items.forEach((p) => {
+      const d = p.startDate ? new Date(p.startDate).toLocaleDateString() : "No start date";
+      (map[d] ||= []).push(p);
+    });
+    return map;
+  }
+
+  function getProgressColo(p?: number | null) {
+  if (p === undefined || p === null) return "bg-gray-300";
+  if (p < 33) return "bg-red-500";
+  if (p < 66) return "bg-yellow-400";
+  return "bg-green-500";
+}
+
 }
