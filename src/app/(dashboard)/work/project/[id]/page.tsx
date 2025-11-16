@@ -472,6 +472,8 @@ export default function ProjectDetailsPage() {
           <ProjectMembersTable projectId={project.id} />
           <TimesheetsTableNew gatewayPath="https://chat.swiftandgo.in/timesheets" />
           <MilestonesTable projectId={project.id} />
+       
+
         </div>
       </div>
     </div>
