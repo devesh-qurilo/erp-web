@@ -89,7 +89,9 @@ export default function InvoiceDetail() {
       setInvoice(data);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Something went wrong while fetching the invoice.");
+      setError(
+        err?.message || "Something went wrong while fetching the invoice."
+      );
     } finally {
       setLoading(false);
     }
@@ -104,13 +106,29 @@ export default function InvoiceDetail() {
   const getStatusBadge = (status: string) => {
     const statusLower = status?.toLowerCase();
     if (statusLower === "paid") {
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Paid</Badge>;
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          Paid
+        </Badge>
+      );
     } else if (statusLower === "pending" || statusLower === "unpaid") {
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>;
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+          Pending
+        </Badge>
+      );
     } else if (statusLower === "overdue") {
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Overdue</Badge>;
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          Overdue
+        </Badge>
+      );
     } else if (statusLower === "draft") {
-      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Draft</Badge>;
+      return (
+        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+          Draft
+        </Badge>
+      );
     }
     return <Badge variant="outline">{status || "Unknown"}</Badge>;
   };
@@ -136,13 +154,15 @@ export default function InvoiceDetail() {
   if (error || !invoice) {
     return (
       <div className="container mx-auto p-6">
-        <p className="text-center text-red-500">Error: {error || "Invoice not found"}</p>
+        <p className="text-center text-red-500">
+          Error: {error || "Invoice not found"}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
+    <div className="max-w-full mx-auto p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <Button
@@ -152,8 +172,12 @@ export default function InvoiceDetail() {
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Invoices
           </Button>
-          <h1 className="text-3xl font-bold text-gray-900">Invoice {invoice.invoiceNumber}</h1>
-          <p className="text-gray-600 mt-1">Details for invoice {invoice.invoiceNumber}</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Invoice {invoice.invoiceNumber}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Details for invoice {invoice.invoiceNumber}
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" title="Download Invoice">
@@ -186,23 +210,33 @@ export default function InvoiceDetail() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Amount</p>
-                <p className="font-medium">{invoice.currency} {invoice.amount.toFixed(2)}</p>
+                <p className="font-medium">
+                  {invoice.currency} {invoice.amount.toFixed(2)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Tax</p>
-                <p className="font-medium">{invoice.currency} {invoice.tax.toFixed(2)}</p>
+                <p className="font-medium">
+                  {invoice.currency} {invoice.tax.toFixed(2)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Discount</p>
-                <p className="font-medium">{invoice.currency} {invoice.discount.toFixed(2)}</p>
+                <p className="font-medium">
+                  {invoice.currency} {invoice.discount.toFixed(2)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Adjustment</p>
-                <p className="font-medium">{invoice.currency} {invoice.adjustment.toFixed(2)}</p>
+                <p className="font-medium">
+                  {invoice.currency} {invoice.adjustment.toFixed(2)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total</p>
-                <p className="font-bold">{invoice.currency} {invoice.total.toFixed(2)}</p>
+                <p className="font-bold">
+                  {invoice.currency} {invoice.total.toFixed(2)}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Amount in Words</p>
@@ -218,7 +252,12 @@ export default function InvoiceDetail() {
                   <ul className="list-disc pl-5">
                     {invoice.fileUrls.map((url, index) => (
                       <li key={index}>
-                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
                           File {index + 1}
                         </a>
                       </li>
@@ -239,9 +278,9 @@ export default function InvoiceDetail() {
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-4 mb-4">
-                {invoice.client.company.companyLogoUrl ? (
+                {invoice?.client.company.companyLogoUrl ? (
                   <Image
-                    src={invoice.client.company.companyLogoUrl}
+                    src={invoice?.client.company.companyLogoUrl}
                     alt={invoice.client.company.companyName || "Company"}
                     width={48}
                     height={48}
@@ -256,7 +295,9 @@ export default function InvoiceDetail() {
                 )}
                 <div>
                   <p className="font-medium">{invoice.client.name}</p>
-                  <p className="text-sm text-gray-500">{invoice.client.company.companyName}</p>
+                  <p className="text-sm text-gray-500">
+                    {invoice.client.company.companyName}
+                  </p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -270,11 +311,15 @@ export default function InvoiceDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Address</p>
-                  <p className="font-medium">{invoice.client.address}, {invoice.client.country}</p>
+                  <p className="font-medium">
+                    {invoice.client.address}, {invoice.client.country}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">GST/VAT No</p>
-                  <p className="font-medium">{invoice.client.company.gstVatNo}</p>
+                  <p className="font-medium">
+                    {invoice.client.company.gstVatNo}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -296,15 +341,22 @@ export default function InvoiceDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Start Date</p>
-                  <p className="font-medium">{formatDate(invoice.project.startDate)}</p>
+                  <p className="font-medium">
+                    {formatDate(invoice.project.startDate)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Deadline</p>
-                  <p className="font-medium">{formatDate(invoice.project.deadline)}</p>
+                  <p className="font-medium">
+                    {formatDate(invoice.project.deadline)}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Budget</p>
-                  <p className="font-medium">{invoice.project.currency} {invoice.project.budget.toFixed(2)}</p>
+                  <p className="font-medium">
+                    {invoice.project.currency}{" "}
+                    {invoice.project.budget.toFixed(2)}
+                  </p>
                 </div>
               </div>
             </CardContent>
