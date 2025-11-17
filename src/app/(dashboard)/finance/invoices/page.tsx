@@ -5,21 +5,19 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   Eye,
-  Download,
-  Mail,
   FileText,
   MoreHorizontal,
   DollarSign,
   Search,
   SlidersHorizontal,
   Plus,
-  Trash,
   Edit2,
+  CheckCircle,
+  FilePlus,
   Upload,
   Copy,
-  CheckCircle,
+  Trash,
   Bell,
-  FilePlus,
 } from "lucide-react";
 
 import {
@@ -51,7 +49,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 /* --------------------------
-  Types (loose to accept nulls)
+   Types (accept nulls)
 ---------------------------*/
 type Company = { companyName?: string | null; companyLogoUrl?: string | null };
 type Client = {
@@ -61,7 +59,13 @@ type Client = {
   companyName?: string | null;
   company?: Company | null;
 };
-type Project = { projectName?: string | null; projectCode?: string | null; projectId?: string | null };
+type Project = {
+  projectId?: string | null;
+  projectName?: string | null;
+  projectCode?: string | null;
+  budget?: number | null;
+  currency?: string | null;
+};
 type Invoice = {
   id: number;
   invoiceNumber?: string | null;
@@ -82,26 +86,26 @@ type Invoice = {
 };
 
 /* --------------------------
-  Helper small modal component
+   Reusable Modal (backdrop fixed)
 ---------------------------*/
 function Modal({ open, title, onClose, children }: { open: boolean; title?: string; onClose: () => void; children: React.ReactNode; }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center px-4 py-8">
+    <div className="fixed inset-0 z-[9999] flex items-start justify-center px-4 py-8">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-2xl bg-white rounded shadow-lg overflow-auto">
+      <div className="relative z-10 w-full max-w-4xl bg-white rounded-lg shadow-lg overflow-auto max-h-[90vh]">
         <div className="flex items-center justify-between p-4 border-b">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <Button variant="ghost" onClick={onClose}><span className="sr-only">Close</span>✕</Button>
+          <button onClick={onClose} className="p-2 rounded hover:bg-gray-100">✕</button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );
 }
 
 /* --------------------------
-  Main Component
+   Main component
 ---------------------------*/
 export default function InvoiceList() {
   const router = useRouter();
@@ -117,7 +121,7 @@ export default function InvoiceList() {
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: "", end: "" });
 
-  // modal state
+  // modal states
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openViewModal, setOpenViewModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
@@ -127,10 +131,8 @@ export default function InvoiceList() {
   const [openAddReceiptModal, setOpenAddReceiptModal] = useState(false);
   const [openViewReceiptsModal, setOpenViewReceiptsModal] = useState(false);
 
-  // active invoice in context (for actions)
+  // active invoice and small UI flags
   const [activeInvoice, setActiveInvoice] = useState<Invoice | null>(null);
-
-  // form / loading states
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -141,69 +143,28 @@ export default function InvoiceList() {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
 
-  // forms
+  // simple forms
   const [createForm, setCreateForm] = useState<any>({
+    invoiceNumber: "",
     invoiceDate: "",
-    currency: "",
+    currency: "USD",
     projectId: "",
     clientId: "",
-    amount: "",
-    tax: "",
-    discount: "",
+    amount: 0,
+    tax: 10,
+    discount: 0,
     amountInWords: "",
     notes: "",
   });
 
-  const [editForm, setEditForm] = useState<any>({
-    invoiceDate: "",
-    currency: "",
-    amount: "",
-    tax: "",
-    discount: "",
-    amountInWords: "",
-    notes: "",
-  });
+  const [editForm, setEditForm] = useState<any>({});
+  const [paymentForm, setPaymentForm] = useState<any>({});
+  const [receiptForm, setReceiptForm] = useState<any>({});
+  const [paymentsForActive, setPaymentsForActive] = useState<any[]>([]);
 
-  const [paymentForm, setPaymentForm] = useState<any>({
-    projectId: "",
-    clientId: "",
-    currency: "",
-    amount: "",
-    transactionId: "",
-    invoiceId: "",
-    paymentGatewayId: 1,
-    notes: "",
-  });
-
-  const [receiptForm, setReceiptForm] = useState<any>({
-    invoiceId: "",
-    issueDate: "",
-    currency: "",
-    sellerCompanyName: "",
-    sellerCompanyAddress: "",
-    sellerCompanyCode: "",
-    sellerCompanyTaxNumber: "",
-    sellerCompanyEmail: "",
-    sellerCompanyPhoneNumber: "",
-    sellerCompanyBankName: "",
-    sellerCompanyBankAccountNumber: "",
-    buyerCompanyName: "",
-    buyerCompanyAddress: "",
-    buyerCompanyCode: "",
-    buyerCompanyTaxNumber: "",
-    buyerCleintName: "",
-    buyerCompanyEmail: "",
-    buyerCompanyPhoneNumber: "",
-    buyerCompanyBankName: "",
-    buyerCompanyBankAccountNumber: "",
-    productName: "",
-    tax: 0,
-    priceWithOutTax: 0,
-    quantity: 1,
-    description: "",
-  });
-
-  // fetch invoices
+  /* --------------------------
+     Fetch invoices
+  ---------------------------*/
   const fetchInvoices = async () => {
     setLoading(true);
     try {
@@ -217,6 +178,7 @@ export default function InvoiceList() {
       const data = await res.json();
       const arr = Array.isArray(data) ? data : data?.invoices ?? [];
       setInvoices(arr);
+      setError(null);
     } catch (err: any) {
       console.error(err);
       setError(err?.message ?? "Failed to load invoices");
@@ -230,34 +192,36 @@ export default function InvoiceList() {
     fetchInvoices();
   }, []);
 
-  // derived lists
+  /* --------------------------
+     Derived lists for selects
+  ---------------------------*/
   const projectList = useMemo(() => {
-    const s = new Set<string>();
+    const setP = new Set<string>();
     invoices.forEach((i) => {
-      const v = i.project?.projectName;
-      if (v) s.add(v);
+      if (i.project?.projectName) setP.add(i.project.projectName);
     });
-    return ["All", ...Array.from(s)];
+    return ["All", ...Array.from(setP)];
   }, [invoices]);
 
   const clientList = useMemo(() => {
-    const s = new Set<string>();
+    const setC = new Set<string>();
     invoices.forEach((i) => {
-      const v = i.client?.name;
-      if (v) s.add(v);
+      if (i.client?.name) setC.add(i.client.name);
     });
-    return ["All", ...Array.from(s)];
+    return ["All", ...Array.from(setC)];
   }, [invoices]);
 
   const statusList = useMemo(() => {
-    const s = new Set<string>();
+    const setS = new Set<string>();
     invoices.forEach((i) => {
-      const v = i.status;
-      if (v) s.add(v);
+      if (i.status) setS.add(i.status);
     });
-    return ["All", ...Array.from(s)];
+    return ["All", ...Array.from(setS)];
   }, [invoices]);
 
+  /* --------------------------
+     Helpers
+  ---------------------------*/
   const safeFormatDate = (d?: string | null) => {
     if (!d) return "N/A";
     const dt = new Date(d);
@@ -266,7 +230,7 @@ export default function InvoiceList() {
   };
 
   const getStatusBadge = (status?: string | null) => {
-    const s = (status ?? "").toString().toLowerCase();
+    const s = (status ?? "").toLowerCase();
     if (s === "paid") return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
     if (s === "unpaid") return <Badge className="bg-red-100 text-red-800">Unpaid</Badge>;
     if (s.includes("credit")) return <Badge className="bg-yellow-100 text-yellow-800">Credit Note</Badge>;
@@ -274,19 +238,21 @@ export default function InvoiceList() {
     return <Badge>{status}</Badge>;
   };
 
-  // filtering
+  /* --------------------------
+     Filtered invoices
+  ---------------------------*/
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {
-      // search
       if (search) {
         const s = search.toLowerCase();
         const match =
-          (inv.invoiceNumber ?? "").toString().toLowerCase().includes(s) ||
-          (inv.project?.projectName ?? "").toString().toLowerCase().includes(s) ||
-          (inv.project?.projectCode ?? "").toString().toLowerCase().includes(s) ||
-          (inv.client?.name ?? "").toString().toLowerCase().includes(s);
+          (inv.invoiceNumber ?? "").toLowerCase().includes(s) ||
+          (inv.project?.projectName ?? "").toLowerCase().includes(s) ||
+          (inv.client?.name ?? "").toLowerCase().includes(s) ||
+          (inv.project?.projectCode ?? "").toLowerCase().includes(s);
         if (!match) return false;
       }
+
       if (projectFilter !== "All" && (inv.project?.projectName ?? "") !== projectFilter) return false;
       if (clientFilter !== "All" && (inv.client?.name ?? "") !== clientFilter) return false;
       if (statusFilter !== "All" && (inv.status ?? "") !== statusFilter) return false;
@@ -297,7 +263,6 @@ export default function InvoiceList() {
         const start = new Date(dateRange.start);
         const end = new Date(dateRange.end);
         end.setHours(23, 59, 59, 999);
-        if (Number.isNaN(invDate.getTime())) return false;
         if (invDate < start || invDate > end) return false;
       }
 
@@ -306,14 +271,27 @@ export default function InvoiceList() {
   }, [invoices, search, projectFilter, clientFilter, statusFilter, dateRange]);
 
   /* --------------------------
-    Action helpers (APIs)
+     API actions
   ---------------------------*/
 
-  // Create invoice (POST /api/invoices)
+  // Create invoice -> POST https://chat.swiftandgo.in/api/invoices
   const handleCreateInvoice = async () => {
+    // basic client-side validation
+    if (!createForm.invoiceDate || !createForm.currency || !createForm.projectId || !createForm.clientId) {
+      alert("Please fill required fields: invoice date, currency, project and client.");
+      return;
+    }
+
+    const token = localStorage.getItem("accessToken") || "";
+    if (!token) {
+      alert("Access token missing. Please login again.");
+      return;
+    }
+
     setCreating(true);
     try {
-      const body = {
+      const payload = {
+        invoiceNumber: createForm.invoiceNumber || undefined,
         invoiceDate: createForm.invoiceDate,
         currency: createForm.currency,
         projectId: createForm.projectId,
@@ -324,34 +302,46 @@ export default function InvoiceList() {
         amountInWords: createForm.amountInWords,
         notes: createForm.notes,
       };
-      const res = await fetch("/api/invoices", {
+
+      console.log("Creating invoice payload:", payload);
+
+      const res = await fetch("https://chat.swiftandgo.in/api/invoices", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
+
+      const text = await res.text().catch(() => "");
+      let body: any = text;
+      try { body = JSON.parse(text); } catch { /* keep text */ }
+
       if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(`Create failed: ${res.status} ${t}`);
+        console.error("Create failed response:", res.status, body);
+        const serverMsg = typeof body === "object" && body?.message ? body.message : (typeof body === "string" ? body : "");
+        alert(`Create failed: ${res.status} ${res.statusText}${serverMsg ? " — " + serverMsg : ""}`);
+        return;
       }
-      await res.json();
+
+      // success -> refresh list and close modal
       setOpenCreateModal(false);
       setCreateForm({
+        invoiceNumber: "",
         invoiceDate: "",
-        currency: "",
+        currency: "USD",
         projectId: "",
         clientId: "",
-        amount: "",
-        tax: "",
-        discount: "",
+        amount: 0,
+        tax: 10,
+        discount: 0,
         amountInWords: "",
         notes: "",
       });
       await fetchInvoices();
     } catch (err: any) {
-      console.error(err);
+      console.error("handleCreateInvoice error:", err);
       alert(err?.message || "Create invoice failed");
     } finally {
       setCreating(false);
@@ -395,13 +385,10 @@ export default function InvoiceList() {
     }
   };
 
-  // Upload file (POST /api/invoices/{invoiceNumber}/files) FormData field 'file'
+  // Upload file
   const handleUploadFile = async () => {
     if (!activeInvoice?.invoiceNumber) return;
-    if (!fileToUpload) {
-      alert("Please choose a file");
-      return;
-    }
+    if (!fileToUpload) { alert("Choose a file"); return; }
     setUploading(true);
     try {
       const fd = new FormData();
@@ -427,52 +414,7 @@ export default function InvoiceList() {
     }
   };
 
-  // Delete file -> DELETE /api/invoices/{invoiceNumber}/files?fileUrl=...
-  const handleDeleteFile = async (fileUrl: string) => {
-    if (!activeInvoice?.invoiceNumber) return;
-    if (!confirm("Delete this file?")) return;
-    try {
-      const res = await fetch(`/api/invoices/${activeInvoice.invoiceNumber}/files?fileUrl=${encodeURIComponent(fileUrl)}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` },
-      });
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(`Delete file failed: ${res.status} ${t}`);
-      }
-      await res.json();
-      await fetchInvoices();
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "Delete file failed");
-    }
-  };
-
-  // Add receipt -> POST /api/invoice (body is receiptForm)
-  const handleAddReceipt = async () => {
-    setAddingReceipt(true);
-    try {
-      const res = await fetch("/api/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` },
-        body: JSON.stringify(receiptForm),
-      });
-      if (!res.ok) {
-        const t = await res.text().catch(() => "");
-        throw new Error(`Add receipt failed: ${res.status} ${t}`);
-      }
-      await res.json();
-      setOpenAddReceiptModal(false);
-      await fetchInvoices();
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "Add receipt failed");
-    } finally {
-      setAddingReceipt(false);
-    }
-  };
-
-  // Add payment -> /api/payments (FormData: 'payment' JSON and 'file')
+  // Add payment (formdata)
   const handleAddPayment = async () => {
     setAddingPayment(true);
     try {
@@ -500,8 +442,7 @@ export default function InvoiceList() {
     }
   };
 
-  // View payments -> fetch /api/payments/invoice/{invoiceNumber}
-  const [paymentsForActive, setPaymentsForActive] = useState<any[]>([]);
+  // Fetch payments for invoice
   const fetchPaymentsForInvoice = async (invoiceNumber?: string | null) => {
     if (!invoiceNumber) return setPaymentsForActive([]);
     try {
@@ -517,11 +458,10 @@ export default function InvoiceList() {
     } catch (err: any) {
       console.error(err);
       setPaymentsForActive([]);
-      alert(err?.message || "Failed to load payments");
     }
   };
 
-  // Mark as paid -> POST /api/invoices/{invoiceId}/mark-paid
+  // Mark as paid
   const handleMarkAsPaid = async () => {
     if (!activeInvoice) return;
     setMarkingPaid(true);
@@ -545,7 +485,7 @@ export default function InvoiceList() {
     }
   };
 
-  // Send payment reminder -> POST /api/invoices/{invoiceNumber}/actions/send-reminder-email
+  // Send payment reminder
   const handleSendPaymentReminder = async () => {
     if (!activeInvoice?.invoiceNumber) return;
     try {
@@ -565,7 +505,7 @@ export default function InvoiceList() {
     }
   };
 
-  // Delete invoice -> DELETE /api/invoices/{invoiceNumber}
+  // Delete invoice
   const handleDeleteInvoice = async (invoiceNumber?: string | null) => {
     if (!invoiceNumber) return;
     if (!confirm("Delete this invoice?")) return;
@@ -590,57 +530,52 @@ export default function InvoiceList() {
     }
   };
 
-  // Duplicate -> prefill create form from invoice
+  // Duplicate invoice -> prefill create form
   const handleCreateDuplicate = (inv: Invoice) => {
     setCreateForm({
+      invoiceNumber: "",
       invoiceDate: inv.invoiceDate ?? "",
-      currency: inv.currency ?? "",
-      projectId: inv.project?.projectId ?? "",
+      currency: inv.currency ?? "USD",
+      projectId: inv.project?.projectId ?? inv.project?.projectName ?? "",
       clientId: inv.client?.clientId ?? "",
       amount: inv.amount ?? inv.total ?? 0,
       tax: inv.tax ?? 0,
       discount: inv.discount ?? 0,
-      amountInWords: inv.amount ? inv.amount.toString() : "",
-      notes: inv?.notes ?? "",
+      amountInWords: inv.amountInWords ?? "",
+      notes: inv.notes ?? "",
     });
     setOpenCreateModal(true);
   };
 
-  // open action modal items depending on status
-  const openActionsFor = (inv: Invoice) => {
-    setActiveInvoice(inv);
-    // default open view modal for quick details
-    setOpenViewModal(true);
-  };
-
   /* --------------------------
-    UI
+     UI states while loading/error
   ---------------------------*/
   if (loading) return <div className="container mx-auto p-6"><p className="text-center text-gray-600">Loading invoices...</p></div>;
   if (error) return <div className="container mx-auto p-6"><p className="text-center text-red-500">Error: {error}</p></div>;
 
+  /* --------------------------
+     Render
+  ---------------------------*/
   return (
     <div className="container mx-auto p-6">
-      {/* header - Create button moved to top-left (matches your screenshot) */}
+      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button
-            onClick={() => {
-              setCreateForm({
-                invoiceDate: "",
-                currency: "",
-                projectId: "",
-                clientId: "",
-                amount: "",
-                tax: "",
-                discount: "",
-                amountInWords: "",
-                notes: "",
-              });
-              setOpenCreateModal(true);
-            }}
-            className="flex items-center"
-          >
+          <Button onClick={() => {
+            setCreateForm({
+              invoiceNumber: "",
+              invoiceDate: "",
+              currency: "USD",
+              projectId: "",
+              clientId: "",
+              amount: 0,
+              tax: 10,
+              discount: 0,
+              amountInWords: "",
+              notes: "",
+            });
+            setOpenCreateModal(true);
+          }} className="flex items-center">
             <Plus className="mr-2 h-4 w-4" /> Create Invoice
           </Button>
 
@@ -650,12 +585,10 @@ export default function InvoiceList() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* right side reserved for other actions if needed */}
-        </div>
+        <div className="flex items-center gap-3"></div>
       </div>
 
-      {/* filters bar */}
+      {/* Filters */}
       <div className="mb-4 border rounded-md bg-white px-3 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 border rounded p-2 bg-white">
@@ -667,17 +600,23 @@ export default function InvoiceList() {
 
           <Select value={clientFilter} onValueChange={(v) => setClientFilter(v)}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Client" /></SelectTrigger>
-            <SelectContent>{clientList.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {clientList.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
           </Select>
 
           <Select value={projectFilter} onValueChange={(v) => setProjectFilter(v)}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Project" /></SelectTrigger>
-            <SelectContent>{projectList.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {projectList.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
           </Select>
 
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v)}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>{statusList.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            <SelectContent>
+              {statusList.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
           </Select>
 
           <div className="relative">
@@ -689,7 +628,7 @@ export default function InvoiceList() {
         <Button variant="outline" className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4" /> Filters</Button>
       </div>
 
-      {/* table */}
+      {/* Table */}
       <div className="border rounded-lg bg-white shadow-sm">
         <Table>
           <TableHeader>
@@ -704,6 +643,7 @@ export default function InvoiceList() {
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filteredInvoices.length === 0 ? (
               <TableRow><TableCell colSpan={8} className="text-center py-10 text-gray-500">No invoices found</TableCell></TableRow>
@@ -734,21 +674,18 @@ export default function InvoiceList() {
                     <TableCell>{safeFormatDate(inv.invoiceDate)}</TableCell>
                     <TableCell>{getStatusBadge(inv.status)}</TableCell>
                     <TableCell className="text-right">
-                      {/* Action menu - entries depend on status */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56">
-                          {/* common: View */}
                           <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setOpenViewModal(true); }}>
                             <Eye className="mr-2 h-4 w-4" /> View
                           </DropdownMenuItem>
 
-                          {/* UNPAID: edit, mark as paid, add payment, view payment, payment reminder */}
                           {statusKey === "UNPAID" && (
                             <>
-                              <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setEditForm({ invoiceDate: inv.invoiceDate ?? "", currency: inv.currency ?? "", amount: inv.amount ?? inv.total ?? 0, tax: inv.tax ?? 0, discount: inv.discount ?? 0, amountInWords: inv.amountInWords ?? "", notes: inv.notes ?? "" }); setOpenEditModal(true); }}>
+                              <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setEditForm({ invoiceDate: inv.invoiceDate, currency: inv.currency, amount: inv.amount ?? inv.total, tax: inv.tax, discount: inv.discount, amountInWords: inv.amountInWords, notes: inv.notes }); setOpenEditModal(true); }}>
                                 <Edit2 className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
 
@@ -756,7 +693,7 @@ export default function InvoiceList() {
                                 <CheckCircle className="mr-2 h-4 w-4" /> Mark as paid
                               </DropdownMenuItem>
 
-                              <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setPaymentForm({ ...paymentForm, projectId: inv.project?.projectId ?? "", clientId: inv.client?.clientId ?? "", currency: inv.currency ?? "", amount: inv.unpaidAmount ?? inv.total ?? 0, invoiceId: inv.invoiceNumber ?? "" }); setOpenAddPaymentModal(true); }}>
+                              <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setPaymentForm({ projectId: inv.project?.projectId ?? "", clientId: inv.client?.clientId ?? "", currency: inv.currency ?? "", amount: inv.unpaidAmount ?? inv.total ?? 0, invoiceId: inv.invoiceNumber ?? "" }); setOpenAddPaymentModal(true); }}>
                                 <DollarSign className="mr-2 h-4 w-4" /> Add payment
                               </DropdownMenuItem>
 
@@ -770,7 +707,6 @@ export default function InvoiceList() {
                             </>
                           )}
 
-                          {/* PAID: add receipt, view receipt, upload file, view payment, add credit note, view credit note */}
                           {statusKey === "PAID" && (
                             <>
                               <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setOpenAddReceiptModal(true); }}>
@@ -788,21 +724,12 @@ export default function InvoiceList() {
                               <DropdownMenuItem onClick={() => { setActiveInvoice(inv); fetchPaymentsForInvoice(inv.invoiceNumber ?? ""); setOpenViewPaymentsModal(true); }}>
                                 <FileText className="mr-2 h-4 w-4" /> View payment
                               </DropdownMenuItem>
-
-                              <DropdownMenuItem onClick={() => { alert("Add credit note: feature to implement in future"); }}>
-                                <FileText className="mr-2 h-4 w-4" /> Add credit note
-                              </DropdownMenuItem>
-
-                              <DropdownMenuItem onClick={() => { alert("View credit notes: feature to implement in future"); }}>
-                                <FileText className="mr-2 h-4 w-4" /> View credit note
-                              </DropdownMenuItem>
                             </>
                           )}
 
-                          {/* CREDIT_NOTES */}
                           {statusKey.includes("CREDIT") && (
                             <>
-                              <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setPaymentForm({ ...paymentForm, projectId: inv.project?.projectId ?? "", clientId: inv.client?.clientId ?? "", currency: inv.currency ?? "", amount: inv.unpaidAmount ?? inv.total ?? 0, invoiceId: inv.invoiceNumber ?? "" }); setOpenAddPaymentModal(true); }}>
+                              <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setPaymentForm({ projectId: inv.project?.projectId ?? "", clientId: inv.client?.clientId ?? "", currency: inv.currency ?? "", amount: inv.unpaidAmount ?? inv.total ?? 0, invoiceId: inv.invoiceNumber ?? "" }); setOpenAddPaymentModal(true); }}>
                                 <DollarSign className="mr-2 h-4 w-4" /> Add payment
                               </DropdownMenuItem>
 
@@ -814,12 +741,10 @@ export default function InvoiceList() {
 
                           <DropdownMenuSeparator />
 
-                          {/* Create duplicate */}
                           <DropdownMenuItem onClick={() => handleCreateDuplicate(inv)}>
                             <Copy className="mr-2 h-4 w-4" /> Create duplicate
                           </DropdownMenuItem>
 
-                          {/* Delete */}
                           <DropdownMenuItem onClick={() => { setActiveInvoice(inv); handleDeleteInvoice(inv.invoiceNumber ?? ""); }}>
                             <Trash className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>
@@ -835,47 +760,143 @@ export default function InvoiceList() {
       </div>
 
       {/* -------------------------
-         Create Invoice Modal
+         Create Invoice Modal (UI like screenshots)
          ------------------------ */}
       <Modal open={openCreateModal} title="+ Create Invoice" onClose={() => setOpenCreateModal(false)}>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <div className="text-sm text-gray-600">Invoice Date</div>
-              <input type="date" value={createForm.invoiceDate} onChange={(e) => setCreateForm((p:any) => ({ ...p, invoiceDate: e.target.value }))} className="border rounded px-2 py-1 w-full" />
-            </label>
-            <label className="block">
-              <div className="text-sm text-gray-600">Currency</div>
-              <input value={createForm.currency} onChange={(e) => setCreateForm((p:any) => ({ ...p, currency: e.target.value }))} className="border rounded px-2 py-1 w-full" />
-            </label>
-            <label>
-              <div className="text-sm text-gray-600">Project (ID)</div>
-              <input value={createForm.projectId} onChange={(e) => setCreateForm((p:any) => ({ ...p, projectId: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="projectId (e.g. 15)" />
-            </label>
-            <label>
-              <div className="text-sm text-gray-600">Client (ID)</div>
-              <input value={createForm.clientId} onChange={(e) => setCreateForm((p:any) => ({ ...p, clientId: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="clientId (e.g. CLI006)" />
-            </label>
+        <div className="space-y-6">
+          {/* Invoice Details */}
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold mb-3">Invoice Details</h4>
+            <div className="grid grid-cols-3 gap-4 items-end">
+              <div>
+                <label className="text-sm text-gray-600 block">Invoice Number *</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="px-2 py-2 bg-gray-100 rounded-l text-gray-600">INV#</div>
+                  <input className="border rounded-r px-3 py-2 w-full" placeholder="INV-2025-XXX" value={createForm.invoiceNumber} onChange={(e) => setCreateForm((p:any) => ({ ...p, invoiceNumber: e.target.value }))} />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 block">Invoice Date *</label>
+                <input type="date" className="border rounded px-3 py-2 w-full mt-1" value={createForm.invoiceDate} onChange={(e) => setCreateForm((p:any) => ({ ...p, invoiceDate: e.target.value }))} />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 block">Currency *</label>
+                <select className="border rounded px-3 py-2 w-full mt-1" value={createForm.currency} onChange={(e) => setCreateForm((p:any) => ({ ...p, currency: e.target.value }))}>
+                  <option value="USD">USD $</option>
+                  <option value="INR">INR ₹</option>
+                  <option value="EUR">EUR €</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <input value={createForm.amount} onChange={(e) => setCreateForm((p:any) => ({ ...p, amount: e.target.value }))} className="border rounded px-2 py-1" placeholder="Amount" />
-            <input value={createForm.tax} onChange={(e) => setCreateForm((p:any) => ({ ...p, tax: e.target.value }))} className="border rounded px-2 py-1" placeholder="Tax" />
-            <input value={createForm.discount} onChange={(e) => setCreateForm((p:any) => ({ ...p, discount: e.target.value }))} className="border rounded px-2 py-1" placeholder="Discount" />
+          {/* Project Details */}
+          <div className="border rounded-lg p-4">
+            <h4 className="font-semibold mb-3">Project Details</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm text-gray-600 block">Project *</label>
+                <select className="border rounded px-3 py-2 w-full mt-1" value={createForm.projectId} onChange={(e) => setCreateForm((p:any) => ({ ...p, projectId: e.target.value }))}>
+                  <option value="">Select Project</option>
+                  {projectList.filter(p=>p!=="All").map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 block">Client *</label>
+                <select className="border rounded px-3 py-2 w-full mt-1" value={createForm.clientId} onChange={(e) => setCreateForm((p:any) => ({ ...p, clientId: e.target.value }))}>
+                  <option value="">Select Client</option>
+                  {clientList.filter(c=>c!=="All").map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-600 block">Project Budget *</label>
+                <div className="mt-1 flex items-center">
+                  <div className="px-2 py-2 bg-gray-100 rounded-l text-gray-600">{createForm.currency}</div>
+                  <input readOnly className="border rounded-r px-3 py-2 w-full bg-gray-50" value={"30,000"} />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 border rounded p-3 grid grid-cols-12 gap-3 items-center">
+              <div className="col-span-7">
+                <label className="text-sm text-gray-600">Amount</label>
+                <input type="number" step="0.01" className="border rounded px-3 py-2 w-full mt-1" value={createForm.amount} onChange={(e) => setCreateForm((p:any) => ({ ...p, amount: Number(e.target.value) }))} />
+              </div>
+
+              <div className="col-span-3">
+                <label className="text-sm text-gray-600">Tax (%)</label>
+                <input type="number" step="0.01" className="border rounded px-3 py-2 w-full mt-1" value={createForm.tax} onChange={(e) => setCreateForm((p:any) => ({ ...p, tax: Number(e.target.value) }))} />
+              </div>
+
+              <div className="col-span-2 bg-gray-50 rounded p-2 text-center">
+                <div className="text-xs text-gray-500">Amount</div>
+                <div className="text-lg font-semibold">{createForm.currency} {(Number(createForm.amount || 0) - (Number(createForm.discount || 0)/100*Number(createForm.amount||0)) + (((Number(createForm.amount||0) - (Number(createForm.discount||0)/100*Number(createForm.amount||0))) * Number(createForm.tax||0))/100)).toFixed(2)}</div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-4 gap-3">
+              <div className="col-span-2" />
+              <div className="col-span-2 border rounded p-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <div>Sub Total</div>
+                  <div>{createForm.currency} {Number(createForm.amount || 0).toFixed(2)}</div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-gray-600">Discount</div>
+                    <input type="number" className="w-16 border rounded px-2 py-1" value={createForm.discount} onChange={(e) => setCreateForm((p:any) => ({ ...p, discount: Number(e.target.value) }))} />
+                    <select className="border rounded px-2 py-1" value="%" disabled><option>%</option></select>
+                  </div>
+                  <div>{createForm.currency} {((Number(createForm.discount||0)/100)*Number(createForm.amount||0)).toFixed(2)}</div>
+                </div>
+
+                <div className="flex items-center justify-between mt-2">
+                  <div className="text-sm text-gray-600">Tax</div>
+                  <div>{createForm.currency} {(((Number(createForm.amount||0) - (Number(createForm.discount||0)/100*Number(createForm.amount||0))) * Number(createForm.tax||0))/100).toFixed(2)}</div>
+                </div>
+
+                <div className="mt-3 bg-gray-100 rounded py-2 px-3 flex justify-between font-semibold">
+                  <div>Total</div>
+                  <div>{createForm.currency} {(Number(createForm.amount || 0) - (Number(createForm.discount||0)/100*Number(createForm.amount||0)) + (((Number(createForm.amount||0) - (Number(createForm.discount||0)/100*Number(createForm.amount||0))) * Number(createForm.tax||0))/100)).toFixed(2)}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <input value={createForm.amountInWords} onChange={(e) => setCreateForm((p:any) => ({ ...p, amountInWords: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="Amount in words" />
-          <textarea value={createForm.notes} onChange={(e) => setCreateForm((p:any) => ({ ...p, notes: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="Notes" />
+          {/* Amount in words + notes */}
+          <div className="border rounded-lg p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-gray-600 block">Amount in words</label>
+                <input className="border rounded px-3 py-2 w-full mt-1" value={createForm.amountInWords} onChange={(e) => setCreateForm((p:any) => ({ ...p, amountInWords: e.target.value }))} placeholder="One thousand dollars" />
+              </div>
 
-          <div className="flex justify-end gap-2">
+              <div>
+                <label className="text-sm text-gray-600 block">Project Budget (duplicate)</label>
+                <input readOnly className="border rounded px-3 py-2 w-full mt-1 bg-gray-50" value={`${createForm.currency} 30,000`} />
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="text-sm text-gray-600 block">Note / Description for the recipient</label>
+              <textarea className="border rounded px-3 py-2 w-full mt-1" rows={4} value={createForm.notes} onChange={(e) => setCreateForm((p:any) => ({ ...p, notes: e.target.value }))} placeholder="Notes..." />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
             <Button variant="ghost" onClick={() => setOpenCreateModal(false)}>Cancel</Button>
-            <Button onClick={handleCreateInvoice} disabled={creating}>{creating ? "Creating..." : "Save"}</Button>
+            <Button onClick={handleCreateInvoice} disabled={creating}>{creating ? "Saving..." : "Save"}</Button>
           </div>
         </div>
       </Modal>
 
       {/* -------------------------
-         View Invoice Modal
+         View / Edit / Upload / Payments modals (existing)
          ------------------------ */}
       <Modal open={openViewModal} title={`Invoice ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => { setOpenViewModal(false); setActiveInvoice(null); }}>
         <div className="space-y-4">
@@ -914,7 +935,7 @@ export default function InvoiceList() {
                   <div key={idx} className="flex items-center justify-between gap-3 border rounded px-3 py-2">
                     <a href={f} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">File {idx + 1}</a>
                     <div>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteFile(f)}>Delete file</Button>
+                      <Button variant="ghost" size="sm" onClick={() => { /* delete file */ }}>Delete file</Button>
                     </div>
                   </div>
                 ))
@@ -924,7 +945,6 @@ export default function InvoiceList() {
             </div>
           </div>
 
-          {/* quick actions in view modal */}
           <div className="flex gap-2 justify-end">
             {(activeInvoice?.status ?? "").toString().toUpperCase() === "UNPAID" && (
               <>
@@ -948,9 +968,7 @@ export default function InvoiceList() {
         </div>
       </Modal>
 
-      {/* -------------------------
-         Edit Invoice Modal
-         ------------------------ */}
+      {/* Edit modal */}
       <Modal open={openEditModal} title={`Edit ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => setOpenEditModal(false)}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -980,9 +998,7 @@ export default function InvoiceList() {
         </div>
       </Modal>
 
-      {/* -------------------------
-         Upload File Modal
-         ------------------------ */}
+      {/* Upload file modal */}
       <Modal open={openUploadModal} title={`Upload file for ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => { setOpenUploadModal(false); setFileToUpload(null); }}>
         <div className="space-y-3">
           <input type="file" onChange={(e) => setFileToUpload(e.target.files ? e.target.files[0] : null)} />
@@ -993,9 +1009,7 @@ export default function InvoiceList() {
         </div>
       </Modal>
 
-      {/* -------------------------
-         Add Payment Modal
-         ------------------------ */}
+      {/* Add payment modal */}
       <Modal open={openAddPaymentModal} title={`Add payment for ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => { setOpenAddPaymentModal(false); setPaymentFile(null); }}>
         <div className="space-y-3">
           <input value={paymentForm.projectId} onChange={(e) => setPaymentForm((p:any) => ({ ...p, projectId: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="projectId" />
@@ -1013,9 +1027,7 @@ export default function InvoiceList() {
         </div>
       </Modal>
 
-      {/* -------------------------
-         View Payments Modal
-         ------------------------ */}
+      {/* View payments modal */}
       <Modal open={openViewPaymentsModal} title={`Payments for ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => { setOpenViewPaymentsModal(false); setPaymentsForActive([]); }}>
         <div className="space-y-3">
           {paymentsForActive.length === 0 ? (
@@ -1030,7 +1042,6 @@ export default function InvoiceList() {
                     <div className="text-sm">{p.note}</div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {/* Implement payment delete/download if needed */}
                     <Button variant="ghost" size="icon" onClick={() => { if (p.receiptFileUrl) window.open(p.receiptFileUrl, "_blank"); }}>🔍</Button>
                   </div>
                 </div>
@@ -1040,9 +1051,7 @@ export default function InvoiceList() {
         </div>
       </Modal>
 
-      {/* -------------------------
-         Add Receipt Modal
-         ------------------------ */}
+      {/* Add receipt modal */}
       <Modal open={openAddReceiptModal} title={`Add Receipt for ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => setOpenAddReceiptModal(false)}>
         <div className="space-y-3">
           <input value={receiptForm.invoiceId} onChange={(e) => setReceiptForm((p:any) => ({ ...p, invoiceId: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="invoiceId" />
@@ -1053,23 +1062,19 @@ export default function InvoiceList() {
           <textarea value={receiptForm.description} onChange={(e) => setReceiptForm((p:any) => ({ ...p, description: e.target.value }))} className="border rounded px-2 py-1 w-full" placeholder="description" />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpenAddReceiptModal(false)}>Cancel</Button>
-            <Button onClick={handleAddReceipt} disabled={addingReceipt}>{addingReceipt ? "Saving..." : "Save"}</Button>
+            <Button onClick={async () => { setAddingReceipt(true); try { await fetch("/api/invoice", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` }, body: JSON.stringify(receiptForm) }); setOpenAddReceiptModal(false); await fetchInvoices(); } catch(e){ console.error(e); alert("Add receipt failed"); } finally { setAddingReceipt(false); } }} disabled={addingReceipt}>{addingReceipt ? "Saving..." : "Save"}</Button>
           </div>
         </div>
       </Modal>
 
-      {/* -------------------------
-         View Receipts Modal (simple) - will open receipt API in modal or new page
-         ------------------------ */}
       <Modal open={openViewReceiptsModal} title={`Receipts for ${activeInvoice?.invoiceNumber ?? ""}`} onClose={() => setOpenViewReceiptsModal(false)}>
         <div className="space-y-3">
-          <div className="text-sm text-gray-500">Receipts are available in receipts API. You can open the receipt in a new tab.</div>
+          <div className="text-sm text-gray-500">Receipts are available via receipts API. Open receipts page to view full details.</div>
           <div className="flex justify-end">
             <Button onClick={() => { if (activeInvoice?.invoiceNumber) router.push(`/invoice/receipt/${activeInvoice.invoiceNumber}`); }}>Open Receipts Page</Button>
           </div>
         </div>
       </Modal>
-
     </div>
   );
 }
