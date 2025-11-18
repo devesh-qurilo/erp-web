@@ -23,7 +23,7 @@ type DealPayload = {
   value: number | "";
   expectedCloseDate: string;
   dealAgent: string;
-  dealWatchers: string[];
+  dealWatchers: string[]; // array of employeeId
 };
 
 type Lead = {
@@ -79,7 +79,7 @@ export default function LeadsPage() {
     { refreshInterval: 30000, revalidateOnFocus: true }
   );
 
-  // Use the provided employees endpoint
+  // Use the provided employees endpoint (paged)
   const { data: employeesData } = useSWR<{ content?: Employee[] }>(`${BASE}/employee/all?page=0&size=20`, fetcher, {
     revalidateOnFocus: false,
   });
@@ -382,9 +382,10 @@ function AddLeadModal({ onClose, onCreated, employees }: { onClose: () => void; 
         const res1 = await fetch(`${BASE}/deals/dealCategory`, { headers: { Authorization: `Bearer ${token}` } });
         if (res1.ok) {
           const json = await res1.json();
-          if (Array.isArray(json)) setDealCategories(json);
-          // also use as clientCategories
-          if (Array.isArray(json)) setClientCategories(json);
+          if (Array.isArray(json)) {
+            setDealCategories(json);
+            setClientCategories(json);
+          }
         }
 
         // lead sources
@@ -393,7 +394,6 @@ function AddLeadModal({ onClose, onCreated, employees }: { onClose: () => void; 
           const json2 = await res2.json();
           if (Array.isArray(json2)) setLeadSources(json2);
         }
-
       } catch (err) {
         // ignore — UI will fall back
       }
@@ -456,6 +456,7 @@ function AddLeadModal({ onClose, onCreated, employees }: { onClose: () => void; 
   const update = (k: string, v: any) => setPayload((p) => ({ ...p, [k]: v }));
   const updateDeal = (k: keyof DealPayload, v: any) => setPayload((p) => ({ ...p, deal: { ...(p.deal as DealPayload), [k]: v } }));
 
+  // toggle watcher by employeeId (kept for compatibility, but watchers selection now via multi-select)
   const toggleWatcher = (id: string) => {
     setPayload((p) => {
       const s = new Set(p.deal!.dealWatchers || []);
@@ -794,21 +795,37 @@ function AddLeadModal({ onClose, onCreated, employees }: { onClose: () => void; 
                   </div>
 
                   {/* -------------------------
-                      Deal Watchers — fixed layout (wrap, full width)
+                      Deal Watchers — MULTI-SELECT dropdown (employeeId values)
                       ------------------------- */}
                   <div className="md:col-span-3">
                     <label className="text-sm text-muted-foreground">Deal Watcher(s)</label>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+
+                    {/* Multi-select: uses native <select multiple> for simplicity and reliability */}
+                    <select
+                      multiple
+                      value={payload.deal!.dealWatchers}
+                      onChange={(e) => {
+                        const options = Array.from(e.target.options);
+                        const selected = options.filter(o => o.selected).map(o => o.value);
+                        updateDeal("dealWatchers", selected);
+                      }}
+                      className="w-full border rounded-md p-2 h-32"
+                    >
                       {employees.map(emp => (
-                        <label key={emp.employeeId} className="inline-flex items-center gap-2 border rounded px-3 py-2 text-sm bg-white">
-                          <input
-                            type="checkbox"
-                            checked={payload.deal!.dealWatchers.includes(emp.employeeId)}
-                            onChange={() => toggleWatcher(emp.employeeId)}
-                          />
-                          <span className="truncate">{emp.name} ({emp.employeeId})</span>
-                        </label>
+                        <option key={emp.employeeId} value={emp.employeeId}>
+                          {emp.name} ({emp.employeeId})
+                        </option>
                       ))}
+                    </select>
+
+                    {/* Also show a helper text with selected names */}
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      Selected:{" "}
+                      {payload.deal!.dealWatchers.length === 0
+                        ? "—"
+                        : payload.deal!.dealWatchers
+                            .map(id => employees.find(emp => emp.employeeId === id)?.name ?? id)
+                            .join(", ")}
                     </div>
                   </div>
                 </div>
