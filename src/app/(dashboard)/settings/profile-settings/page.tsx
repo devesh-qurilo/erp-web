@@ -1,319 +1,799 @@
+// src/app/settings/profile/ProfileForm.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { User, Mail, Phone, MapPin, Upload, Camera, Loader2, Save, Check } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import {
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Camera,
+  Loader2,
+  Save,
+  Upload,
+  Check,
+  Plus,
+  MoreHorizontal,
+  Trash2
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-export default function EmployeeProfileForm() {
-  const [formData, setFormData] = useState<any>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [profilePreview, setProfilePreview] = useState<string>("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+const API_BASE = "https://chat.swiftandgo.in";
 
+type ProfilePayload = {
+  employeeId?: string;
+  name?: string;
+  email?: string;
+  profilePictureUrl?: string | null;
+  gender?: string;
+  birthday?: string;
+  bloodGroup?: string;
+  language?: string;
+  country?: string;
+  mobile?: string;
+  address?: string;
+  about?: string;
+  slackMemberId?: string;
+  maritalStatus?: string;
+};
+
+type EmergencyContact = {
+  id?: number;
+  name: string;
+  email?: string;
+  mobile?: string;
+  address?: string;
+  relationship?: string;
+  employeeId?: string;
+};
+
+type DocumentItem = {
+  id: number;
+  bucket?: string;
+  path?: string;
+  filename?: string;
+  mime?: string;
+  size?: number;
+  url?: string;
+  uploadedBy?: string;
+  uploadedAt?: string;
+  employeeId?: string;
+};
+
+export default function ProfileForm() {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const docFileRef = useRef<HTMLInputElement | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+  const [profile, setProfile] = useState<ProfilePayload>({
+    employeeId: undefined,
+    name: "",
+    email: "",
+    profilePictureUrl: null,
+    gender: "",
+    birthday: "",
+    bloodGroup: "",
+    language: "",
+    country: "India",
+    mobile: "",
+    address: "",
+    about: "",
+    slackMemberId: "",
+    maritalStatus: "",
+  });
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>("");
+
+  // Emergency contacts state
+  const [emergencyContacts, setEmergencyContacts] = useState<EmergencyContact[]>([]);
+  const [showNewContactForm, setShowNewContactForm] = useState<boolean>(false);
+  const [newContact, setNewContact] = useState<EmergencyContact>({
+    name: "",
+    email: "",
+    mobile: "",
+    address: "",
+    relationship: "",
+  });
+  const [addingContact, setAddingContact] = useState<boolean>(false);
+  const [contactsError, setContactsError] = useState<string>("");
+
+  // Documents state
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [docUploading, setDocUploading] = useState<boolean>(false);
+  const [docUploadError, setDocUploadError] = useState<string>("");
+  const [docPreviewFile, setDocPreviewFile] = useState<File | null>(null);
+  const [docPreviewUrl, setDocPreviewUrl] = useState<string>("");
+
+  // load profile + emergency contacts + documents
   useEffect(() => {
-    async function fetchProfile() {
+    let mounted = true;
+    (async () => {
       try {
-        const accessToken = localStorage.getItem("accessToken");
-        if (!accessToken) throw new Error("No access token found");
-
-        const response = await fetch("/api/company/profile-settings", {
-          headers: { Authorization: `Bearer ${accessToken}` },
+        const token = localStorage.getItem("accessToken") || "";
+        const res = await fetch(`${API_BASE}/employee/me`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
         });
-
-        if (!response.ok) throw new Error("Failed to fetch profile");
-        const data = await response.json();
-        setFormData(data);
-        if (data.profilePicture) {
-          setProfilePreview(data.profilePicture);
+        if (!res.ok) {
+          console.warn("Failed to load profile", res.status);
+          setLoading(false);
+          return;
         }
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
+        const data = await res.json();
+        if (!mounted) return;
+        setProfile({
+          employeeId: data.employeeId ?? undefined,
+          name: data.name ?? "",
+          email: data.email ?? "",
+          profilePictureUrl: data.profilePictureUrl ?? null,
+          gender: data.gender ?? "",
+          birthday: data.birthday ?? "",
+          bloodGroup: data.bloodGroup ?? "",
+          language: data.language ?? "",
+          country: data.country ?? "India",
+          mobile: data.mobile ?? "",
+          address: data.address ?? "",
+          about: data.about ?? "",
+          slackMemberId: data.slackMemberId ?? "",
+          maritalStatus: data.maritalStatus ?? "",
+        });
+        if (data.profilePictureUrl) setPreview(data.profilePictureUrl);
 
-    fetchProfile();
+        const tokenHeader = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+
+        // emergency contacts
+        if (data.employeeId) {
+          try {
+            const cRes = await fetch(`${API_BASE}/employee/${encodeURIComponent(data.employeeId)}/emergency-contacts`, {
+              headers: tokenHeader,
+            });
+            if (cRes.ok) {
+              const contacts = await cRes.json();
+              if (mounted && Array.isArray(contacts)) setEmergencyContacts(contacts);
+            } else {
+              console.warn("Failed to load emergency contacts", cRes.status);
+            }
+          } catch (err) {
+            console.warn("Error fetching emergency contacts", err);
+          }
+
+          // documents
+          try {
+            const dRes = await fetch(`${API_BASE}/employee/${encodeURIComponent(data.employeeId)}/documents`, {
+              headers: tokenHeader,
+            });
+            if (dRes.ok) {
+              const docs = await dRes.json();
+              if (mounted && Array.isArray(docs)) setDocuments(docs);
+            } else {
+              console.warn("Failed to load documents", dRes.status);
+            }
+          } catch (err) {
+            console.warn("Error fetching documents", err);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading profile:", err);
+        setError("Failed to load profile");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInput = (key: keyof ProfilePayload, value: any) => {
+    setProfile((p) => ({ ...p, [key]: value }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
+  const onPickFile = () => fileRef.current?.click();
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePreview(reader.result as string);
-      };
-      reader.readAsDataURL(selectedFile);
+  const handleFile = (f?: File | null) => {
+    if (!f) {
+      setSelectedFile(null);
+      setPreview(profile.profilePictureUrl ?? "");
+      return;
     }
+    setSelectedFile(f);
+    setPreview(URL.createObjectURL(f));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage("");
+  const handleFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    handleFile(f);
+  };
+
+  /**
+   * Save profile (PUT /employee/me)
+   */
+  const handleSubmit = async (ev?: React.FormEvent) => {
+    if (ev) ev.preventDefault();
     setError("");
+    setMessage("");
 
+    if (!profile.name || !profile.email) {
+      setError("Name and Email are required.");
+      return;
+    }
+
+    setSaving(true);
     try {
-      const accessToken = localStorage.getItem("accessToken");
-      if (!accessToken) throw new Error("No access token found");
+      const token = localStorage.getItem("accessToken") || "";
 
-      const form = new FormData();
-      form.append("employee", JSON.stringify(formData));
-      if (file) form.append("file", file);
+      const employeeObj: any = {
+        name: profile.name ?? "",
+        email: profile.email ?? "",
+        gender: profile.gender ?? "",
+        birthday: profile.birthday ?? "",
+        bloodGroup: profile.bloodGroup ?? "",
+        language: profile.language ?? "",
+        country: profile.country ?? "",
+        mobile: profile.mobile ?? "",
+        address: profile.address ?? "",
+        about: profile.about ?? "",
+        slackMemberId: profile.slackMemberId ?? "",
+        maritalStatus: profile.maritalStatus ?? "",
+      };
 
-      const res = await fetch("/api/company/profile-settings", {
+      const fd = new FormData();
+      fd.append("employee", JSON.stringify(employeeObj));
+      if (selectedFile) fd.append("file", selectedFile);
+
+      const res = await fetch(`${API_BASE}/employee/me`, {
         method: "PUT",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: form,
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
       });
 
-      const data = await res.json();
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Save failed:", res.status, json);
+        setError(json?.error || `Save failed (${res.status})`);
+        setSaving(false);
+        return;
+      }
 
-      if (!res.ok) throw new Error(data.error || "Failed to update profile");
-      setMessage("Profile updated successfully!");
+      setProfile((p) => ({
+        ...p,
+        employeeId: json.employeeId ?? p.employeeId,
+        profilePictureUrl: json.profilePictureUrl ?? p.profilePictureUrl,
+        name: json.name ?? p.name,
+        email: json.email ?? p.email,
+        gender: json.gender ?? p.gender,
+        birthday: json.birthday ?? p.birthday,
+        bloodGroup: json.bloodGroup ?? p.bloodGroup,
+        language: json.language ?? p.language,
+        country: json.country ?? p.country,
+        mobile: json.mobile ?? p.mobile,
+        address: json.address ?? p.address,
+        about: json.about ?? p.about,
+        slackMemberId: json.slackMemberId ?? p.slackMemberId,
+        maritalStatus: json.maritalStatus ?? p.maritalStatus,
+      }));
 
+      if (json.profilePictureUrl) {
+        setPreview(json.profilePictureUrl);
+        setSelectedFile(null);
+      }
+
+      setMessage("Profile saved successfully.");
       setTimeout(() => setMessage(""), 3000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      console.error("Unexpected save error:", err);
+      setError("Unexpected error while saving. See console.");
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-          <p className="text-slate-600">Loading your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error && !formData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (!formData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <p className="text-center text-slate-600">No employee data found.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const getInitials = (name: string) => {
-    if (!name) return "U";
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
+  // Emergency contacts handlers (unchanged)
+  const toggleNewContactForm = () => {
+    setContactsError("");
+    setShowNewContactForm((s) => !s);
   };
 
+  const handleNewContactChange = (k: keyof EmergencyContact, v: string) => {
+    setNewContact((p) => ({ ...p, [k]: v }));
+  };
+
+  const handleAddContact = async () => {
+    setContactsError("");
+    if (!newContact.name || !newContact.mobile) {
+      setContactsError("Name and Mobile are required for emergency contact.");
+      return;
+    }
+    if (!profile.employeeId) {
+      setContactsError("Employee ID not known. Save profile first.");
+      return;
+    }
+
+    setAddingContact(true);
+    try {
+      const token = localStorage.getItem("accessToken") || "";
+      const url = `${API_BASE}/employee/${encodeURIComponent(profile.employeeId)}/emergency-contacts`;
+
+      const body = {
+        name: newContact.name,
+        email: newContact.email ?? "",
+        mobile: newContact.mobile ?? "",
+        address: newContact.address ?? "",
+        relationship: newContact.relationship ?? "",
+      };
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Add contact failed:", res.status, json);
+        setContactsError(json?.error || `Add contact failed (${res.status})`);
+        setAddingContact(false);
+        return;
+      }
+
+      setEmergencyContacts((prev) => [...prev, json]);
+      setNewContact({ name: "", email: "", mobile: "", address: "", relationship: "" });
+      setShowNewContactForm(false);
+    } catch (err) {
+      console.error("Unexpected add contact error:", err);
+      setContactsError("Unexpected error while adding contact. See console.");
+    } finally {
+      setAddingContact(false);
+    }
+  };
+
+  // Documents handlers
+  const onPickDocFile = () => docFileRef.current?.click();
+
+  const handleDocFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const f = e.target.files?.[0] ?? null;
+    if (!f) {
+      setDocPreviewFile(null);
+      setDocPreviewUrl("");
+      return;
+    }
+    setDocPreviewFile(f);
+    // For image types show preview, otherwise just show filename (we still upload)
+    if (f.type.startsWith("image/")) {
+      setDocPreviewUrl(URL.createObjectURL(f));
+    } else {
+      setDocPreviewUrl("");
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    setDocUploadError("");
+    if (!docPreviewFile) {
+      setDocUploadError("Please choose a file to upload.");
+      return;
+    }
+    if (!profile.employeeId) {
+      setDocUploadError("Employee ID not known. Save profile first.");
+      return;
+    }
+
+    setDocUploading(true);
+    try {
+      const token = localStorage.getItem("accessToken") || "";
+      const url = `${API_BASE}/employee/${encodeURIComponent(profile.employeeId)}/documents`;
+      const fd = new FormData();
+      fd.append("file", docPreviewFile);
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          // DO NOT set content-type
+        },
+        body: fd,
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Document upload failed:", res.status, json);
+        setDocUploadError(json?.error || `Upload failed (${res.status})`);
+        setDocUploading(false);
+        return;
+      }
+
+      // append to documents list
+      setDocuments((prev) => [...prev, json]);
+      // clear preview/file
+      setDocPreviewFile(null);
+      setDocPreviewUrl("");
+    } catch (err) {
+      console.error("Unexpected document upload error:", err);
+      setDocUploadError("Unexpected error while uploading document. See console.");
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (docId: number) => {
+    // optional: simple optimistic UI delete + call DELETE endpoint if available
+    // Here just remove from list locally. If you have DELETE endpoint, call it.
+    setDocuments((prev) => prev.filter((d) => d.id !== docId));
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
+          <p className="text-slate-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Profile Settings</h1>
-          <p className="text-slate-600">Manage your personal information and preferences</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
+          <p className="text-sm text-slate-600 mt-1">Profile Details</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-1 border-slate-200 shadow-lg h-fit">
-            <CardContent className="pt-6">
-              <div className="flex flex-col items-center">
-                <div className="relative group">
-                  <Avatar className="w-32 h-32 border-4 border-slate-200">
-                    <AvatarImage src={profilePreview} alt={formData.name || "Profile"} />
-                    <AvatarFallback className="text-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                      {getInitials(formData.name || "User")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Label
-                    htmlFor="profile-upload"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-full"
-                  >
-                    <Camera className="w-8 h-8 text-white" />
-                  </Label>
-                  <Input
-                    id="profile-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
+        <form onSubmit={handleSubmit} className="bg-white border rounded-xl p-6 shadow-sm">
+          {/* Profile picture */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-slate-700 mb-2">Profile Picture</div>
+            <div
+              onClick={onPickFile}
+              className="border rounded-md h-36 flex items-center justify-center cursor-pointer bg-white hover:bg-gray-50"
+            >
+              {preview ? (
+                <div className="flex items-center gap-4 px-4">
+                  <img src={preview} alt="profile preview" className="h-24 w-24 object-cover rounded-full border" />
+                  <div className="text-sm text-slate-600">Click to change picture</div>
                 </div>
-                <div className="text-center mt-4">
-                  <h3 className="text-xl font-semibold text-slate-900">{formData.name || "Your Name"}</h3>
-                  <p className="text-sm text-slate-600 mt-1">{formData.email || "email@example.com"}</p>
+              ) : (
+                <div className="text-center text-slate-400">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2">
+                    <path d="M12 3v10" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M7 10l5-5 5 5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="text-sm">Choose a file</div>
                 </div>
-                {file && (
-                  <div className="mt-4 px-3 py-2 bg-blue-50 rounded-lg border border-blue-200 w-full">
-                    <div className="flex items-center gap-2">
-                      <Upload className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <p className="text-sm text-blue-700 truncate">{file.name}</p>
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs text-slate-500 mt-4 text-center">
-                  Click on your avatar to change your profile picture
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+          </div>
 
-          <Card className="lg:col-span-2 border-slate-200 shadow-lg">
-            <CardHeader className="bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <User className="w-5 h-5 text-blue-600" />
+          {/* Grid of fields similar to screenshot */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="col-span-1">
+              <label className="text-sm font-medium text-slate-700">Your Name <span className="text-red-500">*</span></label>
+              <Input value={profile.name || ""} onChange={(e) => handleInput("name", e.target.value)} placeholder="--" className="mt-1" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Date of Birth</label>
+              <Input type="date" value={profile.birthday ?? ""} onChange={(e) => handleInput("birthday", e.target.value)} className="mt-1" />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Gender</label>
+              <select value={profile.gender ?? ""} onChange={(e) => handleInput("gender", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+                <option value="">--</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Blood Group</label>
+              <select value={profile.bloodGroup ?? ""} onChange={(e) => handleInput("bloodGroup", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+                <option value="">--</option>
+                <option>O+</option>
+                <option>O-</option>
+                <option>A+</option>
+                <option>A-</option>
+                <option>B+</option>
+                <option>B-</option>
+                <option>AB+</option>
+                <option>AB-</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Email Id <span className="text-red-500">*</span></label>
+              <Input type="email" value={profile.email || ""} onChange={(e) => handleInput("email", e.target.value)} placeholder="--" className="mt-1" />
+              <p className="text-xs text-slate-400 mt-1">Must have at least 8 characters</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Slack Member Id</label>
+              <div className="flex mt-1">
+                <span className="inline-flex items-center px-3 border border-r-0 rounded-l-md bg-gray-50 text-slate-600">@</span>
+                <input value={profile.slackMemberId ?? ""} onChange={(e) => handleInput("slackMemberId", e.target.value)} className="border rounded-r-md h-11 px-3 w-full" placeholder="--" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Marital Status</label>
+              <select value={profile.maritalStatus ?? ""} onChange={(e) => handleInput("maritalStatus", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+                <option value="">--</option>
+                <option value="single">Single</option>
+                <option value="married">Married</option>
+                <option value="divorced">Divorced</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Language</label>
+              <select value={profile.language ?? ""} onChange={(e) => handleInput("language", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+                <option value="">--</option>
+                <option value="Hindi">Hindi</option>
+                <option value="English">English</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-slate-700">Country</label>
+              <select value={profile.country ?? "India"} onChange={(e) => handleInput("country", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+                <option>India</option>
+                <option>United States</option>
+                <option>United Kingdom</option>
+                <option>Australia</option>
+                <option>Other</option>
+              </select>
+            </div>
+
+            <div className="col-span-1 md:col-span-1 lg:col-span-1">
+              <label className="text-sm font-medium text-slate-700">Mobile</label>
+              <div className="flex mt-1">
+                <div className="inline-flex items-center px-3 border rounded-l-md bg-gray-50 text-slate-600">+91</div>
+                <input value={profile.mobile ?? ""} onChange={(e) => handleInput("mobile", e.target.value)} className="border rounded-r-md h-11 px-3 w-full" placeholder="--" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">Address</label>
+            <Textarea value={profile.address ?? ""} onChange={(e) => handleInput("address", e.target.value)} className="mt-1 h-20" placeholder="--" />
+          </div>
+
+          <div className="mt-4">
+            <label className="text-sm font-medium text-slate-700">About</label>
+            <Textarea value={profile.about ?? ""} onChange={(e) => handleInput("about", e.target.value)} className="mt-1 h-28" placeholder="--" />
+          </div>
+
+          {/* message / error */}
+          <div className="mt-4">
+            {message && (
+              <Alert className="bg-green-50 border-green-200">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <AlertDescription className="text-green-800">{message}</AlertDescription>
+                </div>
+              </Alert>
+            )}
+            {error && (
+              <Alert variant="destructive" className="mt-2">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          {/* Save button */}
+          <div className="mt-6 flex justify-center gap-4">
+            <Button variant="outline" onClick={() => { window.location.href = "/settings"; }}>Cancel</Button>
+            <Button type="submit" onClick={handleSubmit} disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+
+        {/* Emergency Details Section */}
+        <div className="bg-white border rounded-xl p-6 shadow-sm mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Emergency Details</h2>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={toggleNewContactForm}>
+                <Plus className="mr-2 w-4 h-4" /> Create New
+              </Button>
+            </div>
+          </div>
+
+          {/* Inline create form */}
+          {showNewContactForm && (
+            <div className="mb-4 border rounded-md p-4 bg-slate-50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-sm">Name</Label>
+                  <Input value={newContact.name} onChange={(e) => handleNewContactChange("name", e.target.value)} />
                 </div>
                 <div>
-                  <CardTitle className="text-xl font-bold text-slate-900">Personal Information</CardTitle>
-                  <CardDescription className="text-slate-600">
-                    Update your account details and information
-                  </CardDescription>
+                  <Label className="text-sm">Email</Label>
+                  <Input value={newContact.email} onChange={(e) => handleNewContactChange("email", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-sm">Mobile</Label>
+                  <Input value={newContact.mobile} onChange={(e) => handleNewContactChange("mobile", e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-sm">Relationship</Label>
+                  <Input value={newContact.relationship} onChange={(e) => handleNewContactChange("relationship", e.target.value)} />
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-sm">Address</Label>
+                  <Textarea value={newContact.address} onChange={(e) => handleNewContactChange("address", e.target.value)} className="h-20" />
                 </div>
               </div>
-            </CardHeader>
 
-            <CardContent className="pt-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700 font-medium">
-                    Full Name
-                  </Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="name"
-                      name="name"
-                      value={formData.name || ""}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="John Doe"
-                    />
-                  </div>
-                </div>
+              {contactsError && <p className="text-sm text-red-600 mt-2">{contactsError}</p>}
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-700 font-medium">
-                    Email Address
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email || ""}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                </div>
+              <div className="mt-3 flex gap-3">
+                <Button onClick={handleAddContact} disabled={addingContact}>
+                  {addingContact ? "Adding..." : "Add Contact"}
+                </Button>
+                <Button variant="outline" onClick={() => { setShowNewContactForm(false); setContactsError(""); }}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="mobile" className="text-slate-700 font-medium">
-                    Mobile Number
-                  </Label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="mobile"
-                      name="mobile"
-                      value={formData.mobile || ""}
-                      onChange={handleChange}
-                      className="pl-10"
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-slate-700 font-medium">
-                    Address
-                  </Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <Textarea
-                      id="address"
-                      name="address"
-                      value={formData.address || ""}
-                      onChange={handleChange}
-                      className="pl-10 min-h-[100px]"
-                      placeholder="123 Main Street, Suite 100, City, State, ZIP"
-                    />
-                  </div>
-                </div>
-
-                {message && (
-                  <Alert className="bg-green-50 border-green-200">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">{message}</AlertDescription>
-                  </Alert>
+          {/* contacts table */}
+          <div className="border rounded-md overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-slate-100 text-slate-700">
+                  <th className="py-3 px-4 text-left">Name</th>
+                  <th className="py-3 px-4 text-left">Email</th>
+                  <th className="py-3 px-4 text-left">Mobile</th>
+                  <th className="py-3 px-4 text-left">Relationship</th>
+                  <th className="py-3 px-4 text-left">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {emergencyContacts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-6 px-4 text-center text-slate-500">No emergency contacts added.</td>
+                  </tr>
+                ) : (
+                  emergencyContacts.map((c) => (
+                    <tr key={c.id ?? `${c.name}-${c.mobile}`} className="border-t">
+                      <td className="py-3 px-4">{c.name}</td>
+                      <td className="py-3 px-4">{c.email}</td>
+                      <td className="py-3 px-4">{c.mobile}</td>
+                      <td className="py-3 px-4">{c.relationship}</td>
+                      <td className="py-3 px-4 text-right">
+                        <button className="inline-flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-100">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
+              </tbody>
+            </table>
+          </div>
 
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
+          <div className="mt-6 flex justify-center">
+            <Button onClick={() => { window.location.href = "/settings"; }}>
+              Save
+            </Button>
+          </div>
+        </div>
 
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving Changes...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
+        {/* Documents Section (ADDED) */}
+        <div className="bg-white border rounded-xl p-6 shadow-sm mt-8">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Documents</h2>
+            <p className="text-sm text-slate-600 mt-1">Upload file</p>
+          </div>
+
+          {/* Upload area */}
+          <div
+            onClick={onPickDocFile}
+            className="border rounded-md h-36 flex items-center justify-center cursor-pointer bg-white hover:bg-gray-50"
+          >
+            <div className="text-center text-slate-400">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" className="mx-auto mb-2">
+                <path d="M12 3v10" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M7 10l5-5 5 5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div className="text-sm">Choose a file</div>
+            </div>
+          </div>
+          <input ref={docFileRef} type="file" className="hidden" onChange={handleDocFileChange} />
+
+          {/* Selected file preview + upload button */}
+          {docPreviewFile && (
+            <div className="mt-4 flex items-center gap-4">
+              {docPreviewUrl ? (
+                <img src={docPreviewUrl} alt="doc preview" className="h-20 w-28 object-cover rounded-md border" />
+              ) : (
+                <div className="h-20 w-28 flex items-center justify-center border rounded-md bg-gray-50 text-slate-600">
+                  <Upload className="w-6 h-6" />
+                </div>
+              )}
+              <div className="flex-1">
+                <div className="text-sm font-medium">{docPreviewFile.name}</div>
+                <div className="text-xs text-slate-500">{Math.round(docPreviewFile.size / 1024)} KB</div>
+                <div className="mt-3 flex gap-2">
+                  <Button onClick={handleUploadDocument} disabled={docUploading}>
+                    {docUploading ? "Uploading..." : "Upload"}
+                  </Button>
+                  <Button variant="outline" onClick={() => { setDocPreviewFile(null); setDocPreviewUrl(""); }}>
+                    Cancel
                   </Button>
                 </div>
-              </form>
-            </CardContent>
-          </Card>
+                {docUploadError && <p className="text-sm text-red-600 mt-2">{docUploadError}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Existing documents list */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {documents.length === 0 ? (
+              <div className="col-span-full text-center text-slate-500 py-6">No documents uploaded.</div>
+            ) : (
+              documents.map((d) => (
+                <div key={d.id} className="flex flex-col items-start gap-2">
+                  <div className="w-40 h-24 bg-gray-50 rounded-md border overflow-hidden flex items-center justify-center">
+                    {d.mime?.startsWith("image/") && d.url ? (
+                      <img src={d.url} alt={d.filename} className="object-cover w-full h-full" />
+                    ) : (
+                      <div className="text-slate-400 text-sm px-2">{d.filename}</div>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-600">{d.filename}</div>
+                  <div className="flex items-center gap-2">
+                    <a href={d.url} target="_blank" rel="noreferrer" className="text-xs underline">Open</a>
+                    <button onClick={() => handleDeleteDocument(d.id)} className="text-xs text-red-600 inline-flex items-center gap-1">
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Save button centered like screenshot */}
+          <div className="mt-6 flex justify-center">
+            <Button onClick={() => { window.location.href = "/settings"; }}>
+              Save
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-6 text-center text-sm text-slate-500">
+          <Link href="/settings" className="underline">Back to settings</Link>
         </div>
       </div>
     </div>
