@@ -29,7 +29,7 @@ type Lead = {
   createDeal?: boolean;
   autoConvertToClient?: boolean;
   companyName?: string;
-  mobileNumber?: string;
+  mobileNumber?: string | number;
   city?: string;
   country?: string;
   status?: string;
@@ -43,7 +43,7 @@ type Lead = {
   companyAddress?: string;
 };
 
-const BASE = "https://chat.swiftandgo.in"; // change if needed
+const BASE = "https://chat.swiftandgo.in"; // base URL provided
 
 const fetcher = async (url: string) => {
   const accessToken = localStorage.getItem("accessToken");
@@ -72,7 +72,7 @@ const fetcher = async (url: string) => {
 
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { data, error, isLoading, mutate } = useSWR<Lead>(`/api/leads/admin/get/${params.id}`, fetcher, {
+  const { data, error, isLoading, mutate } = useSWR<Lead>(`${BASE}/leads/${params.id}`, fetcher, {
     refreshInterval: 30000,
     revalidateOnFocus: true,
   });
@@ -80,6 +80,9 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [activeTab, setActiveTab] = useState<"profile" | "deals" | "notes">("profile");
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Edit modal state
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -94,11 +97,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const fmt = (v?: string | null) => (v && v !== "null" ? v : "--");
   const fmtDate = (d?: string | null) => (d ? new Date(d).toLocaleString() : "--");
 
-  const goEdit = () => {
-    setMenuOpen(false);
-    router.push(`/leads/admin/edit/${params.id}`);
-  };
-
+  // Convert to client
   const convertToClient = async () => {
     setMenuOpen(false);
     if (!confirm("Convert this lead to client?")) return;
@@ -118,6 +117,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
+  // Delete
   const remove = async () => {
     setMenuOpen(false);
     if (!confirm("Delete this lead?")) return;
@@ -214,7 +214,10 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <ul className="py-1">
                         <li>
                           <button
-                            onClick={goEdit}
+                            onClick={() => {
+                              setMenuOpen(false);
+                              setEditOpen(true); // open modal (Edit)
+                            }}
                             className="w-full text-left px-4 py-2 hover:bg-slate-50 flex items-center gap-2 text-sm"
                           >
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -307,7 +310,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                       <div className="flex items-start gap-6">
                         <div className="w-48 md:hidden text-sm text-muted-foreground">Mobile</div>
-                        <div className="text-sm">{fmt(data?.mobileNumber)}</div>
+                        <div className="text-sm">{fmt(String(data?.mobileNumber ?? ""))}</div>
                       </div>
 
                       <div className="flex items-start gap-6">
@@ -355,6 +358,229 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           )}
         </Card>
       </div>
+
+      {/* Edit Modal */}
+      {editOpen && data && (
+        <EditModal
+          lead={data}
+          onClose={() => setEditOpen(false)}
+          onSaved={async () => {
+            setEditOpen(false);
+            await mutate(); // refresh SWR data
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+/* ----------------------------
+   EditModal component
+   - pre-fills from `lead`
+   - PUTs to `${BASE}/leads/:id`
+   ---------------------------- */
+function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: lead?.name ?? "",
+    email: lead?.email ?? "",
+    clientCategory: lead?.clientCategory ?? "",
+    leadSource: lead?.leadSource ?? "",
+    leadOwner: lead?.leadOwner ?? "",
+    addedBy: lead?.addedBy ?? "",
+    autoConvertToClient: !!lead?.autoConvertToClient,
+    companyName: lead?.companyName ?? "",
+    officialWebsite: lead?.officialWebsite ?? "",
+    mobileNumber: String(lead?.mobileNumber ?? ""),
+    officePhone: lead?.officePhone ?? "",
+    city: lead?.city ?? "",
+    state: lead?.state ?? "",
+    postalCode: lead?.postalCode ?? "",
+    country: lead?.country ?? "",
+    companyAddress: lead?.companyAddress ?? "",
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    // close on escape
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const update = (k: keyof typeof form, v: any) => setForm((s) => ({ ...s, [k]: v }));
+
+  const validate = () => {
+    if (!form.name.trim() || !form.email.trim()) return "Name and Email are required.";
+    return null;
+  };
+
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const v = validate();
+    if (v) {
+      setErrorMsg(v);
+      return;
+    }
+    setErrorMsg(null);
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+
+      // prepare body — convert mobile to number if possible, booleans to boolean
+      const body: any = {
+        name: form.name,
+        email: form.email,
+        clientCategory: form.clientCategory || undefined,
+        leadSource: form.leadSource || undefined,
+        leadOwner: form.leadOwner || undefined,
+        addedBy: form.addedBy || undefined,
+        autoConvertToClient: !!form.autoConvertToClient,
+        companyName: form.companyName || undefined,
+        officialWebsite: form.officialWebsite || undefined,
+        mobileNumber: form.mobileNumber ? Number(form.mobileNumber) : undefined,
+        officePhone: form.officePhone || undefined,
+        city: form.city || undefined,
+        state: form.state || undefined,
+        postalCode: form.postalCode || undefined,
+        country: form.country || undefined,
+        companyAddress: form.companyAddress || undefined,
+      };
+
+      const res = await fetch(`${BASE}/leads/${lead.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || "Update failed");
+      }
+
+      const json = await res.json();
+      alert("Lead updated successfully.");
+      await onSaved();
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? "Failed to update lead.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "92vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Update Lead Contact</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={submit} className="p-6 space-y-6">
+            {errorMsg && <div className="text-destructive text-sm">{errorMsg}</div>}
+
+            {/* Contact Details */}
+            <div className="rounded-lg border p-4">
+              <h4 className="font-medium mb-3">Contact Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground">Name *</label>
+                  <input className="w-full border rounded-md p-2" value={form.name} onChange={(e) => update("name", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Email *</label>
+                  <input className="w-full border rounded-md p-2" value={form.email} onChange={(e) => update("email", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Lead Source</label>
+                  <input className="w-full border rounded-md p-2" value={form.leadSource} onChange={(e) => update("leadSource", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Lead Owner</label>
+                  <input className="w-full border rounded-md p-2" value={form.leadOwner} onChange={(e) => update("leadOwner", e.target.value)} />
+                </div>
+
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input type="checkbox" id="autoConvert" checked={!!form.autoConvertToClient} onChange={(e) => update("autoConvertToClient", e.target.checked)} />
+                  <label htmlFor="autoConvert" className="text-sm">Auto Convert lead to client when the deal stage is set to "WIN".</label>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Details */}
+            <div className="rounded-lg border p-4">
+              <h4 className="font-medium mb-3">Company Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground">Company Name</label>
+                  <input className="w-full border rounded-md p-2" value={form.companyName} onChange={(e) => update("companyName", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Official Website</label>
+                  <input className="w-full border rounded-md p-2" value={form.officialWebsite} onChange={(e) => update("officialWebsite", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Mobile Number</label>
+                  <input className="w-full border rounded-md p-2" value={form.mobileNumber} onChange={(e) => update("mobileNumber", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Office Phone No.</label>
+                  <input className="w-full border rounded-md p-2" value={form.officePhone} onChange={(e) => update("officePhone", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">City</label>
+                  <input className="w-full border rounded-md p-2" value={form.city} onChange={(e) => update("city", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">State</label>
+                  <input className="w-full border rounded-md p-2" value={form.state} onChange={(e) => update("state", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Postal Code</label>
+                  <input className="w-full border rounded-md p-2" value={form.postalCode} onChange={(e) => update("postalCode", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Country</label>
+                  <input className="w-full border rounded-md p-2" value={form.country} onChange={(e) => update("country", e.target.value)} />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="text-sm text-muted-foreground">Company Address</label>
+                  <textarea className="w-full border rounded-md p-2 h-28" value={form.companyAddress} onChange={(e) => update("companyAddress", e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
+              <Button type="submit" onClick={submit} disabled={submitting}>{submitting ? "Updating..." : "Update"}</Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

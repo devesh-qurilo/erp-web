@@ -315,7 +315,7 @@ function LeadRow({ lead, idx, mutate }: { lead: Lead; idx: number; mutate: () =>
           <div className="absolute right-0 z-30 mt-2 w-56 rounded-md bg-white shadow-lg border">
             <ul className="py-1">
               <li>  
-                <button onClick={() => (window.location.href = `admin/get/${lead.id}`)} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50">
+                <button onClick={() => (window.location.href = `/leads/admin/get/${lead.id}`)} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50">
                   <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" />
                     <circle cx="12" cy="12" r="3" strokeWidth="1.5" />
@@ -324,7 +324,7 @@ function LeadRow({ lead, idx, mutate }: { lead: Lead; idx: number; mutate: () =>
                 </button>
               </li>
               <li>
-                <button onClick={() => { setOpen(false); window.location.href = `/leads/edit/${lead.id}`; }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50">
+                <button onClick={() => { setOpen(false); window.location.href = `/leads/admin/edit/${lead.id}`; }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-slate-50">
                   <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 11l6-6L20 10M3 21h6l11-11a2 2 0 00-2-2L7 19v2z" />
                   </svg>
