@@ -323,7 +323,7 @@ function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
   );
 }
 
-/* ---------------- AddDealModal (inline, no redirect) ---------------- */
+/* ---------------- AddDealModal (UI updated to match screenshot) ---------------- */
 function AddDealModal({
   lead,
   onClose,
@@ -340,7 +340,7 @@ function AddDealModal({
   const [form, setForm] = useState({
     leadContact: lead?.id ?? "",
     title: "",
-    pipeline: lead?.pipeline ?? "Default Pipeline",
+    pipeline: "",
     dealStage: "Qualified",
     dealCategory: "",
     dealAgent: "",
@@ -421,73 +421,120 @@ function AddDealModal({
     }
   };
 
+  // Styling intentionally matches screenshot:
+  // - Outer card with title "Add Deal Information"
+  // - Inner rounded panel with "Deal Details" and 3-column form
+  // - small labels, muted text, USD prefix box, small "Add" button
+  // - Cancel (outline) + Update (blue rounded) centered
+
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
-        <div className="max-w-3xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "92vh" }}>
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "92vh" }}>
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="text-lg font-semibold">Add Deal Information</h3>
             <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
-          <form onSubmit={submit} className="p-6 space-y-6">
-            {error && <div className="text-destructive text-sm">{error}</div>}
+          <form onSubmit={submit} className="p-6">
+            {error && <div className="text-destructive text-sm mb-3">{error}</div>}
 
-            <div className="rounded-lg border p-4">
-              <h4 className="font-medium mb-3">Deal Details</h4>
+            {/* Inner rounded panel like screenshot */}
+            <div className="rounded-lg border p-6">
+              <h4 className="font-medium mb-4">Deal Details</h4>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Lead Contact */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Lead Contact *</label>
-                  <select className="w-full border rounded p-2" value={String(form.leadContact)} onChange={(e) => update("leadContact", Number(e.target.value))}>
+                  <label className="block text-xs text-muted-foreground mb-2">Lead Contact *</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={String(form.leadContact)}
+                    onChange={(e) => update("leadContact", Number(e.target.value))}
+                  >
                     <option value="">{lead?.name ?? "--"}</option>
                   </select>
                 </div>
 
+                {/* Deal Name */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Deal Name *</label>
-                  <input className="w-full border rounded p-2" value={form.title} onChange={(e) => update("title", e.target.value)} />
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Name *</label>
+                  <input
+                    className="w-full p-2 border rounded-md text-sm"
+                    value={form.title}
+                    onChange={(e) => update("title", e.target.value)}
+                  />
                 </div>
 
+                {/* Pipeline */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Pipeline *</label>
-                  <select className="w-full border rounded p-2" value={form.pipeline} onChange={(e) => update("pipeline", e.target.value)}>
+                  <label className="block text-xs text-muted-foreground mb-2">Pipeline *</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={form.pipeline}
+                    onChange={(e) => update("pipeline", e.target.value)}
+                  >
+                    <option value="">--</option>
                     <option>Default Pipeline</option>
                     <option>Sales</option>
                   </select>
                 </div>
 
+                {/* Deal Stages */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Deal Stages *</label>
-                  <select className="w-full border rounded p-2" value={form.dealStage} onChange={(e) => update("dealStage", e.target.value)}>
-                    <option>Qualified</option>
-                    <option>Generated</option>
-                    <option>Proposal</option>
-                    <option>Won</option>
-                    <option>Lost</option>
-                  </select>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Stages *</label>
+                  <div className="relative">
+                    <select
+                      className="w-full p-2 border rounded-md bg-white text-sm"
+                      value={form.dealStage}
+                      onChange={(e) => update("dealStage", e.target.value)}
+                    >
+                      <option>Qualified</option>
+                      <option>Generated</option>
+                      <option>Proposal</option>
+                      <option>Won</option>
+                      <option>Lost</option>
+                    </select>
+                    {/* small blue dot indicator like screenshot (left) */}
+                    <div className="absolute left-3 top-3 w-2 h-2 rounded-full bg-sky-600"></div>
+                  </div>
                 </div>
 
+                {/* Deal Category with Add button */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Deal Category</label>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Category</label>
                   <div className="flex">
-                    <select className="flex-1 border rounded-l p-2" value={form.dealCategory} onChange={(e) => update("dealCategory", e.target.value)}>
+                    <select
+                      className="flex-1 p-2 border rounded-l-md bg-white text-sm"
+                      value={form.dealCategory}
+                      onChange={(e) => update("dealCategory", e.target.value)}
+                    >
                       <option value="">--</option>
                       <option value="Corporate">Corporate</option>
                     </select>
-                    <button type="button" className="px-3 py-2 bg-gray-200 rounded-r text-sm" onClick={() => alert("Add category not implemented")}>
+                    <button
+                      type="button"
+                      onClick={() => alert("Add category not implemented")}
+                      className="px-3 py-2 border rounded-r-md bg-gray-200 text-sm"
+                    >
                       Add
                     </button>
                   </div>
                 </div>
 
+                {/* Deal Agent */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Deal Agent</label>
-                  <select className="w-full border rounded p-2" value={form.dealAgent} onChange={(e) => update("dealAgent", e.target.value)}>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Agent</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={form.dealAgent}
+                    onChange={(e) => update("dealAgent", e.target.value)}
+                  >
                     <option value="">--</option>
                     {possibleAgents.map((a) => (
                       <option key={a.employeeId} value={a.employeeId}>{a.name}</option>
@@ -495,22 +542,39 @@ function AddDealModal({
                   </select>
                 </div>
 
+                {/* Deal Value with USD prefix */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Deal Value</label>
-                  <div className="flex">
-                    <span className="inline-flex items-center px-3 rounded-l border bg-slate-100">USD $</span>
-                    <input className="w-full border rounded-r p-2" value={form.value} onChange={(e) => update("value", e.target.value)} type="number" />
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Value</label>
+                  <div className="flex items-stretch">
+                    <span className="inline-flex items-center px-3 rounded-l-md border bg-slate-100 text-sm">USD $</span>
+                    <input
+                      type="number"
+                      className="w-full p-2 border rounded-r-md text-sm"
+                      value={form.value}
+                      onChange={(e) => update("value", e.target.value)}
+                    />
                   </div>
                 </div>
 
+                {/* Close Date */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Close Date *</label>
-                  <input className="w-full border rounded p-2" value={form.closeDate} onChange={(e) => update("closeDate", e.target.value)} type="date" />
+                  <label className="block text-xs text-muted-foreground mb-2">Close Date *</label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border rounded-md text-sm"
+                    value={form.closeDate}
+                    onChange={(e) => update("closeDate", e.target.value)}
+                  />
                 </div>
 
+                {/* Deal Watcher */}
                 <div>
-                  <label className="text-sm text-muted-foreground">Deal Watcher</label>
-                  <select className="w-full border rounded p-2" value={form.dealWatcher} onChange={(e) => update("dealWatcher", e.target.value)}>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Watcher</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={form.dealWatcher}
+                    onChange={(e) => update("dealWatcher", e.target.value)}
+                  >
                     <option value="">--</option>
                     {possibleWatchers.map((w) => (
                       <option key={w.employeeId} value={w.employeeId}>{w.name}</option>
@@ -520,9 +584,26 @@ function AddDealModal({
               </div>
             </div>
 
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
-              <Button type="submit" onClick={submit} disabled={submitting}>{submitting ? "Creating..." : "Create"}</Button>
+            {/* Buttons centered like screenshot */}
+            <div className="mt-6 flex items-center justify-center gap-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2 border rounded-full text-blue-600 hover:bg-blue-50"
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`px-6 py-2 rounded-full text-white ${
+                  submitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {submitting ? "Updating..." : "Update"}
+              </button>
             </div>
           </form>
         </div>
