@@ -118,10 +118,212 @@ function fmtCurrency(n?: number | null) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-/* ---------------- AddDealModal (inline) ----------------
-   UI matches your Add Deal modal. On submit POSTs to CREATE_URL,
-   and calls onCreated(createdDeal) so parent updates SWR cache.
-*/
+/* ---------------- EditModal (unchanged behavior) ---------------- */
+function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: lead?.name ?? "",
+    email: lead?.email ?? "",
+    clientCategory: lead?.clientCategory ?? "",
+    leadSource: lead?.leadSource ?? "",
+    leadOwner: lead?.leadOwner ?? "",
+    addedBy: lead?.addedBy ?? "",
+    autoConvertToClient: !!lead?.autoConvertToClient,
+    companyName: lead?.companyName ?? "",
+    officialWebsite: lead?.officialWebsite ?? "",
+    mobileNumber: String(lead?.mobileNumber ?? ""),
+    officePhone: lead?.officePhone ?? "",
+    city: lead?.city ?? "",
+    state: lead?.state ?? "",
+    postalCode: lead?.postalCode ?? "",
+    country: lead?.country ?? "",
+    companyAddress: lead?.companyAddress ?? "",
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const update = (k: keyof typeof form, v: any) => setForm((s) => ({ ...s, [k]: v }));
+
+  const validate = () => {
+    if (!form.name.trim() || !form.email.trim()) return "Name and Email are required.";
+    return null;
+  };
+
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const v = validate();
+    if (v) {
+      setErrorMsg(v);
+      return;
+    }
+    setErrorMsg(null);
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+
+      const body: any = {
+        name: form.name,
+        email: form.email,
+        clientCategory: form.clientCategory || undefined,
+        leadSource: form.leadSource || undefined,
+        leadOwner: form.leadOwner || undefined,
+        addedBy: form.addedBy || undefined,
+        autoConvertToClient: !!form.autoConvertToClient,
+        companyName: form.companyName || undefined,
+        officialWebsite: form.officialWebsite || undefined,
+        mobileNumber: form.mobileNumber ? Number(form.mobileNumber) : undefined,
+        officePhone: form.officePhone || undefined,
+        city: form.city || undefined,
+        state: form.state || undefined,
+        postalCode: form.postalCode || undefined,
+        country: form.country || undefined,
+        companyAddress: form.companyAddress || undefined,
+      };
+
+      const res = await fetch(`${BASE}/leads/${lead.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || "Update failed");
+      }
+
+      await res.json();
+      alert("Lead updated successfully.");
+      await onSaved();
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? "Failed to update lead.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "92vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Update Lead Contact</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={submit} className="p-6 space-y-6">
+            {errorMsg && <div className="text-destructive text-sm">{errorMsg}</div>}
+
+            {/* Contact Details */}
+            <div className="rounded-lg border p-4">
+              <h4 className="font-medium mb-3">Contact Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground">Name *</label>
+                  <input className="w-full border rounded-md p-2" value={form.name} onChange={(e) => update("name", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Email *</label>
+                  <input className="w-full border rounded-md p-2" value={form.email} onChange={(e) => update("email", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Lead Source</label>
+                  <input className="w-full border rounded-md p-2" value={form.leadSource} onChange={(e) => update("leadSource", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Lead Owner</label>
+                  <input className="w-full border rounded-md p-2" value={form.leadOwner} onChange={(e) => update("leadOwner", e.target.value)} />
+                </div>
+
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input type="checkbox" id="autoConvert" checked={!!form.autoConvertToClient} onChange={(e) => update("autoConvertToClient", e.target.checked)} />
+                  <label htmlFor="autoConvert" className="text-sm">Auto Convert lead to client when the deal stage is set to "WIN".</label>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Details */}
+            <div className="rounded-lg border p-4">
+              <h4 className="font-medium mb-3">Company Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground">Company Name</label>
+                  <input className="w-full border rounded-md p-2" value={form.companyName} onChange={(e) => update("companyName", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Official Website</label>
+                  <input className="w-full border rounded-md p-2" value={form.officialWebsite} onChange={(e) => update("officialWebsite", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Mobile Number</label>
+                  <input className="w-full border rounded-md p-2" value={form.mobileNumber} onChange={(e) => update("mobileNumber", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Office Phone No.</label>
+                  <input className="w-full border rounded-md p-2" value={form.officePhone} onChange={(e) => update("officePhone", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">City</label>
+                  <input className="w-full border rounded-md p-2" value={form.city} onChange={(e) => update("city", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">State</label>
+                  <input className="w-full border rounded-md p-2" value={form.state} onChange={(e) => update("state", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Postal Code</label>
+                  <input className="w-full border rounded-md p-2" value={form.postalCode} onChange={(e) => update("postalCode", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Country</label>
+                  <input className="w-full border rounded-md p-2" value={form.country} onChange={(e) => update("country", e.target.value)} />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="text-sm text-muted-foreground">Company Address</label>
+                  <textarea className="w-full border rounded-md p-2 h-28" value={form.companyAddress} onChange={(e) => update("companyAddress", e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
+              <Button type="submit" onClick={submit} disabled={submitting}>{submitting ? "Updating..." : "Update"}</Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- AddDealModal (inline, no redirect) ---------------- */
 function AddDealModal({
   lead,
   onClose,
@@ -205,8 +407,12 @@ function AddDealModal({
         throw new Error(txt || "Failed to create deal.");
       }
 
-      const json = await res.json();
-      onCreated(json as Deal);
+      const createdDeal = await res.json();
+
+      // pass created deal to parent, parent will update SWR cache
+      onCreated(createdDeal as Deal);
+
+      // close modal
       onClose();
     } catch (err: any) {
       setError(err?.message ?? "Failed to create deal.");
@@ -402,11 +608,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
-  // when a new deal is created, prepend it to the SWR cache so table updates immediately
+  // when a new deal is created, prepend it to the SWR cache so table updates immediately (no redirect)
   const handleCreatedDeal = async (created: Deal) => {
     if (mutateDeals) {
       mutateDeals((curr: Deal[] | undefined) => (curr ? [created, ...curr] : [created]), false);
     }
+    // no router.push here — we stay on same page/table
   };
 
   // build possible agents/watchers lists from currently available data (from deals or lead meta)
