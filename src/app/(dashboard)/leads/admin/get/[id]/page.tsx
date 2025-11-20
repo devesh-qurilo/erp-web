@@ -76,9 +76,12 @@ type Deal = {
   dealWatchersMeta?: EmployeeMeta[];
 };
 
+type DealCategory = { id: number; categoryName: string };
+
 const BASE = "https://chat.swiftandgo.in"; // change if needed
 const CREATE_URL = `${BASE}/deals`; // adjust if your create endpoint differs
 const EMP_API = `${BASE}/employee/all?page=0&size=20`;
+const CAT_API = `${BASE}/deals/dealCategory`;
 
 const fetcher = async (url: string) => {
   const accessToken = localStorage.getItem("accessToken");
@@ -119,7 +122,7 @@ function fmtCurrency(n?: number | null) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-/* ---------------- EditModal (unchanged behavior) ---------------- */
+/* ---------------- EditModal (unchanged) ---------------- */
 function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
     name: lead?.name ?? "",
@@ -324,7 +327,140 @@ function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
   );
 }
 
-/* ---------------- AddDealModal (watchers with dropdown + checkboxes) ---------------- */
+/* ---------------- Deal Category Modal (GET/POST/DELETE) ---------------- */
+function DealCategoryModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [categories, setCategories] = useState<DealCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(CAT_API, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(await res.text());
+      const json = await res.json();
+      setCategories(json);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load categories");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleAdd = async () => {
+    if (!newName.trim()) {
+      setError("Category name required.");
+      return;
+    }
+    setError(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(CAT_API, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryName: newName }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const created: DealCategory = await res.json();
+      setNewName("");
+      // refresh list
+      await load();
+      onSaved();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to add category");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this category?")) return;
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(`${CAT_API}/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await load();
+      onSaved();
+    } catch (err: any) {
+      alert("Error: " + (err?.message ?? err));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-3xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "80vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Deal Category</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="p-6">
+            {error && <div className="text-destructive mb-3">{error}</div>}
+            <div className="rounded-lg border p-4 mb-4">
+              <div className="overflow-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-sky-50 text-left">
+                    <tr>
+                      <th className="px-4 py-2 w-12">#</th>
+                      <th className="px-4 py-2">Category Name</th>
+                      <th className="px-4 py-2 w-24">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">Loading…</td></tr>
+                    ) : categories.length === 0 ? (
+                      <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">No categories.</td></tr>
+                    ) : (
+                      categories.map((c, idx) => (
+                        <tr key={c.id} className="border-t">
+                          <td className="px-4 py-3">{idx + 1}</td>
+                          <td className="px-4 py-3">{c.categoryName}</td>
+                          <td className="px-4 py-3">
+                            <button onClick={() => handleDelete(c.id)} className="text-destructive px-2 py-1 rounded border">🗑</button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm text-muted-foreground mb-2">Deal Category Name *</label>
+              <input value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full p-2 border rounded-md" />
+            </div>
+
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={onClose} className="px-6 py-2 border rounded-full text-blue-600 hover:bg-blue-50">Cancel</button>
+              <button onClick={handleAdd} className="px-6 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- AddDealModal (uses categories from API + opens DealCategoryModal) ---------------- */
 function AddDealModal({
   lead,
   onClose,
@@ -353,20 +489,17 @@ function AddDealModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // dropdown open state for watchers
+  // watchers dropdown as before
   const [watchersOpen, setWatchersOpen] = useState(false);
-  const watchersRef = useRef<HTMLDivElement | null>(null);
+  const watchersButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  // close dropdown when clicking outside
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (!watchersRef.current) return;
-      const t = e.target as Node;
-      if (watchersOpen && !watchersRef.current.contains(t)) setWatchersOpen(false);
-    };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, [watchersOpen]);
+  // categories state
+  const [categories, setCategories] = useState<DealCategory[]>([]);
+  const [catsLoading, setCatsLoading] = useState(true);
+  const [catModalOpen, setCatModalOpen] = useState(false);
+
+  const update = (k: keyof typeof form, v: any) => setForm((s) => ({ ...s, [k]: v }));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -376,7 +509,30 @@ function AddDealModal({
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const update = (k: keyof typeof form, v: any) => setForm((s) => ({ ...s, [k]: v }));
+  // load categories from API
+  const loadCategories = async () => {
+    setCatsLoading(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(CAT_API, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(await res.text());
+      const json: DealCategory[] = await res.json();
+      setCategories(json);
+      // if current selected category empty and categories exist, set first
+      if (!form.dealCategory && json.length > 0) {
+        setForm((s) => ({ ...s, dealCategory: json[0].categoryName }));
+      }
+    } catch (err: any) {
+      console.error("Failed to load categories", err);
+    } finally {
+      setCatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
 
   const validate = () => {
     if (!form.title.trim()) return "Deal Name is required.";
@@ -445,7 +601,21 @@ function AddDealModal({
     }
   };
 
-  // helper to show comma-separated selected watcher names
+  // compute panel position
+  const openWatchers = () => {
+    const btn = watchersButtonRef.current;
+    if (!btn) {
+      setWatchersOpen(true);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const top = rect.bottom + 8;
+    const left = rect.left;
+    const width = rect.width;
+    setPanelPos({ top, left, width });
+    setWatchersOpen((s) => !s);
+  };
+
   const selectedWatcherNames = () => {
     const selected = possibleWatchers.filter((w) => form.dealWatchers.includes(w.employeeId || ""));
     if (selected.length === 0) return "--";
@@ -533,11 +703,13 @@ function AddDealModal({
                       onChange={(e) => update("dealCategory", e.target.value)}
                     >
                       <option value="">--</option>
-                      <option value="Corporate">Corporate</option>
+                      {!catsLoading && categories.map((c) => (
+                        <option key={c.id} value={c.categoryName}>{c.categoryName}</option>
+                      ))}
                     </select>
                     <button
                       type="button"
-                      onClick={() => alert("Add category not implemented")}
+                      onClick={() => setCatModalOpen(true)}
                       className="px-3 py-2 border rounded-r-md bg-gray-200 text-sm"
                     >
                       Add
@@ -582,14 +754,15 @@ function AddDealModal({
                   />
                 </div>
 
-                {/* WATCHERS: dropdown with checkboxes (no scrollbar) */}
-                <div className="relative" ref={watchersRef}>
+                {/* WATCHERS: fixed popup (no page scrollbar) */}
+                <div className="relative">
                   <label className="block text-xs text-muted-foreground mb-2">Deal Watcher</label>
 
                   {/* fake select */}
                   <button
                     type="button"
-                    onClick={() => setWatchersOpen((s) => !s)}
+                    ref={watchersButtonRef}
+                    onClick={openWatchers}
                     className="w-full p-2 border rounded-md text-left bg-white text-sm flex items-center justify-between"
                   >
                     <span className="truncate">{selectedWatcherNames()}</span>
@@ -598,29 +771,39 @@ function AddDealModal({
                     </svg>
                   </button>
 
-                  {/* dropdown panel */}
-                  {watchersOpen && (
-                    <div className="absolute z-40 left-0 right-0 mt-2 bg-white border rounded-md shadow-lg p-3">
-                      {possibleWatchers.length === 0 ? (
-                        <div className="text-sm text-muted-foreground">No employees</div>
-                      ) : (
-                        <div className="grid gap-2">
-                          {possibleWatchers.map((w) => (
-                            <label key={w.employeeId} className="flex items-start gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="mt-1"
-                                checked={form.dealWatchers.includes(w.employeeId || "")}
-                                onChange={(e) => toggleWatcher(w.employeeId || "", e.target.checked)}
-                              />
-                              <div>
-                                <div className="text-sm">{w.name}</div>
-                                {w.designation && <div className="text-xs text-muted-foreground">{w.designation}</div>}
-                              </div>
-                            </label>
-                          ))}
-                        </div>
-                      )}
+                  {/* PANEL: fixed positioned */}
+                  {watchersOpen && panelPos && (
+                    <div
+                      style={{
+                        position: "fixed",
+                        top: panelPos.top,
+                        left: panelPos.left,
+                        width: panelPos.width,
+                        zIndex: 60,
+                      }}
+                    >
+                      <div className="bg-white border rounded-md shadow-lg p-3 max-h-[60vh] overflow-auto">
+                        {possibleWatchers.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">No employees</div>
+                        ) : (
+                          <div className="grid gap-2">
+                            {possibleWatchers.map((w) => (
+                              <label key={w.employeeId} className="flex items-start gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  className="mt-1"
+                                  checked={form.dealWatchers.includes(w.employeeId || "")}
+                                  onChange={(e) => toggleWatcher(w.employeeId || "", e.target.checked)}
+                                />
+                                <div>
+                                  <div className="text-sm">{w.name}</div>
+                                  {w.designation && <div className="text-xs text-muted-foreground">{w.designation}</div>}
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -652,11 +835,19 @@ function AddDealModal({
           </form>
         </div>
       </div>
+
+      {/* Deal Category Modal */}
+      {catModalOpen && (
+        <DealCategoryModal
+          onClose={() => { setCatModalOpen(false); }}
+          onSaved={() => { loadCategories(); }}
+        />
+      )}
     </div>
   );
 }
 
-/* ---------------- Main Page Component ---------------- */
+/* ---------------- Main Page Component (only small change: renders AddDealModal) ---------------- */
 
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -680,7 +871,6 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
   // Employees SWR (for dropdowns)
   const { data: empResp, error: empError } = useSWR(EMP_API, fetcher, { refreshInterval: 0 });
-  // empResp expected shape: { content: [...] }
   const employees: EmployeeMeta[] = (empResp && Array.isArray(empResp.content) ? empResp.content.map((e: any) => ({
     employeeId: e.employeeId,
     name: e.name,
