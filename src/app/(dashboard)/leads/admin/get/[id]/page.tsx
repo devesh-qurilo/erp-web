@@ -78,6 +78,7 @@ type Deal = {
 
 const BASE = "https://chat.swiftandgo.in"; // change if needed
 const CREATE_URL = `${BASE}/deals`; // adjust if your create endpoint differs
+const EMP_API = `${BASE}/employee/all?page=0&size=20`;
 
 const fetcher = async (url: string) => {
   const accessToken = localStorage.getItem("accessToken");
@@ -323,7 +324,7 @@ function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
   );
 }
 
-/* ---------------- AddDealModal (UI updated to match screenshot) ---------------- */
+/* ---------------- AddDealModal (watchers with dropdown + checkboxes) ---------------- */
 function AddDealModal({
   lead,
   onClose,
@@ -344,13 +345,28 @@ function AddDealModal({
     dealStage: "Qualified",
     dealCategory: "",
     dealAgent: "",
-    dealWatcher: "",
+    dealWatchers: [] as string[],
     value: "",
     closeDate: "",
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // dropdown open state for watchers
+  const [watchersOpen, setWatchersOpen] = useState(false);
+  const watchersRef = useRef<HTMLDivElement | null>(null);
+
+  // close dropdown when clicking outside
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!watchersRef.current) return;
+      const t = e.target as Node;
+      if (watchersOpen && !watchersRef.current.contains(t)) setWatchersOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [watchersOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -368,6 +384,14 @@ function AddDealModal({
     if (!form.dealStage.trim()) return "Deal stage is required.";
     if (!form.closeDate.trim()) return "Close date is required.";
     return null;
+  };
+
+  const toggleWatcher = (employeeId: string, checked: boolean) => {
+    setForm((s) => {
+      const curr = s.dealWatchers || [];
+      const updated = checked ? [...curr, employeeId] : curr.filter((id) => id !== employeeId);
+      return { ...s, dealWatchers: updated };
+    });
   };
 
   const submit = async (e?: React.FormEvent) => {
@@ -390,7 +414,7 @@ function AddDealModal({
         dealStage: form.dealStage || undefined,
         dealCategory: form.dealCategory || undefined,
         dealAgent: form.dealAgent || undefined,
-        dealWatchers: form.dealWatcher ? [form.dealWatcher] : undefined,
+        dealWatchers: form.dealWatchers && form.dealWatchers.length ? form.dealWatchers : undefined,
         value: form.value ? Number(form.value) : undefined,
         closeDate: form.closeDate || undefined,
         leadId: lead.id,
@@ -421,11 +445,12 @@ function AddDealModal({
     }
   };
 
-  // Styling intentionally matches screenshot:
-  // - Outer card with title "Add Deal Information"
-  // - Inner rounded panel with "Deal Details" and 3-column form
-  // - small labels, muted text, USD prefix box, small "Add" button
-  // - Cancel (outline) + Update (blue rounded) centered
+  // helper to show comma-separated selected watcher names
+  const selectedWatcherNames = () => {
+    const selected = possibleWatchers.filter((w) => form.dealWatchers.includes(w.employeeId || ""));
+    if (selected.length === 0) return "--";
+    return selected.map((s) => s.name).join(", ");
+  };
 
   return (
     <div className="fixed inset-0 z-50">
@@ -444,12 +469,10 @@ function AddDealModal({
           <form onSubmit={submit} className="p-6">
             {error && <div className="text-destructive text-sm mb-3">{error}</div>}
 
-            {/* Inner rounded panel like screenshot */}
             <div className="rounded-lg border p-6">
               <h4 className="font-medium mb-4">Deal Details</h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Lead Contact */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Lead Contact *</label>
                   <select
@@ -461,7 +484,6 @@ function AddDealModal({
                   </select>
                 </div>
 
-                {/* Deal Name */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Deal Name *</label>
                   <input
@@ -471,7 +493,6 @@ function AddDealModal({
                   />
                 </div>
 
-                {/* Pipeline */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Pipeline *</label>
                   <select
@@ -485,7 +506,6 @@ function AddDealModal({
                   </select>
                 </div>
 
-                {/* Deal Stages */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Deal Stages *</label>
                   <div className="relative">
@@ -500,12 +520,10 @@ function AddDealModal({
                       <option>Won</option>
                       <option>Lost</option>
                     </select>
-                    {/* small blue dot indicator like screenshot (left) */}
                     <div className="absolute left-3 top-3 w-2 h-2 rounded-full bg-sky-600"></div>
                   </div>
                 </div>
 
-                {/* Deal Category with Add button */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Deal Category</label>
                   <div className="flex">
@@ -527,7 +545,6 @@ function AddDealModal({
                   </div>
                 </div>
 
-                {/* Deal Agent */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Deal Agent</label>
                   <select
@@ -542,7 +559,6 @@ function AddDealModal({
                   </select>
                 </div>
 
-                {/* Deal Value with USD prefix */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Deal Value</label>
                   <div className="flex items-stretch">
@@ -556,7 +572,6 @@ function AddDealModal({
                   </div>
                 </div>
 
-                {/* Close Date */}
                 <div>
                   <label className="block text-xs text-muted-foreground mb-2">Close Date *</label>
                   <input
@@ -567,24 +582,53 @@ function AddDealModal({
                   />
                 </div>
 
-                {/* Deal Watcher */}
-                <div>
+                {/* WATCHERS: dropdown with checkboxes (no scrollbar) */}
+                <div className="relative" ref={watchersRef}>
                   <label className="block text-xs text-muted-foreground mb-2">Deal Watcher</label>
-                  <select
-                    className="w-full p-2 border rounded-md bg-white text-sm"
-                    value={form.dealWatcher}
-                    onChange={(e) => update("dealWatcher", e.target.value)}
+
+                  {/* fake select */}
+                  <button
+                    type="button"
+                    onClick={() => setWatchersOpen((s) => !s)}
+                    className="w-full p-2 border rounded-md text-left bg-white text-sm flex items-center justify-between"
                   >
-                    <option value="">--</option>
-                    {possibleWatchers.map((w) => (
-                      <option key={w.employeeId} value={w.employeeId}>{w.name}</option>
-                    ))}
-                  </select>
+                    <span className="truncate">{selectedWatcherNames()}</span>
+                    <svg className={`w-4 h-4 transform ${watchersOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                      <path d="M6 8l4 4 4-4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  {/* dropdown panel */}
+                  {watchersOpen && (
+                    <div className="absolute z-40 left-0 right-0 mt-2 bg-white border rounded-md shadow-lg p-3">
+                      {possibleWatchers.length === 0 ? (
+                        <div className="text-sm text-muted-foreground">No employees</div>
+                      ) : (
+                        <div className="grid gap-2">
+                          {possibleWatchers.map((w) => (
+                            <label key={w.employeeId} className="flex items-start gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                className="mt-1"
+                                checked={form.dealWatchers.includes(w.employeeId || "")}
+                                onChange={(e) => toggleWatcher(w.employeeId || "", e.target.checked)}
+                              />
+                              <div>
+                                <div className="text-sm">{w.name}</div>
+                                {w.designation && <div className="text-xs text-muted-foreground">{w.designation}</div>}
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-xs text-muted-foreground mt-1">Click to open and select watchers</div>
                 </div>
               </div>
             </div>
 
-            {/* Buttons centered like screenshot */}
             <div className="mt-6 flex items-center justify-center gap-6">
               <button
                 type="button"
@@ -602,7 +646,7 @@ function AddDealModal({
                   submitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                {submitting ? "Updating..." : "Update"}
+                {submitting ? "Creating..." : "Create"}
               </button>
             </div>
           </form>
@@ -633,6 +677,17 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     fetcher,
     { refreshInterval: 30000, revalidateOnFocus: true }
   );
+
+  // Employees SWR (for dropdowns)
+  const { data: empResp, error: empError } = useSWR(EMP_API, fetcher, { refreshInterval: 0 });
+  // empResp expected shape: { content: [...] }
+  const employees: EmployeeMeta[] = (empResp && Array.isArray(empResp.content) ? empResp.content.map((e: any) => ({
+    employeeId: e.employeeId,
+    name: e.name,
+    designation: e.designationName ?? null,
+    department: e.departmentName ?? null,
+    profileUrl: e.profilePictureUrl ?? null,
+  })) : []);
 
   // Add Deal modal state
   const [addDealOpen, setAddDealOpen] = useState(false);
@@ -694,37 +749,11 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
     if (mutateDeals) {
       mutateDeals((curr: Deal[] | undefined) => (curr ? [created, ...curr] : [created]), false);
     }
-    // no router.push here — we stay on same page/table
   };
 
-  // build possible agents/watchers lists from currently available data (from deals or lead meta)
-  const possibleAgents: EmployeeMeta[] = [];
-  const possibleWatchers: EmployeeMeta[] = [];
-
-  if (data?.leadOwnerMeta) {
-    possibleAgents.push(data.leadOwnerMeta);
-  }
-  if (dealsData && dealsData.length) {
-    dealsData.forEach((d) => {
-      if (d.dealAgentMeta) possibleAgents.push(d.dealAgentMeta);
-      if (d.dealWatchersMeta) possibleWatchers.push(...d.dealWatchersMeta);
-      if (d.assignedEmployeesMeta) possibleWatchers.push(...d.assignedEmployeesMeta);
-    });
-  } else if (data?.addedByMeta) {
-    possibleWatchers.push(data.addedByMeta);
-  }
-
-  const uniq = (arr: EmployeeMeta[]) => {
-    const map = new Map<string, EmployeeMeta>();
-    arr.forEach((a) => {
-      if (!a.employeeId) return;
-      if (!map.has(a.employeeId)) map.set(a.employeeId, a);
-    });
-    return Array.from(map.values());
-  };
-
-  const agents = uniq(possibleAgents);
-  const watchers = uniq(possibleWatchers);
+  // Build agent/watcher lists from employee API (prefer this over deriving from deals)
+  const agents = employees; // show all employees as agents
+  const watchers = employees; // show all employees as watchers
 
   return (
     <main className="min-h-screen bg-gray-50">
