@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Deal } from "@/types/deals";
@@ -24,6 +23,14 @@ type Followup = {
   remindBefore?: number;
   remindUnit?: "DAYS" | "HOURS" | "MINUTES" | string;
   status?: "PENDING" | "CANCELLED" | "COMPLETED" | string;
+};
+
+type Employee = {
+  employeeId: string;
+  name: string;
+  designation?: string;
+  department?: string;
+  profileUrl?: string;
 };
 
 type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
@@ -63,6 +70,17 @@ export default function DealDetailPage() {
   const [isFollowupModalOpen, setIsFollowupModalOpen] = useState(false);
   const [editingFollowup, setEditingFollowup] = useState<Followup | null>(null);
   const [followupSaving, setFollowupSaving] = useState(false);
+
+  // people (employees) state & modal
+  const [assignedEmployees, setAssignedEmployees] = useState<Employee[]>([]);
+  const [employeesLoading, setEmployeesLoading] = useState(false);
+  const [employeesError, setEmployeesError] = useState<string | null>(null);
+  const [isAddPeopleOpen, setIsAddPeopleOpen] = useState(false);
+  const [availableToAdd, setAvailableToAdd] = useState<Employee[]>([]); // optional list to select from
+  const [selectedAddEmployeeId, setSelectedAddEmployeeId] = useState<string | null>(null);
+  const [peopleSaving, setPeopleSaving] = useState(false);
+  const [peopleDeletingId, setPeopleDeletingId] = useState<string | null>(null);
+  const [peopleSearch, setPeopleSearch] = useState<string>("");
 
   useEffect(() => {
     if (!dealId) {
@@ -166,7 +184,6 @@ export default function DealDetailPage() {
           throw new Error(`Failed to fetch followups: ${res.status} ${txt}`);
         }
         const json = await res.json();
-        // backend returns array per your example
         if (Array.isArray(json)) setFollowups(json);
       } catch (err: any) {
         console.error(err);
@@ -178,6 +195,155 @@ export default function DealDetailPage() {
 
     fetchFollowups();
   }, [dealId]);
+
+  // fetch assigned employees
+  const fetchAssignedEmployees = async () => {
+    if (!dealId) return;
+    setEmployeesLoading(true);
+    setEmployeesError(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setEmployeesError("No access token found");
+        setEmployeesLoading(false);
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/employees`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to fetch employees: ${res.status} ${txt}`);
+      }
+
+      const json = await res.json();
+      // Expect array of employees
+      if (Array.isArray(json)) {
+        setAssignedEmployees(json);
+      } else if (Array.isArray((json as any).employees)) {
+        setAssignedEmployees((json as any).employees);
+      } else {
+        // if the backend returns something else, attempt to treat employeeIds as list and don't fail
+        setAssignedEmployees([]);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setEmployeesError(err.message || "Failed to load employees");
+    } finally {
+      setEmployeesLoading(false);
+    }
+  };
+
+  // When Add People modal opens we fetch the assigned employees and also populate a simple available-to-add list.
+  const openAddPeopleModal = async () => {
+    setIsAddPeopleOpen(true);
+    await fetchAssignedEmployees();
+
+    // optional: a basic available list (for demo) — we can populate from assignedEmployees or leave blank.
+    // Ideally you'd fetch all employees from an admin endpoint. We'll construct a simple list excluding already assigned.
+    const samplePool: Employee[] = [
+      { employeeId: "EMP-006", name: "Tarun Bansal", designation: "Team Lead", department: "Marketing", profileUrl: "" },
+      { employeeId: "EMP-009", name: "Jams", designation: "Sales", department: "Sales", profileUrl: "" },
+      { employeeId: "EMP-010", name: "Devesh", designation: "Manager", department: "Operations", profileUrl: "" },
+    ];
+
+    const assignedIds = new Set(assignedEmployees.map((a) => a.employeeId));
+    const filtered = samplePool.filter((s) => !assignedIds.has(s.employeeId));
+    setAvailableToAdd(filtered);
+    setSelectedAddEmployeeId(filtered.length > 0 ? filtered[0].employeeId : null);
+  };
+
+  const closeAddPeopleModal = () => {
+    setIsAddPeopleOpen(false);
+    setSelectedAddEmployeeId(null);
+    setAvailableToAdd([]);
+    setPeopleSaving(false);
+    setPeopleDeletingId(null);
+    setPeopleSearch("");
+  };
+
+  // add employee (POST)
+  const addEmployee = async () => {
+    if (!dealId) return;
+    if (!selectedAddEmployeeId) {
+      alert("Select an employee to add");
+      return;
+    }
+    setPeopleSaving(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setPeopleSaving(false);
+        return;
+      }
+
+      // Many backends accept employeeIds in a body list; adapt if your backend differs.
+      const payload = { employeeIds: [selectedAddEmployeeId] };
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/employees`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to add employee: ${res.status} ${txt}`);
+      }
+
+      // After success, refetch assigned list
+      await fetchAssignedEmployees();
+
+      // refresh availableToAdd: remove newly added
+      setAvailableToAdd((prev) => prev.filter((p) => p.employeeId !== selectedAddEmployeeId));
+      setSelectedAddEmployeeId(null);
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to add employee");
+    } finally {
+      setPeopleSaving(false);
+    }
+  };
+
+  // delete employee (DELETE to specified endpoint)
+  const removeEmployee = async (employeeId?: string) => {
+    if (!dealId || !employeeId) return;
+    if (!confirm("Are you sure you want to remove this person from the deal?")) return;
+    setPeopleDeletingId(employeeId);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setPeopleDeletingId(null);
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/employees/${employeeId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to remove employee: ${res.status} ${txt}`);
+      }
+
+      // after success, refetch assigned employees
+      await fetchAssignedEmployees();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to remove employee");
+    } finally {
+      setPeopleDeletingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -379,7 +545,7 @@ export default function DealDetailPage() {
         remindUnit: editingFollowup.remindUnit,
       };
 
-      // include status when editing (PUT) — backend expects status in update example
+      // include status when editing (PUT)
       if (editingFollowup.status) payload.status = editingFollowup.status;
 
       if (editingFollowup.id) {
@@ -396,7 +562,6 @@ export default function DealDetailPage() {
           const txt = await res.text().catch(() => "");
           throw new Error(`Failed to update followup: ${res.status} ${txt}`);
         }
-        // update locally - use response if provided
         const updated = await res.json();
         setFollowups((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       } else {
@@ -453,6 +618,11 @@ export default function DealDetailPage() {
   // Small UI helpers
   const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
   const formatTime = (t?: string) => (t ? t : "—");
+
+  // People modal search filter
+  const filteredAssigned = assignedEmployees.filter((a) =>
+    (a.name || "").toLowerCase().includes(peopleSearch.toLowerCase())
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -729,7 +899,7 @@ export default function DealDetailPage() {
                       <div>Created</div>
                       <div>Follow Up</div>
                       <div>Remark</div>
-                      <div className="text-center" >Status</div>
+                      <div className="text-center">Status</div>
                       <div className="text-center">Action</div>
                     </div>
 
@@ -792,28 +962,77 @@ export default function DealDetailPage() {
 
               {activeTab === "people" && (
                 <div className="space-y-3">
-                  <div>
-                    <h4 className="text-sm font-medium">Assigned Employees</h4>
-                    <div className="mt-2 text-sm text-gray-700">
-                      {(deal.assignedEmployeesMeta && deal.assignedEmployeesMeta.length > 0) ? (
-                        deal.assignedEmployeesMeta.map((a: any) => (
-                          <div key={a.employeeId} className="flex items-center gap-3 py-2">
-                            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-100">
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={openAddPeopleModal}
+                      className="inline-flex items-center gap-2 text-blue-600"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 5v14" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M5 12h14" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Add People
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="search"
+                        placeholder="Search"
+                        value={peopleSearch}
+                        onChange={(e) => setPeopleSearch(e.target.value)}
+                        className="rounded-full border px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-md border overflow-hidden">
+                    <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[1fr_1fr_1fr_80px] gap-3 p-2 items-center font-medium">
+                      <div>Name</div>
+                      <div>Department</div>
+                      <div className="text-center">Designation</div>
+                      <div className="text-center">Action</div>
+                    </div>
+
+                    <div>
+                      {employeesLoading && <div className="p-4">Loading people...</div>}
+                      {employeesError && <div className="p-4 text-red-600">{employeesError}</div>}
+                      {!employeesLoading && assignedEmployees.length === 0 && (
+                        <div className="p-4 text-sm text-gray-500">No people assigned</div>
+                      )}
+
+                      {filteredAssigned.map((a) => (
+                        <div key={a.employeeId} className="grid grid-cols-[1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
                               {a.profileUrl ? (
+                                // use img tag as you used elsewhere
                                 <img src={a.profileUrl} alt={a.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">N</div>
                               )}
                             </div>
                             <div>
-                              <div className="text-sm font-medium">{a.name}</div>
-                              <div className="text-xs text-gray-500">{a.designation || a.department || ""}</div>
+                              <div className="font-medium text-sm">{a.name}</div>
+                              <div className="text-xs text-gray-500">{a.designation || ""}</div>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <div className="text-sm text-gray-500">No people assigned</div>
-                      )}
+
+                          <div className="text-sm">{a.department || "—"}</div>
+                          <div className="text-sm text-center">{a.designation || "—"}</div>
+
+                          <div className="text-center">
+                            <button
+                              onClick={() => removeEmployee(a.employeeId)}
+                              disabled={peopleDeletingId === a.employeeId}
+                              className="text-red-600 hover:underline"
+                              aria-label="Remove"
+                            >
+                              {peopleDeletingId === a.employeeId ? "Removing..." : "🗑️"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -1018,6 +1237,118 @@ export default function DealDetailPage() {
               >
                 {followupSaving ? "Saving..." : "Save"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add People modal — table UI styled like the screenshot */}
+      {isAddPeopleOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+          <div className="absolute inset-0 bg-black/40" onClick={closeAddPeopleModal} />
+          <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-xl border p-6 mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Add People</h3>
+              <button onClick={closeAddPeopleModal} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div className="rounded-lg border p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 12h14" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <div className="text-sm text-gray-700 font-medium">Add People</div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="search"
+                    placeholder="Search name"
+                    value={peopleSearch}
+                    onChange={(e) => setPeopleSearch(e.target.value)}
+                    className="rounded-full border px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Add select + button row */}
+              <div className="flex items-center gap-3 mb-3">
+                <select
+                  value={selectedAddEmployeeId ?? ""}
+                  onChange={(e) => setSelectedAddEmployeeId(e.target.value)}
+                  className="rounded-md border px-3 py-2"
+                >
+                  <option value="">Select person to add</option>
+                  {availableToAdd.map((p) => (
+                    <option key={p.employeeId} value={p.employeeId}>
+                      {p.name} — {p.department}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  onClick={addEmployee}
+                  disabled={peopleSaving || !selectedAddEmployeeId}
+                  className={`px-4 py-2 rounded-md text-white ${peopleSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+                >
+                  {peopleSaving ? "Adding..." : "Add"}
+                </button>
+              </div>
+
+              <div className="text-sm text-gray-500">Assigned people</div>
+
+              <div className="mt-4 overflow-auto">
+                <div className="rounded-md border overflow-hidden">
+                  <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[1fr_1fr_1fr_80px] gap-3 p-2 items-center font-medium">
+                    <div>Name</div>
+                    <div>Department</div>
+                    <div className="text-center">Designation</div>
+                    <div className="text-center">Action</div>
+                  </div>
+
+                  <div>
+                    {employeesLoading && <div className="p-4">Loading people...</div>}
+                    {employeesError && <div className="p-4 text-red-600">{employeesError}</div>}
+                    {!employeesLoading && assignedEmployees.length === 0 && (
+                      <div className="p-4 text-sm text-gray-500">No people assigned</div>
+                    )}
+
+                    {filteredAssigned.map((a) => (
+                      <div key={a.employeeId} className="grid grid-cols-[1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
+                            {a.profileUrl ? (
+                              <img src={a.profileUrl} alt={a.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">N</div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium text-sm">{a.name}</div>
+                            <div className="text-xs text-gray-500">{a.designation || ""}</div>
+                          </div>
+                        </div>
+
+                        <div className="text-sm">{a.department || "—"}</div>
+                        <div className="text-sm text-center">{a.designation || "—"}</div>
+
+                        <div className="text-center">
+                          <button
+                            onClick={() => removeEmployee(a.employeeId)}
+                            disabled={peopleDeletingId === a.employeeId}
+                            className="text-red-600 hover:underline"
+                          >
+                            {peopleDeletingId === a.employeeId ? "Removing..." : "🗑️"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button onClick={closeAddPeopleModal} className="px-4 py-2 border rounded-md">Close</button>
             </div>
           </div>
         </div>
