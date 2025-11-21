@@ -88,10 +88,6 @@ type Note = {
   updatedAt?: string;
 };
 
-/* Uploaded screenshot local paths (tool will transform to URLs) */
-const NOTE_SCREENSHOT_PATH = "/mnt/data/Screenshot 2025-11-21 102619.png";
-const NOTE_SCREENSHOT_PATH_2 = "/mnt/data/Screenshot 2025-11-21 102635.png";
-
 const BASE = "https://chat.swiftandgo.in"; // change if needed
 const CREATE_URL = `${BASE}/deals`; // adjust if your create endpoint differs
 const EMP_API = `${BASE}/employee/all?page=0&size=20`;
@@ -136,7 +132,7 @@ function fmtCurrency(n?: number | null) {
   return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-/* ---------------- DealViewModal (kept intact, clickable email/call + files) ---------------- */
+/* ---------------- DealViewModal (kept intact) ---------------- */
 function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null; onClose: () => void }) {
   const [files, setFiles] = useState<{ name: string; url?: string }[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -378,7 +374,7 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
   );
 }
 
-/* ---------------- Deal Category Modal (kept intact) ---------------- */
+/* ---------------- DealCategoryModal (kept intact) ---------------- */
 function DealCategoryModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [categories, setCategories] = useState<DealCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -812,7 +808,7 @@ function AddDealModal({
                     <div
                       style={{
                         position: "fixed",
-                        top: panelPos.top,
+                        top: panelPos.top + window.scrollY,
                         left: panelPos.left,
                         width: panelPos.width,
                         zIndex: 60,
@@ -1082,8 +1078,7 @@ function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void
   );
 }
 
-/* ---------------- NEW: Notes Add/Edit Modal ---------------- */
-
+/* ---------------- Add/Edit Note Modal (kept intact) ---------------- */
 function AddEditNoteModal({
   leadId,
   initial,
@@ -1229,7 +1224,45 @@ function AddEditNoteModal({
   );
 }
 
-/* ---------------- Main Page Component (UPDATED to include Notes) ---------------- */
+/* ---------------- NEW: ViewNoteModal (keeps same UI) ---------------- */
+function ViewNoteModal({ note, onClose }: { note: Note; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-3xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "90vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">{note.noteTitle ?? "My Note"}</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="p-6">
+            <div className="rounded-lg border p-6">
+              <h4 className="font-medium mb-4">Project Note Details</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="text-muted-foreground">Note Title</div>
+                <div className="md:col-span-2">{note.noteTitle ?? "--"}</div>
+
+                <div className="text-muted-foreground">Note Type</div>
+                <div className="md:col-span-2">{note.noteType === "PUBLIC" ? "Public" : "Private"}</div>
+
+                <div className="text-muted-foreground">Note Detail</div>
+                <div className="md:col-span-2">{note.noteDetails ? note.noteDetails : "---"}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Main Page Component (updated: notes popup fixed positioning) ---------------- */
 
 export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -1333,6 +1366,13 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [editNote, setEditNote] = useState<Note | null>(null);
 
+  // openNoteMenuId stays the id; menuPos holds fixed coordinates for popup
+  const [openNoteMenuId, setOpenNoteMenuId] = useState<number | null>(null);
+  const [noteMenuPos, setNoteMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const menuContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const [viewNote, setViewNote] = useState<Note | null>(null); // for view modal
+
   const NOTES_API = (leadId: string | number) => `${BASE}/leads/${leadId}/notes`;
 
   const loadNotes = async () => {
@@ -1367,7 +1407,12 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
   const handleNoteSaved = (saved?: Note) => {
     setNoteModalOpen(false);
     setEditNote(null);
-    loadNotes();
+    setOpenNoteMenuId(null);
+    if (saved) {
+      loadNotes();
+    } else {
+      loadNotes();
+    }
   };
 
   const handleDeleteNote = async (noteId?: number) => {
@@ -1382,10 +1427,54 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       });
       if (!res.ok) throw new Error(await res.text());
       setNotes((s) => s.filter((n) => n.id !== noteId));
+      setOpenNoteMenuId(null);
+      setNoteMenuPos(null);
     } catch (err: any) {
       alert("Error: " + (err?.message ?? err));
     }
   };
+
+  // open fixed menu popup near button
+  const onOpenNoteMenu = (e: React.MouseEvent, noteId?: number) => {
+    e.stopPropagation();
+    if (!noteId) return;
+    const btn = e.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+    // compute top/left for fixed positioned popup
+    const top = rect.bottom + 8 + window.scrollY; // include scrollY to position correctly
+    const left = rect.right - 160; // align right edge of popup near button (popup width ~ 160)
+    setOpenNoteMenuId((prev) => (prev === noteId ? null : noteId));
+    setNoteMenuPos({ top, left: Math.max(left, 8) });
+  };
+
+  // close popup on outside click / scroll / resize
+  useEffect(() => {
+    if (openNoteMenuId == null) return;
+    const onDocClick = (ev: MouseEvent) => {
+      const t = ev.target as Node;
+      if (!menuContainerRef.current) return;
+      if (!menuContainerRef.current.contains(t)) {
+        setOpenNoteMenuId(null);
+        setNoteMenuPos(null);
+      }
+    };
+    const onScroll = () => {
+      setOpenNoteMenuId(null);
+      setNoteMenuPos(null);
+    };
+    const onResize = () => {
+      setOpenNoteMenuId(null);
+      setNoteMenuPos(null);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [openNoteMenuId]);
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -1753,7 +1842,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                 </>
               )}
 
-              {/* NOTES TAB */}
+              {/* NOTES TAB (updated: popup fixed positioning with no scroll lag) */}
               {activeTab === "notes" && (
                 <>
                   <div className="mb-4 flex items-center justify-between">
@@ -1819,24 +1908,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <td className="px-4 py-3">{fmtDate(n.createdAt)}</td>
 
                               <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditNote(n);
-                                      setNoteModalOpen(true);
-                                    }}
-                                    className="text-sm px-2 py-1 border rounded hover:bg-slate-50"
-                                  >
-                                    Edit
-                                  </button>
-
-                                  <button
-                                    onClick={() => handleDeleteNote(n.id)}
-                                    className="text-sm px-2 py-1 border rounded text-destructive hover:bg-slate-50"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
+                                {/* 3-dot button (we compute a fixed popup position) */}
+                                <button
+                                  onClick={(e) => onOpenNoteMenu(e, n.id)}
+                                  className="p-1 rounded hover:bg-slate-100"
+                                  aria-label="Note actions"
+                                >
+                                  <svg className="w-5 h-5 text-muted-foreground" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="5" cy="12" r="1.5" />
+                                    <circle cx="12" cy="12" r="1.5" />
+                                    <circle cx="19" cy="12" r="1.5" />
+                                  </svg>
+                                </button>
                               </td>
                             </tr>
                           ))
@@ -1852,6 +1935,66 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                       <button className="px-2 py-1" disabled>›</button>
                     </div>
                   </div>
+
+                  {/* Fixed-position popup (rendered outside the table so scrolling doesn't affect it) */}
+                  {openNoteMenuId != null && noteMenuPos && (
+                    <div
+                      ref={menuContainerRef}
+                      style={{
+                        position: "fixed",
+                        top: noteMenuPos.top,
+                        left: noteMenuPos.left,
+                        zIndex: 70,
+                        minWidth: 160,
+                      }}
+                    >
+                      <div className="rounded-md border bg-white shadow-lg">
+                        <ul className="py-1">
+                          <li>
+                            <button
+                              onClick={() => {
+                                const n = notes.find((x) => x.id === openNoteMenuId) ?? null;
+                                if (n) setViewNote(n);
+                                setOpenNoteMenuId(null);
+                                setNoteMenuPos(null);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm"
+                            >
+                              View
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              onClick={() => {
+                                const n = notes.find((x) => x.id === openNoteMenuId) ?? null;
+                                if (n) {
+                                  setEditNote(n);
+                                  setNoteModalOpen(true);
+                                }
+                                setOpenNoteMenuId(null);
+                                setNoteMenuPos(null);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm"
+                            >
+                              Edit
+                            </button>
+                          </li>
+                          <li>
+                            <button
+                              onClick={() => {
+                                handleDeleteNote(openNoteMenuId ?? undefined);
+                                setOpenNoteMenuId(null);
+                                setNoteMenuPos(null);
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm text-destructive"
+                            >
+                              Delete
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1903,8 +2046,18 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
             setNoteModalOpen(false);
             setEditNote(null);
           }}
-          onSaved={() => {
-            handleNoteSaved();
+          onSaved={(saved?: Note) => {
+            handleNoteSaved(saved);
+          }}
+        />
+      )}
+
+      {/* Notes View Modal */}
+      {viewNote && (
+        <ViewNoteModal
+          note={viewNote}
+          onClose={() => {
+            setViewNote(null);
           }}
         />
       )}
