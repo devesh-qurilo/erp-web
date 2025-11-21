@@ -63,9 +63,10 @@ type Deal = {
   leadId?: number;
   leadName?: string;
   leadMobile?: string;
+  leadCompanyName?: string;
   pipeline?: string;
   dealCategory?: string;
-  closeDate?: string | null;
+  expectedCloseDate?: string | null;
   createdAt?: string;
   updatedAt?: string;
   followups?: Followup[];
@@ -193,7 +194,7 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
       setUploading(false);
     }
   };
-
+  const leadCompanyName = lead?.companyName ?? ""
   const leadEmail = lead?.email ?? "";
   const leadPhone = lead?.mobileNumber ?? deal.leadMobile ?? "";
 
@@ -237,7 +238,8 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
 
                 <div>
                   <div className="text-xs text-muted-foreground">Company Name</div>
-                  <div>{deal.assignedEmployeesMeta && deal.assignedEmployeesMeta.length ? deal.assignedEmployeesMeta[0].department ?? "--" : "--"}</div>
+                  <div>{leadCompanyName ?? "--"}</div>
+                  {/* <div>{deal.assignedEmployeesMeta && deal.assignedEmployeesMeta.length ? deal.assignedEmployeesMeta[0].department ?? "--" : "--"}</div> */}
                 </div>
 
                 <div>
@@ -257,7 +259,7 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
 
                 <div>
                   <div className="text-xs text-muted-foreground">Close Date</div>
-                  <div>{deal.closeDate ? fmtShortDate(deal.closeDate) : "--"}</div>
+                  <div>{deal.expectedCloseDate ? fmtShortDate(deal.expectedCloseDate) : "--"}</div>
                 </div>
 
                 <div>
@@ -304,7 +306,8 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
 
                 <div className="flex justify-between">
                   <div className="text-xs text-muted-foreground">Company Name</div>
-                  <div>{deal.assignedEmployeesMeta && deal.assignedEmployeesMeta.length ? deal.assignedEmployeesMeta[0].department ?? "--" : "--"}</div>
+                  <div>{leadCompanyName ?? "--"}</div>
+
                 </div>
 
                 <div className="mt-3 flex gap-2">
@@ -376,6 +379,735 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
     </div>
   );
 }
+
+
+
+function AddDealModal({
+  lead,
+  onClose,
+  onCreated,
+  possibleAgents,
+  possibleWatchers,
+}: {
+  lead: Lead;
+  onClose: () => void;
+  onCreated: (d: Deal) => void;
+  possibleAgents: EmployeeMeta[];
+  possibleWatchers: EmployeeMeta[];
+}) {
+  const [form, setForm] = useState({
+    leadContact: lead?.id ?? "",
+    title: "",
+    pipeline: "",
+    dealStage: "Qualified",
+    dealCategory: "",
+    dealAgent: "",
+    dealWatchers: [] as string[],
+    value: "",
+    closeDate: "",
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // watchers dropdown as before
+  const [watchersOpen, setWatchersOpen] = useState(false);
+  const watchersButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // categories state
+  const [categories, setCategories] = useState<DealCategory[]>([]);
+  const [catsLoading, setCatsLoading] = useState(true);
+  const [catModalOpen, setCatModalOpen] = useState(false);
+
+  const update = (k: keyof typeof form, v: any) => setForm((s) => ({ ...s, [k]: v }));
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // load categories from API
+  const loadCategories = async () => {
+    setCatsLoading(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(CAT_API, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(await res.text());
+      const json: DealCategory[] = await res.json();
+      setCategories(json);
+      // if current selected category empty and categories exist, set first
+      if (!form.dealCategory && json.length > 0) {
+        setForm((s) => ({ ...s, dealCategory: json[0].categoryName }));
+      }
+    } catch (err: any) {
+      console.error("Failed to load categories", err);
+    } finally {
+      setCatsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const validate = () => {
+    if (!form.title.trim()) return "Deal Name is required.";
+    if (!form.pipeline.trim()) return "Pipeline is required.";
+    if (!form.dealStage.trim()) return "Deal stage is required.";
+    if (!form.closeDate.trim()) return "Close date is required.";
+    return null;
+  };
+
+  const toggleWatcher = (employeeId: string, checked: boolean) => {
+    setForm((s) => {
+      const curr = s.dealWatchers || [];
+      const updated = checked ? [...curr, employeeId] : curr.filter((id) => id !== employeeId);
+      return { ...s, dealWatchers: updated };
+    });
+  };
+
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const v = validate();
+    if (v) {
+      setError(v);
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+
+      const body: any = {
+        title: form.title,
+        pipeline: form.pipeline || undefined,
+        dealStage: form.dealStage || undefined,
+        dealCategory: form.dealCategory || undefined,
+        dealAgent: form.dealAgent || undefined,
+        dealWatchers: form.dealWatchers && form.dealWatchers.length ? form.dealWatchers : undefined,
+        value: form.value ? Number(form.value) : undefined,
+        closeDate: form.closeDate || undefined,
+        leadId: lead.id,
+      };
+
+      const res = await fetch(CREATE_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || "Failed to create deal.");
+      }
+
+      const createdDeal = await res.json();
+
+      // pass created deal to parent, parent will update SWR cache
+      onCreated(createdDeal as Deal);
+
+      // close modal
+      onClose();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to create deal.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // compute panel position
+  const openWatchers = () => {
+    const btn = watchersButtonRef.current;
+    if (!btn) {
+      setWatchersOpen(true);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const top = rect.bottom + 8;
+    const left = rect.left;
+    const width = rect.width;
+    setPanelPos({ top, left, width });
+    setWatchersOpen((s) => !s);
+  };
+
+  const selectedWatcherNames = () => {
+    const selected = possibleWatchers.filter((w) => form.dealWatchers.includes(w.employeeId || ""));
+    if (selected.length === 0) return "--";
+    return selected.map((s) => s.name).join(", ");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "92vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Add Deal Information</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={submit} className="p-6">
+            {error && <div className="text-destructive text-sm mb-3">{error}</div>}
+
+            <div className="rounded-lg border p-6">
+              <h4 className="font-medium mb-4">Deal Details</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Lead Contact *</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={String(form.leadContact)}
+                    onChange={(e) => update("leadContact", Number(e.target.value))}
+                  >
+                    <option value="">{lead?.name ?? "--"}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Name *</label>
+                  <input
+                    className="w-full p-2 border rounded-md text-sm"
+                    value={form.title}
+                    onChange={(e) => update("title", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Pipeline *</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={form.pipeline}
+                    onChange={(e) => update("pipeline", e.target.value)}
+                  >
+                    <option value="">--</option>
+                    <option>Default Pipeline</option>
+                    <option>Sales</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Stages *</label>
+                  <div className="relative">
+                    <select
+                      className="w-full p-2 border rounded-md bg-white text-sm"
+                      value={form.dealStage}
+                      onChange={(e) => update("dealStage", e.target.value)}
+                    >
+                      <option>Qualified</option>
+                      <option>Generated</option>
+                      <option>Proposal</option>
+                      <option>Won</option>
+                      <option>Lost</option>
+                    </select>
+                    <div className="absolute left-3 top-3 w-2 h-2 rounded-full bg-sky-600"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Category</label>
+                  <div className="flex">
+                    <select
+                      className="flex-1 p-2 border rounded-l-md bg-white text-sm"
+                      value={form.dealCategory}
+                      onChange={(e) => update("dealCategory", e.target.value)}
+                    >
+                      <option value="">--</option>
+                      {!catsLoading && categories.map((c) => (
+                        <option key={c.id} value={c.categoryName}>{c.categoryName}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setCatModalOpen(true)}
+                      className="px-3 py-2 border rounded-r-md bg-gray-200 text-sm"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Agent</label>
+                  <select
+                    className="w-full p-2 border rounded-md bg-white text-sm"
+                    value={form.dealAgent}
+                    onChange={(e) => update("dealAgent", e.target.value)}
+                  >
+                    <option value="">--</option>
+                    {possibleAgents.map((a) => (
+                      <option key={a.employeeId} value={a.employeeId}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Value</label>
+                  <div className="flex items-stretch">
+                    <span className="inline-flex items-center px-3 rounded-l-md border bg-slate-100 text-sm">USD $</span>
+                    <input
+                      type="number"
+                      className="w-full p-2 border rounded-r-md text-sm"
+                      value={form.value}
+                      onChange={(e) => update("value", e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">Close Date *</label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border rounded-md text-sm"
+                    value={form.closeDate}
+                    onChange={(e) => update("closeDate", e.target.value)}
+                  />
+                </div>
+
+                {/* WATCHERS: fixed popup (no page scrollbar) */}
+                <div className="relative">
+                  <label className="block text-xs text-muted-foreground mb-2">Deal Watcher</label>
+
+                  {/* fake select */}
+                  <button
+                    type="button"
+                    ref={watchersButtonRef}
+                    onClick={openWatchers}
+                    className="w-full p-2 border rounded-md text-left bg-white text-sm flex items-center justify-between"
+                  >
+                    <span className="truncate">{selectedWatcherNames()}</span>
+                    <svg className={`w-4 h-4 transform ${watchersOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="none" stroke="currentColor">
+                      <path d="M6 8l4 4 4-4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  {/* PANEL: fixed positioned */}
+                  {watchersOpen && panelPos && (
+                    <div
+                      style={{
+                        position: "fixed",
+                        top: panelPos.top,
+                        left: panelPos.left,
+                        width: panelPos.width,
+                        zIndex: 60,
+                      }}
+                    >
+                      <div className="bg-white border rounded-md shadow-lg p-3 max-h-[60vh] overflow-auto">
+                        {possibleWatchers.length === 0 ? (
+                          <div className="text-sm text-muted-foreground">No employees</div>
+                        ) : (
+                          <div className="grid gap-2">
+                            {possibleWatchers.map((w) => (
+                              <label key={w.employeeId} className="flex items-start gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  className="mt-1"
+                                  checked={form.dealWatchers.includes(w.employeeId || "")}
+                                  onChange={(e) => toggleWatcher(w.employeeId || "", e.target.checked)}
+                                />
+                                <div>
+                                  <div className="text-sm">{w.name}</div>
+                                  {w.designation && <div className="text-xs text-muted-foreground">{w.designation}</div>}
+                                </div>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-muted-foreground mt-1">Click to open and select watchers</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-6">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2 border rounded-full text-blue-600 hover:bg-blue-50"
+                disabled={submitting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`px-6 py-2 rounded-full text-white ${
+                  submitting ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {submitting ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Deal Category Modal */}
+      {catModalOpen && (
+        <DealCategoryModal
+          onClose={() => { setCatModalOpen(false); }}
+          onSaved={() => { loadCategories(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------------- EditModal (unchanged) ---------------- */
+function EditModal({ lead, onClose, onSaved }: { lead: Lead; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    name: lead?.name ?? "",
+    email: lead?.email ?? "",
+    clientCategory: lead?.clientCategory ?? "",
+    leadSource: lead?.leadSource ?? "",
+    leadOwner: lead?.leadOwner ?? "",
+    addedBy: lead?.addedBy ?? "",
+    autoConvertToClient: !!lead?.autoConvertToClient,
+    companyName: lead?.companyName ?? "",
+    officialWebsite: lead?.officialWebsite ?? "",
+    mobileNumber: String(lead?.mobileNumber ?? ""),
+    officePhone: lead?.officePhone ?? "",
+    city: lead?.city ?? "",
+    state: lead?.state ?? "",
+    postalCode: lead?.postalCode ?? "",
+    country: lead?.country ?? "",
+    companyAddress: lead?.companyAddress ?? "",
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const update = (k: keyof typeof form, v: any) => setForm((s) => ({ ...s, [k]: v }));
+
+  const validate = () => {
+    if (!form.name.trim() || !form.email.trim()) return "Name and Email are required.";
+    return null;
+  };
+
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const v = validate();
+    if (v) {
+      setErrorMsg(v);
+      return;
+    }
+    setErrorMsg(null);
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+
+      const body: any = {
+        name: form.name,
+        email: form.email,
+        clientCategory: form.clientCategory || undefined,
+        leadSource: form.leadSource || undefined,
+        leadOwner: form.leadOwner || undefined,
+        addedBy: form.addedBy || undefined,
+        autoConvertToClient: !!form.autoConvertToClient,
+        companyName: form.companyName || undefined,
+        officialWebsite: form.officialWebsite || undefined,
+        mobileNumber: form.mobileNumber ? Number(form.mobileNumber) : undefined,
+        officePhone: form.officePhone || undefined,
+        city: form.city || undefined,
+        state: form.state || undefined,
+        postalCode: form.postalCode || undefined,
+        country: form.country || undefined,
+        companyAddress: form.companyAddress || undefined,
+      };
+
+      const res = await fetch(`${BASE}/leads/${lead.id}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || "Update failed");
+      }
+
+      await res.json();
+      alert("Lead updated successfully.");
+      await onSaved();
+    } catch (err: any) {
+      setErrorMsg(err?.message ?? "Failed to update lead.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-4xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "92vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Update Lead Contact</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <form onSubmit={submit} className="p-6 space-y-6">
+            {errorMsg && <div className="text-destructive text-sm">{errorMsg}</div>}
+
+            {/* Contact Details */}
+            <div className="rounded-lg border p-4">
+              <h4 className="font-medium mb-3">Contact Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground">Name *</label>
+                  <input className="w-full border rounded-md p-2" value={form.name} onChange={(e) => update("name", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Email *</label>
+                  <input className="w-full border rounded-md p-2" value={form.email} onChange={(e) => update("email", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Lead Source</label>
+                  <input className="w-full border rounded-md p-2" value={form.leadSource} onChange={(e) => update("leadSource", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Lead Owner</label>
+                  <input className="w-full border rounded-md p-2" value={form.leadOwner} onChange={(e) => update("leadOwner", e.target.value)} />
+                </div>
+
+                <div className="flex items-center gap-2 md:col-span-2">
+                  <input type="checkbox" id="autoConvert" checked={!!form.autoConvertToClient} onChange={(e) => update("autoConvertToClient", e.target.checked)} />
+                  <label htmlFor="autoConvert" className="text-sm">Auto Convert lead to client when the deal stage is set to "WIN".</label>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Details */}
+            <div className="rounded-lg border p-4">
+              <h4 className="font-medium mb-3">Company Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-sm text-muted-foreground">Company Name</label>
+                  <input className="w-full border rounded-md p-2" value={form.companyName} onChange={(e) => update("companyName", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Official Website</label>
+                  <input className="w-full border rounded-md p-2" value={form.officialWebsite} onChange={(e) => update("officialWebsite", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Mobile Number</label>
+                  <input className="w-full border rounded-md p-2" value={form.mobileNumber} onChange={(e) => update("mobileNumber", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Office Phone No.</label>
+                  <input className="w-full border rounded-md p-2" value={form.officePhone} onChange={(e) => update("officePhone", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">City</label>
+                  <input className="w-full border rounded-md p-2" value={form.city} onChange={(e) => update("city", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">State</label>
+                  <input className="w-full border rounded-md p-2" value={form.state} onChange={(e) => update("state", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Postal Code</label>
+                  <input className="w-full border rounded-md p-2" value={form.postalCode} onChange={(e) => update("postalCode", e.target.value)} />
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground">Country</label>
+                  <input className="w-full border rounded-md p-2" value={form.country} onChange={(e) => update("country", e.target.value)} />
+                </div>
+
+                <div className="md:col-span-3">
+                  <label className="text-sm text-muted-foreground">Company Address</label>
+                  <textarea className="w-full border rounded-md p-2 h-28" value={form.companyAddress} onChange={(e) => update("companyAddress", e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={onClose} disabled={submitting}>Cancel</Button>
+              <Button type="submit" onClick={submit} disabled={submitting}>{submitting ? "Updating..." : "Update"}</Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Deal Category Modal (GET/POST/DELETE) ---------------- */
+function DealCategoryModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [categories, setCategories] = useState<DealCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [newName, setNewName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(CAT_API, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(await res.text());
+      const json = await res.json();
+      setCategories(json);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load categories");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleAdd = async () => {
+    if (!newName.trim()) {
+      setError("Category name required.");
+      return;
+    }
+    setError(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(CAT_API, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryName: newName }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const created: DealCategory = await res.json();
+      setNewName("");
+      // refresh list
+      await load();
+      onSaved();
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to add category");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this category?")) return;
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) throw new Error("No access token.");
+      const res = await fetch(`${CAT_API}/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await load();
+      onSaved();
+    } catch (err: any) {
+      alert("Error: " + (err?.message ?? err));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="fixed inset-0 flex items-start justify-center px-4 pt-12">
+        <div className="max-w-3xl w-full bg-white rounded-lg shadow-lg border overflow-auto" style={{ maxHeight: "80vh" }}>
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="text-lg font-semibold">Deal Category</h3>
+            <button onClick={onClose} className="text-muted-foreground p-1 rounded hover:bg-slate-100">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="p-6">
+            {error && <div className="text-destructive mb-3">{error}</div>}
+            <div className="rounded-lg border p-4 mb-4">
+              <div className="overflow-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-sky-50 text-left">
+                    <tr>
+                      <th className="px-4 py-2 w-12">#</th>
+                      <th className="px-4 py-2">Category Name</th>
+                      <th className="px-4 py-2 w-24">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">Loading…</td></tr>
+                    ) : categories.length === 0 ? (
+                      <tr><td colSpan={3} className="px-4 py-4 text-center text-muted-foreground">No categories.</td></tr>
+                    ) : (
+                      categories.map((c, idx) => (
+                        <tr key={c.id} className="border-t">
+                          <td className="px-4 py-3">{idx + 1}</td>
+                          <td className="px-4 py-3">{c.categoryName}</td>
+                          <td className="px-4 py-3">
+                            <button onClick={() => handleDelete(c.id)} className="text-destructive px-2 py-1 rounded border">🗑</button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm text-muted-foreground mb-2">Deal Category Name *</label>
+              <input value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full p-2 border rounded-md" />
+            </div>
+
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={onClose} className="px-6 py-2 border rounded-full text-blue-600 hover:bg-blue-50">Cancel</button>
+              <button onClick={handleAdd} className="px-6 py-2 rounded-full text-white bg-blue-600 hover:bg-blue-700">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 
 /* ---------------- Deal Category Modal (unchanged) ---------------- */
 // ... keep DealCategoryModal as provided earlier ...
@@ -760,7 +1492,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
 
                               <td className="px-4 py-3">{fmtCurrency(d.value ?? 0)}</td>
 
-                              <td className="px-4 py-3">{d.closeDate ? fmtShortDate(d.closeDate) : d.updatedAt ? fmtShortDate(d.updatedAt) : "--"}</td>
+                              <td className="px-4 py-3">{d.expectedCloseDate ? fmtShortDate(d.expectedCloseDate) : d.updatedAt ? fmtShortDate(d.updatedAt) : "--"}</td>
 
                               <td className="px-4 py-3">
                                 {d.followups && d.followups.length > 0 ? (
@@ -860,7 +1592,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Edit Modal */}
-      {editOpen && data && (
+     {editOpen && data && (
         <EditModal
           lead={data}
           onClose={() => setEditOpen(false)}
@@ -880,7 +1612,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
           possibleAgents={agents}
           possibleWatchers={watchers}
         />
-      )}
+      )} 
 
       {/* Deal View Modal (pass lead for email/call and files) */}
       {viewDeal && (
