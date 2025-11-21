@@ -19,7 +19,7 @@ type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
 
 const BASE_URL = "https://chat.swiftandgo.in";
 
-// Developer-provided local screenshot path — will be transformed by your infra when sent to API.
+// Use the file path from your uploaded asset (developer instruction)
 const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-21 135924.png";
 
 export default function DealDetailPage() {
@@ -100,15 +100,11 @@ export default function DealDetailPage() {
         }
 
         const json = await res.json();
-        // Based on your example, GET returns { employeeIds: [...] } for access — and actual docs come from POST responses.
-        // Some backends return list of documents; handle both possibilities:
+        // Handle different possible responses
         if (Array.isArray(json)) {
-          // if backend returns array of documents directly
           setDocuments(json);
         } else {
-          // If response contains employeeIds only, store them
           if (Array.isArray(json.employeeIds)) setDocEmployeeIds(json.employeeIds);
-          // If it also returns docs: treat that
           if (Array.isArray((json as any).documents)) setDocuments((json as any).documents);
         }
       } catch (err: any) {
@@ -154,7 +150,16 @@ export default function DealDetailPage() {
   const mailTo = deal.leadEmail ? `mailto:${deal.leadEmail}` : undefined;
   const telTo = deal.leadMobile ? `tel:${deal.leadMobile}` : undefined;
 
-  // Upload document (POST). Per your instruction we send the developer local path as the url.
+  /**
+   * uploadDocument:
+   * - Sends multipart/form-data to backend endpoint.
+   * - Appends:
+   *    - 'file' part (placeholder File created from the local path string) to satisfy backend's required 'file'.
+   *    - 'filename' and 'url' fields (url is the developer-provided local path).
+   *
+   * Note: If you want to upload actual file bytes from user's machine, replace the placeholder file
+   * creation with a real <input type="file"> flow and append the selected File object as 'file'.
+   */
   const uploadDocument = async () => {
     try {
       const token = localStorage.getItem("accessToken");
@@ -162,20 +167,29 @@ export default function DealDetailPage() {
         alert("No access token found");
         return;
       }
-      // Here we simulate upload using the developer-provided local path and filename.
-      const filename = UPLOADED_LOCAL_PATH.split("/").pop() || "screenshot.png";
-      const body = {
-        filename,
-        url: UPLOADED_LOCAL_PATH, // developer-provided path; infra will transform it
-      };
+
+      const filename = UPLOADED_LOCAL_PATH.split("/").pop() || "upload.png";
+
+      const fd = new FormData();
+
+      // Create a placeholder File to satisfy backend 'file' part requirement.
+      // This File contains the local path text — if backend needs real image bytes,
+      // use a real file input instead.
+      const placeholderContent = `LOCAL_PATH:${UPLOADED_LOCAL_PATH}`;
+      const blob = new Blob([placeholderContent], { type: "text/plain" });
+      const fileObj = new File([blob], filename, { type: "text/plain" });
+
+      fd.append("file", fileObj); // required by backend (MissingServletRequestPartException if absent)
+      fd.append("filename", filename);
+      fd.append("url", UPLOADED_LOCAL_PATH); // infra will transform this to actual hosted url
 
       const res = await fetch(`${BASE_URL}/deals/${dealId}/documents`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
+          // IMPORTANT: DO NOT set Content-Type; browser sets boundary automatically.
         },
-        body: JSON.stringify(body),
+        body: fd,
       });
 
       if (!res.ok) {
@@ -184,8 +198,7 @@ export default function DealDetailPage() {
       }
 
       const json = await res.json();
-      // Example POST response you gave:
-      // { id, filename, url, uploadedAt }
+      // backend returns { id, filename, url, uploadedAt } per your example
       setDocuments((prev) => [json as DocumentItem, ...prev]);
     } catch (err: any) {
       console.error(err);
@@ -212,7 +225,6 @@ export default function DealDetailPage() {
         throw new Error(`Failed to delete document: ${res.status} ${txt}`);
       }
 
-      // Remove locally
       setDocuments((prev) => prev.filter((d) => d.id !== docId));
     } catch (err: any) {
       console.error(err);
@@ -222,7 +234,6 @@ export default function DealDetailPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* header without green line (removed per request) */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <Link
@@ -401,7 +412,6 @@ export default function DealDetailPage() {
                         <div key={doc.id} className="flex items-center justify-between p-3 border rounded-md">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center text-xs text-gray-400">
-                              {/* show thumbnail placeholder or remote url if available */}
                               <img src={doc.url} alt={doc.filename} className="w-full h-full object-cover" />
                             </div>
                             <div className="text-sm">
