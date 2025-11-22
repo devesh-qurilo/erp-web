@@ -38,7 +38,6 @@ type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
 const BASE_URL = "https://chat.swiftandgo.in";
 
 // Developer-provided local path (used as fallback / infra-transformed url)
-// Updated to the uploaded file path from conversation history per developer instruction:
 const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-21 182146.png";
 
 export default function DealDetailPage() {
@@ -151,7 +150,6 @@ export default function DealDetailPage() {
         }
 
         const json = await res.json();
-        // Handle different possible responses
         if (Array.isArray(json)) {
           setDocuments(json);
         } else {
@@ -225,7 +223,6 @@ export default function DealDetailPage() {
       }
 
       const json = await res.json();
-      // Expect array of employees
       if (Array.isArray(json)) {
         setAssignedEmployees(json);
       } else if (Array.isArray((json as any).employees)) {
@@ -264,18 +261,16 @@ export default function DealDetailPage() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
       if (!depRes.ok) {
-        // don't hard-fail UI; show empty departments if endpoint fails
         console.warn("Failed to fetch departments", depRes.statusText);
       } else {
         const depJson = await depRes.json();
-        // depJson may be array of names or array of objects; normalize to string[]
         if (Array.isArray(depJson)) {
           const names = depJson.map((d: any) => (typeof d === "string" ? d : d.name || d.department || "")).filter(Boolean);
           setDepartments(names);
         }
       }
 
-      // fetch employees pool (the dropdown). Use a larger size to be safe.
+      // fetch employees pool (the dropdown).
       const empRes = await fetch(`${BASE_URL}/employee/all?page=0&size=200`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
@@ -284,7 +279,6 @@ export default function DealDetailPage() {
         console.warn("Failed to fetch employee pool", empRes.statusText);
       } else {
         const empJson = await empRes.json();
-        // Normalize: if server returns { content: [...] } or array
         let pool: Employee[] = [];
         if (Array.isArray(empJson)) {
           pool = empJson;
@@ -293,11 +287,9 @@ export default function DealDetailPage() {
         } else if (Array.isArray((empJson as any).employees)) {
           pool = (empJson as any).employees;
         } else {
-          // Try to extract array-like properties
           pool = Object.values(empJson).flat?.() ?? [];
         }
 
-        // ensure objects have expected keys
         const normalized = (pool as any[]).map((p) => ({
           employeeId: p.employeeId ?? p.id ?? p.empId ?? p.employee_id ?? "",
           name: p.name ?? p.fullName ?? p.employeeName ?? "",
@@ -358,7 +350,6 @@ export default function DealDetailPage() {
         return;
       }
 
-      // POST body per your example
       const payload = { employeeIds: [selectedAddEmployeeId] };
 
       const res = await fetch(`${BASE_URL}/deals/${dealId}/employees`, {
@@ -381,7 +372,7 @@ export default function DealDetailPage() {
       // refresh availableToAdd: remove newly added
       setAvailableToAdd((prev) => prev.filter((p) => p.employeeId !== selectedAddEmployeeId));
       setSelectedAddEmployeeId(null);
-      // optionally close modal or keep it open — I'll keep it open so user can add more
+      // keep modal open so user can add more if they want
     } catch (err: any) {
       console.error(err);
       alert(err?.message || "Failed to add employee");
@@ -498,27 +489,23 @@ export default function DealDetailPage() {
       let filename = UPLOADED_LOCAL_PATH.split("/").pop() || "upload.png";
 
       if (selectedFile) {
-        // use the real selected file from user
         fd.append("file", selectedFile);
         filename = selectedFile.name;
-        // some backends expect a 'url' or filename field as metadata; include both
         fd.append("filename", filename);
-        fd.append("url", selectedFile.name); // url field contains name when sending real file
+        fd.append("url", selectedFile.name);
       } else {
-        // fallback: create placeholder file (so Spring receives 'file' part)
         const placeholderContent = `LOCAL_PATH:${UPLOADED_LOCAL_PATH}`;
         const blob = new Blob([placeholderContent], { type: "text/plain" });
         const fileObj = new File([blob], filename, { type: "text/plain" });
         fd.append("file", fileObj);
         fd.append("filename", filename);
-        fd.append("url", UPLOADED_LOCAL_PATH); // infra will transform path -> real url
+        fd.append("url", UPLOADED_LOCAL_PATH); // infra will transform
       }
 
       const res = await fetch(`${BASE_URL}/deals/${dealId}/documents`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          // DO NOT set Content-Type here
         },
         body: fd,
       });
@@ -531,7 +518,6 @@ export default function DealDetailPage() {
       const json = await res.json();
       setDocuments((prev) => [json as DocumentItem, ...prev]);
 
-      // reset selection after success
       setSelectedFile(null);
       setSelectedFileName(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -614,7 +600,6 @@ export default function DealDetailPage() {
         return;
       }
 
-      // payload per your POST example (send times in expected formats)
       const payload: any = {
         nextDate: editingFollowup.nextDate,
         startTime: editingFollowup.startTime,
@@ -624,11 +609,9 @@ export default function DealDetailPage() {
         remindUnit: editingFollowup.remindUnit,
       };
 
-      // include status when editing (PUT)
       if (editingFollowup.status) payload.status = editingFollowup.status;
 
       if (editingFollowup.id) {
-        // update
         const res = await fetch(`${BASE_URL}/deals/${dealId}/followups/${editingFollowup.id}`, {
           method: "PUT",
           headers: {
@@ -644,7 +627,6 @@ export default function DealDetailPage() {
         const updated = await res.json();
         setFollowups((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       } else {
-        // create
         const res = await fetch(`${BASE_URL}/deals/${dealId}/followups`, {
           method: "POST",
           headers: {
@@ -1085,7 +1067,6 @@ export default function DealDetailPage() {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
                               {a.profileUrl ? (
-                                // use img tag as you used elsewhere
                                 <img src={a.profileUrl} alt={a.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">N</div>
@@ -1094,6 +1075,7 @@ export default function DealDetailPage() {
                             <div>
                               <div className="font-medium text-sm">{a.name}</div>
                               <div className="text-xs text-gray-500">{a.designation || ""}</div>
+                              <div className="text-xs text-gray-400">ID: {a.employeeId}</div>
                             </div>
                           </div>
 
@@ -1144,7 +1126,7 @@ export default function DealDetailPage() {
           </div>
         </div>
 
-        {/* Right: Lead Contact Details card (preview removed earlier) */}
+        {/* Right: Lead Contact Details card */}
         <aside className="space-y-4">
           <div className="bg-white border rounded-2xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4">Lead Contact Details</h3>
@@ -1197,12 +1179,10 @@ export default function DealDetailPage() {
               </div>
             </div>
           </div>
-
-          {/* Preview removed as requested */}
         </aside>
       </div>
 
-      {/* Followup modal — styled like your screenshot */}
+      {/* Followup modal */}
       {isFollowupModalOpen && editingFollowup && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeFollowupModal} />
@@ -1214,7 +1194,6 @@ export default function DealDetailPage() {
               <button onClick={closeFollowupModal} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
-            {/* big rounded inner card similar to screenshot */}
             <div className="rounded-lg border p-6 mb-6">
               <div className="text-sm font-medium mb-4">Follow Up Details</div>
 
@@ -1321,7 +1300,8 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add People modal — replaced with two-field form (Name + Department) styled like the file upload UI */}
+      {/* Add People modal — updated UI: form + inline Cancel/Save buttons inside the form card (so it matches the screenshot/UI request).
+          Important: the Name dropdown excludes already-assigned employees (so added people won't reappear in the form). The assigned people table shows full details (including ID). */}
       {isAddPeopleOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddPeopleModal} />
@@ -1331,12 +1311,13 @@ export default function DealDetailPage() {
               <button onClick={closeAddPeopleModal} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
-            {/* Inner rounded card styled like your screenshot (two fields side-by-side) */}
+            {/* Inner rounded card styled like your screenshot (two fields side-by-side)
+                + Inline Cancel/Save buttons added here as requested (same UI feel). */}
             <div className="rounded-lg border p-6 mb-6">
               <div className="text-sm font-medium mb-4">Add People</div>
 
               <div className="grid grid-cols-2 gap-6 items-end">
-                {/* Employee Name dropdown */}
+                {/* Employee Name dropdown (does NOT include already assigned people) */}
                 <div>
                   <label className="text-sm text-gray-600">Name *</label>
                   <select
@@ -1368,16 +1349,33 @@ export default function DealDetailPage() {
                   </select>
                 </div>
 
-                {/* Optional note row spanning 2 cols */}
+                {/* Tip / note */}
                 <div className="col-span-2 text-sm text-gray-500">
                   <div className="mt-2">
-                    Tip: Choose department to filter the Name dropdown. If Department is left as <strong>All</strong>, all employees will show.
+                    Tip: Choose department to filter the Name dropdown. If Department is left as <strong>All</strong>, all available employees will show.
                   </div>
+                </div>
+
+                {/* Inline buttons inside the form card (Cancel + Save) */}
+                <div className="col-span-2 flex justify-end gap-3 mt-2">
+                  <button
+                    onClick={closeAddPeopleModal}
+                    className="px-4 py-2 border rounded-md text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addEmployee}
+                    disabled={peopleSaving || !selectedAddEmployeeId}
+                    className={`px-4 py-2 rounded-md text-sm text-white ${peopleSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+                  >
+                    {peopleSaving ? "Adding..." : "Save"}
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Assigned people table (same as before) */}
+            {/* Assigned people table (same as before but shows more details including employeeId) */}
             <div className="rounded-md border overflow-hidden mb-4">
               <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[1fr_1fr_1fr_80px] gap-3 p-2 items-center font-medium">
                 <div>Name</div>
@@ -1406,6 +1404,7 @@ export default function DealDetailPage() {
                       <div>
                         <div className="font-medium text-sm">{a.name}</div>
                         <div className="text-xs text-gray-500">{a.designation || ""}</div>
+                        <div className="text-xs text-gray-400">ID: {a.employeeId}</div>
                       </div>
                     </div>
 
@@ -1426,6 +1425,7 @@ export default function DealDetailPage() {
               </div>
             </div>
 
+            {/* Footer buttons (also present, kept for consistency) */}
             <div className="flex justify-center gap-6">
               <button onClick={closeAddPeopleModal} className="px-6 py-2 border rounded-md text-sm">Cancel</button>
               <button
