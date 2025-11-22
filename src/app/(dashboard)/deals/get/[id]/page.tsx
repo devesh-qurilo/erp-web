@@ -37,7 +37,7 @@ type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
 
 const BASE_URL = "https://chat.swiftandgo.in";
 
-// Use the most recent uploaded file path (we will send this as the url when needed)
+// Use the uploaded file path provided earlier (developer instruction)
 const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-22 104348.png";
 
 export default function DealDetailPage() {
@@ -91,8 +91,9 @@ export default function DealDetailPage() {
   const [isAddCommentOpen, setIsAddCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
+  const [commentDeletingId, setCommentDeletingId] = useState<number | null>(null);
 
-  // --- fetch deal (extracted so it can be called after saves)
+  // --- fetch deal (extract to reuse)
   const fetchDeal = async () => {
     if (!dealId) return;
     setLoading(true);
@@ -432,7 +433,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- File uploads (same as before)
+  // --- File uploads (same behavior)
   const handleOpenFilePicker = () => {
     setSelectedFile(null);
     setSelectedFileName(null);
@@ -530,7 +531,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- FOLLOWUPS: helpers (unchanged)
+  // --- FOLLOWUPS helpers (unchanged)
   const openAddFollowup = () => {
     setEditingFollowup({
       nextDate: "",
@@ -676,7 +677,7 @@ export default function DealDetailPage() {
         return;
       }
 
-      // payload — server likely expects { commentText: "..." } (matches how comments are displayed)
+      // payload structure: { commentText: "..." }
       const payload = { commentText: commentText.trim() };
 
       const res = await fetch(`${BASE_URL}/deals/${dealId}/comments`, {
@@ -701,6 +702,39 @@ export default function DealDetailPage() {
       alert(err?.message || "Failed to save comment");
     } finally {
       setCommentSaving(false);
+    }
+  };
+
+  // Delete comment (DELETE to {{baseUrl}}/deals/{{dealId}}/comments/{commentId})
+  const deleteComment = async (commentId?: number) => {
+    if (!dealId || commentId == null) return;
+    if (!confirm("Are you sure you want to delete this comment?")) return;
+    setCommentDeletingId(commentId);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setCommentDeletingId(null);
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/comments/${commentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to delete comment: ${res.status} ${txt}`);
+      }
+
+      // refresh comments by refetching deal
+      await fetchDeal();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to delete comment");
+    } finally {
+      setCommentDeletingId(null);
     }
   };
 
@@ -1164,11 +1198,12 @@ export default function DealDetailPage() {
                     </button>
                   </div>
 
-                  {/* Comments table (styled like your screenshot) */}
+                  {/* Comments table (Date | Comment | Action) */}
                   <div className="rounded-md border overflow-hidden">
-                    <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[140px_1fr] gap-3 p-3 items-center font-medium rounded-t-md">
+                    <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[140px_1fr_80px] gap-3 p-3 items-center font-medium rounded-t-md">
                       <div>Date</div>
                       <div>Comment</div>
+                      <div className="text-center">Action</div>
                     </div>
 
                     <div>
@@ -1178,9 +1213,19 @@ export default function DealDetailPage() {
                       )}
 
                       {deal.comments && deal.comments.length > 0 && deal.comments.map((c: any) => (
-                        <div key={c.id || `${c.employeeId}-${c.createdAt}`} className="grid grid-cols-[140px_1fr] items-start border-t p-4">
+                        <div key={c.id || `${c.employeeId}-${c.createdAt}`} className="grid grid-cols-[140px_1fr_80px] items-start border-t p-4">
                           <div className="text-sm text-gray-700">{new Date(c.createdAt).toLocaleDateString()}</div>
                           <div className="text-sm text-gray-700">{c.commentText || "--"}</div>
+                          <div className="text-center">
+                            <button
+                              onClick={() => deleteComment(c.id)}
+                              disabled={commentDeletingId === c.id}
+                              className="text-red-600 hover:underline"
+                              aria-label="Delete comment"
+                            >
+                              {commentDeletingId === c.id ? "Deleting..." : "🗑️"}
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1363,7 +1408,7 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add People modal (unchanged from previous requested behavior) */}
+      {/* Add People modal */}
       {isAddPeopleOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddPeopleModal} />
@@ -1434,7 +1479,7 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add Comment Modal (styled like your screenshot) */}
+      {/* Add Comment Modal (styled like screenshot) */}
       {isAddCommentOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddComment} />
