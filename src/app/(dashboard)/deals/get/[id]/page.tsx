@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Deal } from "@/types/deals";
@@ -37,8 +37,8 @@ type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
 
 const BASE_URL = "https://chat.swiftandgo.in";
 
-// Developer-provided local path (used as fallback / infra-transformed url)
-const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-21 182146.png";
+// Use the most recent uploaded file path (we will send this as the url when needed)
+const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-22 104348.png";
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -87,42 +87,50 @@ export default function DealDetailPage() {
   const [peopleDeletingId, setPeopleDeletingId] = useState<string | null>(null);
   const [peopleSearch, setPeopleSearch] = useState<string>("");
 
+  // Comments modal (UI) state
+  const [isAddCommentOpen, setIsAddCommentOpen] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [commentSaving, setCommentSaving] = useState(false);
+
+  // --- fetch deal (extracted so it can be called after saves)
+  const fetchDeal = async () => {
+    if (!dealId) return;
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setError("No access token found. Please log in.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch(`/api/deals/get/${dealId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch deal: ${res.statusText}`);
+      }
+
+      const data: Deal = await res.json();
+      setDeal(data);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Failed to load deal details. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!dealId) {
       setError("Deal ID not found");
       setLoading(false);
       return;
     }
-
-    const fetchDeal = async () => {
-      try {
-        const token = localStorage.getItem("accessToken");
-        if (!token) {
-          setError("No access token found. Please log in.");
-          return;
-        }
-
-        const res = await fetch(`/api/deals/get/${dealId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error(`Failed to fetch deal: ${res.statusText}`);
-        }
-
-        const data: Deal = await res.json();
-        setDeal(data);
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to load deal details. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDeal();
   }, [dealId]);
 
@@ -238,7 +246,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // ensure assigned employees are fetched on page load (fix: not showing after refresh)
+  // ensure assigned employees are fetched on page load
   useEffect(() => {
     if (!dealId) return;
     fetchAssignedEmployees();
@@ -424,39 +432,7 @@ export default function DealDetailPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-lg font-semibold">
-        Loading deal details...
-      </div>
-    );
-  }
-
-  if (error || !deal) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen text-lg font-semibold text-red-600">
-        <div>{error || "Deal not found"}</div>
-        <Link href="/deals/get" className="mt-4 text-blue-600 hover:underline">
-          Back to Deals
-        </Link>
-      </div>
-    );
-  }
-
-  // helper to find earliest followup
-  const earliestFollowup = (followups?: any[]) => {
-    if (!followups || followups.length === 0) return null;
-    const valid = followups.filter((f) => f?.nextDate).slice();
-    valid.sort((a, b) => new Date(a.nextDate).getTime() - new Date(b.nextDate).getTime());
-    return valid[0];
-  };
-
-  const nextFollow = earliestFollowup(deal.followups);
-
-  const mailTo = deal.leadEmail ? `mailto:${deal.leadEmail}` : undefined;
-  const telTo = deal.leadMobile ? `tel:${deal.leadMobile}` : undefined;
-
-  // open file picker (does not upload)
+  // --- File uploads (same as before)
   const handleOpenFilePicker = () => {
     setSelectedFile(null);
     setSelectedFileName(null);
@@ -474,15 +450,6 @@ export default function DealDetailPage() {
     }
   };
 
-  /**
-   * Confirm upload:
-   * - If user selected a real file, append it to FormData as 'file' (real binary).
-   * - If no file selected, fallback to developer local path behavior:
-   *    - create a placeholder File (text blob with path) to satisfy 'file' part
-   *    - append 'url' with UPLOADED_LOCAL_PATH (infra will transform)
-   *
-   * Important: Do NOT set Content-Type header; browser will set multipart boundary.
-   */
   const uploadDocument = async () => {
     try {
       setUploading(true);
@@ -493,7 +460,6 @@ export default function DealDetailPage() {
         return;
       }
 
-      // Prepare form data
       const fd = new FormData();
       let filename = UPLOADED_LOCAL_PATH.split("/").pop() || "upload.png";
 
@@ -564,7 +530,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- FOLLOWUPS: Open modal for new or edit
+  // --- FOLLOWUPS: helpers (unchanged)
   const openAddFollowup = () => {
     setEditingFollowup({
       nextDate: "",
@@ -597,7 +563,6 @@ export default function DealDetailPage() {
     setEditingFollowup(null);
   };
 
-  // Save (create or update)
   const saveFollowup = async () => {
     if (!editingFollowup) return;
     setFollowupSaving(true);
@@ -685,6 +650,60 @@ export default function DealDetailPage() {
     }
   };
 
+  // --- Comments UI: open/close modal and save comment
+  const openAddComment = () => {
+    setCommentText("");
+    setIsAddCommentOpen(true);
+  };
+
+  const closeAddComment = () => {
+    setIsAddCommentOpen(false);
+    setCommentText("");
+  };
+
+  const saveComment = async () => {
+    if (!dealId) return;
+    if (!commentText.trim()) {
+      alert("Please enter a comment");
+      return;
+    }
+    setCommentSaving(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setCommentSaving(false);
+        return;
+      }
+
+      // payload — server likely expects { commentText: "..." } (matches how comments are displayed)
+      const payload = { commentText: commentText.trim() };
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/comments`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to save comment: ${res.status} ${txt}`);
+      }
+
+      // refresh deal so comments show in table
+      await fetchDeal();
+      closeAddComment();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to save comment");
+    } finally {
+      setCommentSaving(false);
+    }
+  };
+
   // Small UI helpers
   const formatDate = (d?: string) => (d ? new Date(d).toLocaleDateString() : "—");
   const formatTime = (t?: string) => (t ? t : "—");
@@ -693,6 +712,25 @@ export default function DealDetailPage() {
   const filteredAssigned = assignedEmployees.filter((a) =>
     (a.name || "").toLowerCase().includes(peopleSearch.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen text-lg font-semibold">
+        Loading deal details...
+      </div>
+    );
+  }
+
+  if (error || !deal) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-lg font-semibold text-red-600">
+        <div>{error || "Deal not found"}</div>
+        <Link href="/deals/get" className="mt-4 text-blue-600 hover:underline">
+          Back to Deals
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -1112,20 +1150,40 @@ export default function DealDetailPage() {
 
               {activeTab === "comments" && (
                 <div>
+                  {/* "Add a Comment" control */}
                   <div className="mb-4">
-                    <CommentForm dealId={dealId} />
+                    <button
+                      onClick={openAddComment}
+                      className="inline-flex items-center gap-2 text-blue-600"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="11" strokeWidth="1" />
+                        <path d="M12 8v8M8 12h8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Add a Comment
+                    </button>
                   </div>
-                  <div className="space-y-3 text-sm">
-                    {(deal.comments && deal.comments.length > 0) ? (
-                      deal.comments.map((c: any) => (
-                        <div key={c.id} className="p-3 border rounded-md">
-                          <div className="text-xs text-gray-500">{c.employeeId} • {new Date(c.createdAt).toLocaleString()}</div>
-                          <div className="mt-2 text-sm">{c.commentText}</div>
+
+                  {/* Comments table (styled like your screenshot) */}
+                  <div className="rounded-md border overflow-hidden">
+                    <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[140px_1fr] gap-3 p-3 items-center font-medium rounded-t-md">
+                      <div>Date</div>
+                      <div>Comment</div>
+                    </div>
+
+                    <div>
+                      {/* If no comments show an empty row like screenshot */}
+                      {(!deal.comments || deal.comments.length === 0) && (
+                        <div className="p-6 text-sm text-gray-500">No comments yet.</div>
+                      )}
+
+                      {deal.comments && deal.comments.length > 0 && deal.comments.map((c: any) => (
+                        <div key={c.id || `${c.employeeId}-${c.createdAt}`} className="grid grid-cols-[140px_1fr] items-start border-t p-4">
+                          <div className="text-sm text-gray-700">{new Date(c.createdAt).toLocaleDateString()}</div>
+                          <div className="text-sm text-gray-700">{c.commentText || "--"}</div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-gray-500">No comments yet.</div>
-                    )}
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1160,10 +1218,8 @@ export default function DealDetailPage() {
 
               <div className="mt-4 flex gap-3">
                 <a
-                  href={mailTo ?? "#"}
-                  onClick={(e) => {
-                    if (!mailTo) e.preventDefault();
-                  }}
+                  href={deal.leadEmail ? `mailto:${deal.leadEmail}` : "#"}
+                  onClick={(e) => { if (!deal.leadEmail) e.preventDefault(); }}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm text-sky-600 hover:bg-sky-50"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1174,10 +1230,8 @@ export default function DealDetailPage() {
                 </a>
 
                 <a
-                  href={telTo ?? "#"}
-                  onClick={(e) => {
-                    if (!telTo) e.preventDefault();
-                  }}
+                  href={deal.leadMobile ? `tel:${deal.leadMobile}` : "#"}
+                  onClick={(e) => { if (!deal.leadMobile) e.preventDefault(); }}
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm text-sky-600 hover:bg-sky-50"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1309,8 +1363,7 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add People modal — simplified: only the two-field form + inline Cancel/Save buttons.
-          The assigned people table has been removed from inside the modal (it's shown in People tab only). */}
+      {/* Add People modal (unchanged from previous requested behavior) */}
       {isAddPeopleOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddPeopleModal} />
@@ -1324,7 +1377,6 @@ export default function DealDetailPage() {
               <div className="text-sm font-medium mb-4">Add People</div>
 
               <div className="grid grid-cols-2 gap-6 items-end">
-                {/* Employee Name dropdown (does NOT include already assigned people) */}
                 <div>
                   <label className="text-sm text-gray-600">Name *</label>
                   <select
@@ -1341,7 +1393,6 @@ export default function DealDetailPage() {
                   </select>
                 </div>
 
-                {/* Department dropdown */}
                 <div>
                   <label className="text-sm text-gray-600">Department *</label>
                   <select
@@ -1362,7 +1413,6 @@ export default function DealDetailPage() {
                   </div>
                 </div>
 
-                {/* Inline buttons inside the form card (Cancel + Save) */}
                 <div className="col-span-2 flex justify-end gap-3 mt-2">
                   <button
                     onClick={closeAddPeopleModal}
@@ -1380,8 +1430,40 @@ export default function DealDetailPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* (No assigned people table here — removed as requested) */}
+      {/* Add Comment Modal (styled like your screenshot) */}
+      {isAddCommentOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+          <div className="absolute inset-0 bg-black/40" onClick={closeAddComment} />
+          <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-xl border p-6 mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Add a Comment</h3>
+              <button onClick={closeAddComment} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div className="rounded-lg border p-6 mb-6">
+              <div className="text-sm font-medium mb-4">Comment</div>
+              <textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="--"
+                className="mt-2 block w-full rounded-md border px-3 py-2 min-h-[120px]"
+              />
+            </div>
+
+            <div className="mt-4 flex justify-center gap-6">
+              <button onClick={closeAddComment} className="px-6 py-2 border rounded-md text-sm">Cancel</button>
+              <button
+                onClick={saveComment}
+                disabled={commentSaving}
+                className={`px-6 py-2 rounded-md text-sm text-white ${commentSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+              >
+                {commentSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
           </div>
         </div>
       )}
