@@ -42,12 +42,17 @@ type NoteItem = {
   createdAt?: string;
 };
 
+type TagItem = {
+  id?: number;
+  tagName: string;
+};
+
 type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
 
 const BASE_URL = "https://chat.swiftandgo.in";
 
-// Use the uploaded file path provided earlier (developer instruction)
-const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-22 111442.png";
+// Use the uploaded screenshot path as the developer local fallback (infra will transform to a URL)
+const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-22 120859.png";
 
 export default function DealDetailPage() {
   const params = useParams();
@@ -108,13 +113,25 @@ export default function DealDetailPage() {
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteDeletingId, setNoteDeletingId] = useState<number | null>(null);
 
+  // tags state
+  const [tags, setTags] = useState<TagItem[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [tagsError, setTagsError] = useState<string | null>(null);
+  const [isAddTagOpen, setIsAddTagOpen] = useState(false);
+  const [tagValue, setTagValue] = useState<string>("");
+  const [tagSaving, setTagSaving] = useState(false);
+  const [tagDeletingId, setTagDeletingId] = useState<number | null>(null);
+
   // Comments modal (UI) state
   const [isAddCommentOpen, setIsAddCommentOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [commentSaving, setCommentSaving] = useState(false);
   const [commentDeletingId, setCommentDeletingId] = useState<number | null>(null);
 
-  // --- fetch deal (extract to reuse)
+  // centralized action menu state to avoid overlap + easy click-away
+  const [openActionMenu, setOpenActionMenu] = useState<string | null>(null);
+
+  // --- fetch deal
   const fetchDeal = async () => {
     if (!dealId) return;
     setLoading(true);
@@ -230,7 +247,7 @@ export default function DealDetailPage() {
     fetchFollowups();
   }, [dealId]);
 
-  // fetch assigned employees (call on mount & whenever needed)
+  // fetch assigned employees
   const fetchAssignedEmployees = async () => {
     if (!dealId) return;
     setEmployeesLoading(true);
@@ -268,7 +285,6 @@ export default function DealDetailPage() {
     }
   };
 
-  // ensure assigned employees are fetched on page load
   useEffect(() => {
     if (!dealId) return;
     fetchAssignedEmployees();
@@ -309,7 +325,42 @@ export default function DealDetailPage() {
     fetchNotes();
   }, [dealId]);
 
-  // When Add People modal opens we fetch departments and employee pool.
+  // fetch tags list
+  const fetchTags = async () => {
+    if (!dealId) return;
+    setTagsLoading(true);
+    setTagsError(null);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        setTagsError("No access token found");
+        setTagsLoading(false);
+        return;
+      }
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/tags`, {
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to fetch tags: ${res.status} ${txt}`);
+      }
+      const json = await res.json();
+      if (Array.isArray(json)) setTags(json);
+      else setTags([]);
+    } catch (err: any) {
+      console.error(err);
+      setTagsError(err.message || "Failed to load tags");
+    } finally {
+      setTagsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!dealId) return;
+    fetchTags();
+  }, [dealId]);
+
+  // When Add People modal opens we fetch assigned employees, departments and employee pool.
   const openAddPeopleModal = async () => {
     setIsAddPeopleOpen(true);
     setSelectedDepartment(""); // default to all departments
@@ -317,10 +368,8 @@ export default function DealDetailPage() {
     setPeopleSaving(false);
     setEmployeesError(null);
 
-    // make sure we have the latest assignedEmployees (so the dropdown excludes them)
     await fetchAssignedEmployees();
 
-    // fetch departments & employee pool
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
@@ -328,7 +377,6 @@ export default function DealDetailPage() {
         return;
       }
 
-      // fetch departments
       const depRes = await fetch(`${BASE_URL}/admin/departments`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
@@ -342,7 +390,6 @@ export default function DealDetailPage() {
         }
       }
 
-      // fetch employees pool (the dropdown).
       const empRes = await fetch(`${BASE_URL}/employee/all?page=0&size=200`, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
@@ -438,14 +485,14 @@ export default function DealDetailPage() {
         throw new Error(`Failed to add employee: ${res.status} ${txt}`);
       }
 
-      // After success, refetch assigned list to reflect change in main table
+      // After success, refetch assigned list
       await fetchAssignedEmployees();
 
-      // Also refresh availableToAdd locally (so the just-added employee disappears from dropdown)
+      // refresh availableToAdd: remove newly added
       setAvailableToAdd((prev) => prev.filter((p) => p.employeeId !== selectedAddEmployeeId));
       setSelectedAddEmployeeId(null);
 
-      // Close modal (keeps UX clean — assigned list updated)
+      // close modal for cleaner UX
       setIsAddPeopleOpen(false);
     } catch (err: any) {
       console.error(err);
@@ -489,105 +536,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- File uploads (same behavior)
-  const handleOpenFilePicker = () => {
-    setSelectedFile(null);
-    setSelectedFileName(null);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) {
-      setSelectedFile(f);
-      setSelectedFileName(f.name);
-    } else {
-      setSelectedFile(null);
-      setSelectedFileName(null);
-    }
-  };
-
-  const uploadDocument = async () => {
-    try {
-      setUploading(true);
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        alert("No access token found");
-        setUploading(false);
-        return;
-      }
-
-      const fd = new FormData();
-      let filename = UPLOADED_LOCAL_PATH.split("/").pop() || "upload.png";
-
-      if (selectedFile) {
-        fd.append("file", selectedFile);
-        filename = selectedFile.name;
-        fd.append("filename", filename);
-        fd.append("url", selectedFile.name);
-      } else {
-        const placeholderContent = `LOCAL_PATH:${UPLOADED_LOCAL_PATH}`;
-        const blob = new Blob([placeholderContent], { type: "text/plain" });
-        const fileObj = new File([blob], filename, { type: "text/plain" });
-        fd.append("file", fileObj);
-        fd.append("filename", filename);
-        fd.append("url", UPLOADED_LOCAL_PATH); // infra will transform
-      }
-
-      const res = await fetch(`${BASE_URL}/deals/${dealId}/documents`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: fd,
-      });
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Failed to upload document: ${res.status} ${txt}`);
-      }
-
-      const json = await res.json();
-      setDocuments((prev) => [json as DocumentItem, ...prev]);
-
-      setSelectedFile(null);
-      setSelectedFileName(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "Failed to upload document");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const deleteDocument = async (docId: number) => {
-    if (!confirm("Are you sure you want to delete this document?")) return;
-    try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        alert("No access token found");
-        return;
-      }
-
-      const res = await fetch(`${BASE_URL}/deals/${dealId}/documents/${docId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Failed to delete document: ${res.status} ${txt}`);
-      }
-
-      setDocuments((prev) => prev.filter((d) => d.id !== docId));
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "Failed to delete document");
-    }
-  };
-
-  // --- FOLLOWUPS helpers (unchanged)
+  // Followups handlers (unchanged)
   const openAddFollowup = () => {
     setEditingFollowup({
       nextDate: "",
@@ -707,7 +656,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- Notes: open modals
+  // --- NOTES modals and operations (unchanged logic)
   const openAddNote = () => {
     setNoteModalMode("add");
     setEditingNote({
@@ -735,7 +684,6 @@ export default function DealDetailPage() {
     setEditingNote(null);
   };
 
-  // Save note (POST for add, PUT for edit)
   const saveNote = async () => {
     if (!dealId || !editingNote) return;
     if (!editingNote.noteTitle || !editingNote.noteTitle.trim()) {
@@ -794,7 +742,6 @@ export default function DealDetailPage() {
     }
   };
 
-  // Delete note
   const deleteNote = async (noteId?: number) => {
     if (!dealId || noteId == null) return;
     if (!confirm("Are you sure you want to delete this note?")) return;
@@ -827,7 +774,90 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- Comments UI: open/close modal and save comment
+  // --- TAGS (new handlers, UI only; logic matches your endpoints)
+  const openAddTag = () => {
+    setTagValue("");
+    setIsAddTagOpen(true);
+  };
+
+  const closeAddTag = () => {
+    setIsAddTagOpen(false);
+    setTagValue("");
+  };
+
+  const saveTag = async () => {
+    if (!dealId) return;
+    if (!tagValue.trim()) {
+      alert("Please enter a tag name");
+      return;
+    }
+    setTagSaving(true);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setTagSaving(false);
+        return;
+      }
+
+      const payload = { tagName: tagValue.trim() };
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/tags`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to save tag: ${res.status} ${txt}`);
+      }
+
+      await fetchTags();
+      closeAddTag();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to save tag");
+    } finally {
+      setTagSaving(false);
+    }
+  };
+
+  const deleteTag = async (tagId?: number) => {
+    if (!dealId || tagId == null) return;
+    if (!confirm("Are you sure you want to delete this tag?")) return;
+    setTagDeletingId(tagId);
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setTagDeletingId(null);
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/tags/${tagId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to delete tag: ${res.status} ${txt}`);
+      }
+
+      await fetchTags();
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to delete tag");
+    } finally {
+      setTagDeletingId(null);
+    }
+  };
+
+  // --- COMMENTS (unchanged logic)
   const openAddComment = () => {
     setCommentText("");
     setIsAddCommentOpen(true);
@@ -853,7 +883,6 @@ export default function DealDetailPage() {
         return;
       }
 
-      // payload — server likely expects { commentText: "..." }
       const payload = { commentText: commentText.trim() };
 
       const res = await fetch(`${BASE_URL}/deals/${dealId}/comments`, {
@@ -881,7 +910,6 @@ export default function DealDetailPage() {
     }
   };
 
-  // Delete comment (DELETE to {{baseUrl}}/deals/{{dealId}}/comments/{commentId})
   const deleteComment = async (commentId?: number) => {
     if (!dealId || commentId == null) return;
     if (!confirm("Are you sure you want to delete this comment?")) return;
@@ -922,6 +950,134 @@ export default function DealDetailPage() {
   const filteredAssigned = assignedEmployees.filter((a) =>
     (a.name || "").toLowerCase().includes(peopleSearch.toLowerCase())
   );
+
+  // Document-level click-away: close any open action menu when clicking anywhere
+  useEffect(() => {
+    const handleDocClick = () => {
+      setOpenActionMenu(null);
+    };
+    document.addEventListener("click", handleDocClick);
+    return () => document.removeEventListener("click", handleDocClick);
+  }, []);
+
+  // helper to toggle menus safely and stop the document click from closing immediately
+  const toggleActionMenu = (key: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent document click
+    setOpenActionMenu((prev) => (prev === key ? null : key));
+  };
+
+  // used to stop close when clicking inside menu itself
+  const stopPropagation = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+  // open file picker (does not upload)
+  const handleOpenFilePicker = () => {
+    setSelectedFile(null);
+    setSelectedFileName(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) {
+      setSelectedFile(f);
+      setSelectedFileName(f.name);
+    } else {
+      setSelectedFile(null);
+      setSelectedFileName(null);
+    }
+  };
+
+  /**
+   * Confirm upload:
+   * - If user selected a real file, append it to FormData as 'file' (real binary).
+   * - If no file selected, fallback to developer local path behavior:
+   *    - create a placeholder File (text blob with path) to satisfy 'file' part
+   *    - append 'url' with UPLOADED_LOCAL_PATH (infra will transform)
+   *
+   * Important: Do NOT set Content-Type header; browser will set multipart boundary.
+   */
+  const uploadDocument = async () => {
+    try {
+      setUploading(true);
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        setUploading(false);
+        return;
+      }
+
+      // Prepare form data
+      const fd = new FormData();
+      let filename = UPLOADED_LOCAL_PATH.split("/").pop() || "upload.png";
+
+      if (selectedFile) {
+        fd.append("file", selectedFile);
+        filename = selectedFile.name;
+        fd.append("filename", filename);
+        fd.append("url", selectedFile.name);
+      } else {
+        const placeholderContent = `LOCAL_PATH:${UPLOADED_LOCAL_PATH}`;
+        const blob = new Blob([placeholderContent], { type: "text/plain" });
+        const fileObj = new File([blob], filename, { type: "text/plain" });
+        fd.append("file", fileObj);
+        fd.append("filename", filename);
+        fd.append("url", UPLOADED_LOCAL_PATH);
+      }
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/documents`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to upload document: ${res.status} ${txt}`);
+      }
+
+      const json = await res.json();
+      setDocuments((prev) => [json as DocumentItem, ...prev]);
+
+      setSelectedFile(null);
+      setSelectedFileName(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to upload document");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const deleteDocument = async (docId: number) => {
+    if (!confirm("Are you sure you want to delete this document?")) return;
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("No access token found");
+        return;
+      }
+
+      const res = await fetch(`${BASE_URL}/deals/${dealId}/documents/${docId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`Failed to delete document: ${res.status} ${txt}`);
+      }
+
+      setDocuments((prev) => prev.filter((d) => d.id !== docId));
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.message || "Failed to delete document");
+    }
+  };
 
   if (loading) {
     return (
@@ -1242,34 +1398,41 @@ export default function DealDetailPage() {
                             </div>
                           </div>
 
-                          {/* action menu */}
+                          {/* action menu (uses openActionMenu state) */}
                           <div className="relative">
                             <button
-                              onClick={(e) => {
-                                const menu = document.getElementById(`followup-menu-${f.id}`);
-                                if (menu) {
-                                  menu.classList.toggle("hidden");
-                                }
-                              }}
+                              onClick={(e) => toggleActionMenu(`followup-${f.id}`, e)}
                               className="p-1 rounded hover:bg-slate-50 text-gray-500"
                               aria-label="Actions"
                             >
                               ⋮
                             </button>
-                            <div id={`followup-menu-${f.id}`} className="hidden absolute right-0 mt-2 w-36 bg-white border rounded-md shadow-sm z-10">
-                              <button
-                                onClick={() => openEditFollowup(f)}
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+
+                            {openActionMenu === `followup-${f.id}` && (
+                              <div
+                                onClick={stopPropagation}
+                                className="absolute right-0 mt-2 w-36 bg-white border rounded-md shadow-sm z-50"
                               >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => deleteFollowup(f.id)}
-                                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-50"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                                <button
+                                  onClick={() => {
+                                    openEditFollowup(f);
+                                    setOpenActionMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    deleteFollowup(f.id);
+                                    setOpenActionMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-50"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -1396,39 +1559,51 @@ export default function DealDetailPage() {
                             </div>
                           </div>
                           <div className="text-center">
-                            {/* action menu with 3-dots to show view/edit/delete */}
+                            {/* action menu with centralized state */}
                             <div className="relative inline-block">
                               <button
-                                onClick={() => {
-                                  const menu = document.getElementById(`note-menu-${n.id}`);
-                                  if (menu) menu.classList.toggle("hidden");
-                                }}
+                                onClick={(e) => toggleActionMenu(`note-${n.id}`, e)}
                                 className="p-1 rounded hover:bg-slate-50 text-gray-500"
                                 aria-label="Actions"
                               >
                                 ⋮
                               </button>
-                              <div id={`note-menu-${n.id}`} className="hidden absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-sm z-10">
-                                <button
-                                  onClick={() => openViewNote(n)}
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+
+                              {openActionMenu === `note-${n.id}` && (
+                                <div
+                                  onClick={stopPropagation}
+                                  className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-sm z-50"
                                 >
-                                  View
-                                </button>
-                                <button
-                                  onClick={() => openEditNote(n)}
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => deleteNote(n.id)}
-                                  disabled={noteDeletingId === n.id}
-                                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-50"
-                                >
-                                  {noteDeletingId === n.id ? "Deleting..." : "Delete"}
-                                </button>
-                              </div>
+                                  <button
+                                    onClick={() => {
+                                      openViewNote(n);
+                                      setOpenActionMenu(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                                  >
+                                    View
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      openEditNote(n);
+                                      setOpenActionMenu(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      deleteNote(n.id);
+                                      setOpenActionMenu(null);
+                                    }}
+                                    disabled={noteDeletingId === n.id}
+                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-slate-50"
+                                  >
+                                    {noteDeletingId === n.id ? "Deleting..." : "Delete"}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1440,7 +1615,6 @@ export default function DealDetailPage() {
 
               {activeTab === "comments" && (
                 <div>
-                  {/* "Add a Comment" control */}
                   <div className="mb-4">
                     <button
                       onClick={openAddComment}
@@ -1454,7 +1628,6 @@ export default function DealDetailPage() {
                     </button>
                   </div>
 
-                  {/* Comments table (Date | Comment | Action) */}
                   <div className="rounded-md border overflow-hidden">
                     <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[140px_1fr_80px] gap-3 p-3 items-center font-medium rounded-t-md">
                       <div>Date</div>
@@ -1463,7 +1636,6 @@ export default function DealDetailPage() {
                     </div>
 
                     <div>
-                      {/* If no comments show an empty row like screenshot */}
                       {(!deal.comments || deal.comments.length === 0) && (
                         <div className="p-6 text-sm text-gray-500">No comments yet.</div>
                       )}
@@ -1489,12 +1661,59 @@ export default function DealDetailPage() {
                 </div>
               )}
 
-              {activeTab === "tags" && <div><DealTags dealId={dealId} /></div>}
+              {activeTab === "tags" && (
+                <div>
+                  <div className="mb-4">
+                    <button onClick={openAddTag} className="inline-flex items-center gap-2 text-blue-600">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="11" strokeWidth="1" />
+                        <path d="M12 8v8M8 12h8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Add a Tag
+                    </button>
+                  </div>
+
+                  {/* Tags table — styled like your screenshot */}
+                  <div className="rounded-md border overflow-hidden">
+                    <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[1fr_80px] gap-3 p-3 items-center font-medium rounded-t-md">
+                      <div>Tag Name</div>
+                      <div className="text-center">Action</div>
+                    </div>
+
+                    <div>
+                      {tagsLoading && <div className="p-6 text-sm text-gray-500">Loading tags...</div>}
+                      {tagsError && <div className="p-6 text-sm text-red-600">{tagsError}</div>}
+
+                      {!tagsLoading && tags.length === 0 && (
+                        <div className="p-6 text-sm text-gray-500">No tags yet.</div>
+                      )}
+
+                      {tags.map((t) => (
+                        <div key={t.id} className="grid grid-cols-[1fr_80px] items-center border-t p-4">
+                          <div className="text-sm text-gray-700">{t.tagName}</div>
+                          <div className="text-center">
+                            <button
+                              onClick={() => deleteTag(t.id)}
+                              disabled={tagDeletingId === t.id}
+                              className="text-red-600"
+                              aria-label="Delete tag"
+                            >
+                              {tagDeletingId === t.id ? "Deleting..." : "🗑️"}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "tags" && <></>}
             </div>
           </div>
         </div>
 
-        {/* Right: Lead Contact Details card */}
+        {/* Right: Lead Contact Details card (preview removed earlier) */}
         <aside className="space-y-4">
           <div className="bg-white border rounded-2xl p-6 shadow-sm">
             <h3 className="text-lg font-semibold mb-4">Lead Contact Details</h3>
@@ -1543,10 +1762,12 @@ export default function DealDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Preview removed as requested */}
         </aside>
       </div>
 
-      {/* Followup modal */}
+      {/* Followup modal — styled like your screenshot */}
       {isFollowupModalOpen && editingFollowup && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeFollowupModal} />
@@ -1558,6 +1779,7 @@ export default function DealDetailPage() {
               <button onClick={closeFollowupModal} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
+            {/* big rounded inner card similar to screenshot */}
             <div className="rounded-lg border p-6 mb-6">
               <div className="text-sm font-medium mb-4">Follow Up Details</div>
 
@@ -1664,7 +1886,7 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add People modal */}
+      {/* Add People modal — styled like the screenshot */}
       {isAddPeopleOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddPeopleModal} />
@@ -1678,6 +1900,7 @@ export default function DealDetailPage() {
               <div className="text-sm font-medium mb-4">Add People</div>
 
               <div className="grid grid-cols-2 gap-6 items-end">
+                {/* Employee Name dropdown */}
                 <div>
                   <label className="text-sm text-gray-600">Name *</label>
                   <select
@@ -1694,6 +1917,7 @@ export default function DealDetailPage() {
                   </select>
                 </div>
 
+                {/* Department dropdown */}
                 <div>
                   <label className="text-sm text-gray-600">Department *</label>
                   <select
@@ -1708,34 +1932,30 @@ export default function DealDetailPage() {
                   </select>
                 </div>
 
+                {/* Optional note row spanning 2 cols */}
                 <div className="col-span-2 text-sm text-gray-500">
                   <div className="mt-2">
                     Tip: Choose department to filter the Name dropdown. If Department is left as <strong>All</strong>, all available employees will show.
                   </div>
                 </div>
-
-                <div className="col-span-2 flex justify-end gap-3 mt-2">
-                  <button
-                    onClick={closeAddPeopleModal}
-                    className="px-4 py-2 border rounded-md text-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={addEmployee}
-                    disabled={peopleSaving || !selectedAddEmployeeId}
-                    className={`px-4 py-2 rounded-md text-sm text-white ${peopleSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
-                  >
-                    {peopleSaving ? "Adding..." : "Save"}
-                  </button>
-                </div>
               </div>
+            </div>
+
+            <div className="flex justify-center gap-6">
+              <button onClick={closeAddPeopleModal} className="px-6 py-2 border rounded-md text-sm">Cancel</button>
+              <button
+                onClick={addEmployee}
+                disabled={peopleSaving || !selectedAddEmployeeId}
+                className={`px-6 py-2 rounded-md text-sm text-white ${peopleSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+              >
+                {peopleSaving ? "Adding..." : "Save"}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Note Modal (Add / Edit / View) */}
+      {/* Note Modal */}
       {isNoteModalOpen && editingNote && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeNoteModal} />
@@ -1747,9 +1967,7 @@ export default function DealDetailPage() {
               <button onClick={closeNoteModal} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
-            {/* --- Render form for add/edit, and the static "view" layout for view mode (matches supplied screenshot) --- */}
             {noteModalMode === "view" ? (
-              // View layout: match the screenshot - labels left, values right inside rounded card
               <div className="rounded-lg border p-6 mb-6">
                 <div className="text-sm font-medium mb-4">Deal Note Details</div>
 
@@ -1765,7 +1983,6 @@ export default function DealDetailPage() {
                 </div>
               </div>
             ) : (
-              // Add / Edit form (keeps same UI as before)
               <div className="rounded-lg border p-6 mb-6">
                 <div className="text-sm font-medium mb-4">Deal Note Details</div>
 
@@ -1823,7 +2040,6 @@ export default function DealDetailPage() {
             <div className="mt-4 flex justify-center gap-6">
               <button onClick={closeNoteModal} className="px-6 py-2 border rounded-md text-sm">Cancel</button>
 
-              {/* For view mode we don't show Save; only for add/edit */}
               {noteModalMode !== "view" && (
                 <button
                   onClick={saveNote}
@@ -1838,7 +2054,46 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add Comment Modal (styled like screenshot) */}
+      {/* Add Tag Modal (styled like your screenshot) */}
+      {isAddTagOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
+          <div className="absolute inset-0 bg-black/40" onClick={closeAddTag} />
+          <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-xl border p-6 mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Add Tags</h3>
+              <button onClick={closeAddTag} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+
+            <div className="rounded-lg border p-6 mb-6">
+              <div className="text-sm font-medium mb-4">Tag</div>
+
+              <div>
+                <label className="text-sm text-gray-600">Tag *</label>
+                <input
+                  type="text"
+                  value={tagValue}
+                  onChange={(e) => setTagValue(e.target.value)}
+                  className="mt-2 block w-full rounded-md border px-3 py-2"
+                  placeholder="--"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-center gap-6">
+              <button onClick={closeAddTag} className="px-6 py-2 border rounded-md text-sm">Cancel</button>
+              <button
+                onClick={saveTag}
+                disabled={tagSaving}
+                className={`px-6 py-2 rounded-md text-sm text-white ${tagSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
+              >
+                {tagSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Comment Modal */}
       {isAddCommentOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddComment} />
