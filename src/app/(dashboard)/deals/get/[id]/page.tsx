@@ -200,7 +200,7 @@ export default function DealDetailPage() {
     fetchFollowups();
   }, [dealId]);
 
-  // fetch assigned employees
+  // fetch assigned employees (call on mount & whenever needed)
   const fetchAssignedEmployees = async () => {
     if (!dealId) return;
     setEmployeesLoading(true);
@@ -238,7 +238,13 @@ export default function DealDetailPage() {
     }
   };
 
-  // When Add People modal opens we fetch assigned employees, departments and employee pool.
+  // ensure assigned employees are fetched on page load (fix: not showing after refresh)
+  useEffect(() => {
+    if (!dealId) return;
+    fetchAssignedEmployees();
+  }, [dealId]);
+
+  // When Add People modal opens we fetch departments and employee pool.
   const openAddPeopleModal = async () => {
     setIsAddPeopleOpen(true);
     setSelectedDepartment(""); // default to all departments
@@ -246,6 +252,7 @@ export default function DealDetailPage() {
     setPeopleSaving(false);
     setEmployeesError(null);
 
+    // make sure we have the latest assignedEmployees (so the dropdown excludes them)
     await fetchAssignedEmployees();
 
     // fetch departments & employee pool
@@ -366,13 +373,15 @@ export default function DealDetailPage() {
         throw new Error(`Failed to add employee: ${res.status} ${txt}`);
       }
 
-      // After success, refetch assigned list
+      // After success, refetch assigned list to reflect change in main table
       await fetchAssignedEmployees();
 
-      // refresh availableToAdd: remove newly added
+      // Also refresh availableToAdd locally (so the just-added employee disappears from dropdown)
       setAvailableToAdd((prev) => prev.filter((p) => p.employeeId !== selectedAddEmployeeId));
       setSelectedAddEmployeeId(null);
-      // keep modal open so user can add more if they want
+
+      // Close modal (keeps UX clean — assigned list updated)
+      setIsAddPeopleOpen(false);
     } catch (err: any) {
       console.error(err);
       alert(err?.message || "Failed to add employee");
@@ -1300,8 +1309,8 @@ export default function DealDetailPage() {
         </div>
       )}
 
-      {/* Add People modal — updated UI: form + inline Cancel/Save buttons inside the form card (so it matches the screenshot/UI request).
-          Important: the Name dropdown excludes already-assigned employees (so added people won't reappear in the form). The assigned people table shows full details (including ID). */}
+      {/* Add People modal — simplified: only the two-field form + inline Cancel/Save buttons.
+          The assigned people table has been removed from inside the modal (it's shown in People tab only). */}
       {isAddPeopleOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40" onClick={closeAddPeopleModal} />
@@ -1311,8 +1320,6 @@ export default function DealDetailPage() {
               <button onClick={closeAddPeopleModal} className="text-gray-400 hover:text-gray-600">✕</button>
             </div>
 
-            {/* Inner rounded card styled like your screenshot (two fields side-by-side)
-                + Inline Cancel/Save buttons added here as requested (same UI feel). */}
             <div className="rounded-lg border p-6 mb-6">
               <div className="text-sm font-medium mb-4">Add People</div>
 
@@ -1349,7 +1356,6 @@ export default function DealDetailPage() {
                   </select>
                 </div>
 
-                {/* Tip / note */}
                 <div className="col-span-2 text-sm text-gray-500">
                   <div className="mt-2">
                     Tip: Choose department to filter the Name dropdown. If Department is left as <strong>All</strong>, all available employees will show.
@@ -1375,67 +1381,7 @@ export default function DealDetailPage() {
               </div>
             </div>
 
-            {/* Assigned people table (same as before but shows more details including employeeId) */}
-            <div className="rounded-md border overflow-hidden mb-4">
-              <div className="bg-blue-50 text-sm text-gray-700 grid grid-cols-[1fr_1fr_1fr_80px] gap-3 p-2 items-center font-medium">
-                <div>Name</div>
-                <div>Department</div>
-                <div className="text-center">Designation</div>
-                <div className="text-center">Action</div>
-              </div>
-
-              <div>
-                {employeesLoading && <div className="p-4">Loading people...</div>}
-                {employeesError && <div className="p-4 text-red-600">{employeesError}</div>}
-                {!employeesLoading && assignedEmployees.length === 0 && (
-                  <div className="p-4 text-sm text-gray-500">No people assigned</div>
-                )}
-
-                {filteredAssigned.map((a) => (
-                  <div key={a.employeeId} className="grid grid-cols-[1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
-                        {a.profileUrl ? (
-                          <img src={a.profileUrl} alt={a.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">N</div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">{a.name}</div>
-                        <div className="text-xs text-gray-500">{a.designation || ""}</div>
-                        <div className="text-xs text-gray-400">ID: {a.employeeId}</div>
-                      </div>
-                    </div>
-
-                    <div className="text-sm">{a.department || "—"}</div>
-                    <div className="text-sm text-center">{a.designation || "—"}</div>
-
-                    <div className="text-center">
-                      <button
-                        onClick={() => removeEmployee(a.employeeId)}
-                        disabled={peopleDeletingId === a.employeeId}
-                        className="text-red-600 hover:underline"
-                      >
-                        {peopleDeletingId === a.employeeId ? "Removing..." : "🗑️"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer buttons (also present, kept for consistency) */}
-            <div className="flex justify-center gap-6">
-              <button onClick={closeAddPeopleModal} className="px-6 py-2 border rounded-md text-sm">Cancel</button>
-              <button
-                onClick={addEmployee}
-                disabled={peopleSaving || !selectedAddEmployeeId}
-                className={`px-6 py-2 rounded-md text-sm text-white ${peopleSaving ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"}`}
-              >
-                {peopleSaving ? "Adding..." : "Save"}
-              </button>
-            </div>
+            {/* (No assigned people table here — removed as requested) */}
           </div>
         </div>
       )}
