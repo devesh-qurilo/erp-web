@@ -268,7 +268,7 @@ function DealViewModal({ deal, lead, onClose }: { deal: Deal; lead?: Lead | null
             </div>
 
             <div className="rounded-lg border p-4">
-              <h4 className="font-medium mb-3">Lead Contact Details</h4>
+              <h4 className="font-medium mb-3">Lead Contact Details whdvhbc</h4>
               <div className="text-sm grid gap-2">
                 <div className="flex justify-between">
                   <div className="text-xs text-muted-foreground">Name</div>
