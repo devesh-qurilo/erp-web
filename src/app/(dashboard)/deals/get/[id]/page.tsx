@@ -114,7 +114,8 @@ export default function DealDetailPage() {
   const [noteDeletingId, setNoteDeletingId] = useState<number | null>(null);
 
   // tags state
-  const [tags, setTags] = useState<TagItem[]>([]);
+  // Note: keep TagItem[], but server may sometimes return string[] — rendering handles both forms.
+  const [tags, setTags] = useState<(TagItem | string)[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [tagsError, setTagsError] = useState<string | null>(null);
   const [isAddTagOpen, setIsAddTagOpen] = useState(false);
@@ -345,8 +346,13 @@ export default function DealDetailPage() {
         throw new Error(`Failed to fetch tags: ${res.status} ${txt}`);
       }
       const json = await res.json();
-      if (Array.isArray(json)) setTags(json);
-      else setTags([]);
+
+      // server might return either array of objects or array of strings
+      if (Array.isArray(json)) {
+        setTags(json); // keep raw array (could be string[] or TagItem[])
+      } else {
+        setTags([]);
+      }
     } catch (err: any) {
       console.error(err);
       setTagsError(err.message || "Failed to load tags");
@@ -774,7 +780,7 @@ export default function DealDetailPage() {
     }
   };
 
-  // --- TAGS (new handlers, UI only; logic matches your endpoints)
+  // --- TAGS (handlers unchanged)
   const openAddTag = () => {
     setTagValue("");
     setIsAddTagOpen(true);
@@ -878,8 +884,8 @@ export default function DealDetailPage() {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        alert("No access token found");
         setCommentSaving(false);
+        alert("No access token found");
         return;
       }
 
@@ -917,8 +923,8 @@ export default function DealDetailPage() {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        alert("No access token found");
         setCommentDeletingId(null);
+        alert("No access token found");
         return;
       }
 
@@ -1317,21 +1323,21 @@ export default function DealDetailPage() {
                     {docsError && <div className="text-red-600">{docsError}</div>}
                     {!docsLoading && documents.length === 0 && <div>No files uploaded yet.</div>}
                     <div className="space-y-3 mt-4">
-                      {documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between p-3 border rounded-md">
+                      {documents.map((doc, idx) => (
+                        <div key={doc.id ?? `${doc.filename}-${idx}`} className="flex items-center justify-between p-3 border rounded-md">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-md overflow-hidden bg-slate-100 flex items-center justify-center text-xs text-gray-400">
-                              <img src={doc.url} alt={doc.filename} className="w-full h-full object-cover" />
+                              <img src={doc.url || UPLOADED_LOCAL_PATH} alt={doc.filename} className="w-full h-full object-cover" />
                             </div>
                             <div className="text-sm">
                               <div className="font-medium">{doc.filename}</div>
-                              <div className="text-xs text-gray-500">Uploaded: {new Date(doc.uploadedAt).toLocaleString()}</div>
+                              <div className="text-xs text-gray-500">Uploaded: {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "—"}</div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-3">
                             <a
-                              href={doc.url}
+                              href={doc.url || UPLOADED_LOCAL_PATH}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-sm text-sky-600 hover:underline"
@@ -1384,8 +1390,8 @@ export default function DealDetailPage() {
                         <div className="p-4 text-sm text-gray-500">No follow ups</div>
                       )}
 
-                      {followups.map((f) => (
-                        <div key={f.id} className="grid grid-cols-[1fr_1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
+                      {followups.map((f, idx) => (
+                        <div key={f.id ?? `followup-${idx}`} className="grid grid-cols-[1fr_1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
                           <div>{formatDate(f.nextDate)}</div>
                           <div>{formatTime(f.startTime)}</div>
                           <div>{f.remarks || "---"}</div>
@@ -1401,14 +1407,14 @@ export default function DealDetailPage() {
                           {/* action menu (uses openActionMenu state) */}
                           <div className="relative">
                             <button
-                              onClick={(e) => toggleActionMenu(`followup-${f.id}`, e)}
+                              onClick={(e) => toggleActionMenu(`followup-${f.id ?? idx}`, e)}
                               className="p-1 rounded hover:bg-slate-50 text-gray-500"
                               aria-label="Actions"
                             >
                               ⋮
                             </button>
 
-                            {openActionMenu === `followup-${f.id}` && (
+                            {openActionMenu === `followup-${f.id ?? idx}` && (
                               <div
                                 onClick={stopPropagation}
                                 className="absolute right-0 mt-2 w-36 bg-white border rounded-md shadow-sm z-50"
@@ -1482,8 +1488,8 @@ export default function DealDetailPage() {
                         <div className="p-4 text-sm text-gray-500">No people assigned</div>
                       )}
 
-                      {filteredAssigned.map((a) => (
-                        <div key={a.employeeId} className="grid grid-cols-[1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
+                      {filteredAssigned.map((a, idx) => (
+                        <div key={a.employeeId ?? `emp-${idx}`} className="grid grid-cols-[1fr_1fr_1fr_80px] gap-4 items-center p-4 border-t">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100">
                               {a.profileUrl ? (
@@ -1547,8 +1553,8 @@ export default function DealDetailPage() {
                         <div className="p-6 text-sm text-gray-500">No notes yet.</div>
                       )}
 
-                      {notes.map((n) => (
-                        <div key={n.id} className="grid grid-cols-[1fr_1fr_80px] items-start border-t p-4">
+                      {notes.map((n, idx) => (
+                        <div key={n.id ?? `note-${idx}`} className="grid grid-cols-[1fr_1fr_80px] items-start border-t p-4">
                           <div>
                             <div className="font-medium text-sm">{n.noteTitle}</div>
                             <div className="text-xs text-gray-500">ID: {n.id} • {n.createdBy || "--"}</div>
@@ -1562,14 +1568,14 @@ export default function DealDetailPage() {
                             {/* action menu with centralized state */}
                             <div className="relative inline-block">
                               <button
-                                onClick={(e) => toggleActionMenu(`note-${n.id}`, e)}
+                                onClick={(e) => toggleActionMenu(`note-${n.id ?? idx}`, e)}
                                 className="p-1 rounded hover:bg-slate-50 text-gray-500"
                                 aria-label="Actions"
                               >
                                 ⋮
                               </button>
 
-                              {openActionMenu === `note-${n.id}` && (
+                              {openActionMenu === `note-${n.id ?? idx}` && (
                                 <div
                                   onClick={stopPropagation}
                                   className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-sm z-50"
@@ -1640,8 +1646,8 @@ export default function DealDetailPage() {
                         <div className="p-6 text-sm text-gray-500">No comments yet.</div>
                       )}
 
-                      {deal.comments && deal.comments.length > 0 && deal.comments.map((c: any) => (
-                        <div key={c.id || `${c.employeeId}-${c.createdAt}`} className="grid grid-cols-[140px_1fr_80px] items-start border-t p-4">
+                      {deal.comments && deal.comments.length > 0 && deal.comments.map((c: any, idx: number) => (
+                        <div key={c.id || `${c.employeeId ?? "emp"}-${c.createdAt ?? idx}`} className="grid grid-cols-[140px_1fr_80px] items-start border-t p-4">
                           <div className="text-sm text-gray-700">{new Date(c.createdAt).toLocaleDateString()}</div>
                           <div className="text-sm text-gray-700">{c.commentText || "--"}</div>
                           <div className="text-center">
@@ -1688,21 +1694,27 @@ export default function DealDetailPage() {
                         <div className="p-6 text-sm text-gray-500">No tags yet.</div>
                       )}
 
-                      {tags.map((t) => (
-                        <div key={t.id} className="grid grid-cols-[1fr_80px] items-center border-t p-4">
-                          <div className="text-sm text-gray-700">{t.tagName}</div>
-                          <div className="text-center">
-                            <button
-                              onClick={() => deleteTag(t.id)}
-                              disabled={tagDeletingId === t.id}
-                              className="text-red-600"
-                              aria-label="Delete tag"
-                            >
-                              {tagDeletingId === t.id ? "Deleting..." : "🗑️"}
-                            </button>
+                      {tags.map((t, idx) => {
+                        // t can be either TagItem or string (server inconsistency). Render name accordingly.
+                        const tagName = typeof t === "string" ? t : t.tagName;
+                        const tagId = typeof t === "string" ? undefined : t.id;
+                        const key = `${typeof t === "string" ? t : (t.id ?? t.tagName)}-${idx}`;
+                        return (
+                          <div key={key} className="grid grid-cols-[1fr_80px] items-center border-t p-4">
+                            <div className="text-sm text-gray-700">{tagName}</div>
+                            <div className="text-center">
+                              <button
+                                onClick={() => deleteTag(tagId)}
+                                disabled={tagDeletingId === tagId}
+                                className="text-red-600"
+                                aria-label="Delete tag"
+                              >
+                                {tagDeletingId === tagId ? "Deleting..." : "🗑️"}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
