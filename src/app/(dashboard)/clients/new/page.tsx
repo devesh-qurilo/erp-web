@@ -1,9 +1,12 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import { User, Mail, Phone, Globe, Camera, Building2, CheckCircle, AlertCircle, X, ArrowRight } from "lucide-react"
 
 export default function AddClientDetails() {
+  const router = useRouter()
+
   // Personal fields
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -123,17 +126,21 @@ export default function AddClientDetails() {
   // use the uploaded image as the placeholder shown in the screenshot
   const placeholderImg = "/mnt/data/Screenshot 2025-11-25 111308.png"
 
+  // Close / back -> go to clients listing (hides dashboard navbar because this page doesn't render it)
+  const handleClose = () => {
+    router.push("/clients")
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-start justify-center py-12">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
         {/* modal-like header (matches screenshot) */}
         <div className="flex items-center justify-between px-6 py-3 border-b bg-gray-50">
           <h3 className="text-lg font-medium text-slate-900">Add Client Details</h3>
-          <button className="text-slate-500 hover:text-slate-700"><X /></button>
+          <button onClick={handleClose} className="text-slate-500 hover:text-slate-700"><X /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* message */}
           {message && (
             <div className={`rounded-md p-3 ${messageType === "success" ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"} flex items-start gap-3`}>
               {messageType === "success" ? <CheckCircle className="text-emerald-600" /> : <AlertCircle className="text-red-600" />}
@@ -142,12 +149,10 @@ export default function AddClientDetails() {
             </div>
           )}
 
-          {/* Account Details area */}
+          {/* Account Details */}
           <div className="rounded-lg border border-slate-200 p-5">
             <h4 className="text-sm font-semibold mb-4 text-slate-800">Account Details</h4>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* left & middle columns (form fields) */}
               <div className="md:col-span-2 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -244,7 +249,7 @@ export default function AddClientDetails() {
             </div>
           </div>
 
-          {/* Company details (second large block) */}
+          {/* Company details */}
           <div className="rounded-lg border border-slate-200 p-5">
             <h4 className="text-sm font-semibold mb-4 text-slate-800">Company Details</h4>
 
@@ -307,7 +312,7 @@ export default function AddClientDetails() {
             </div>
           </div>
 
-          {/* action buttons centered like screenshot */}
+          {/* action buttons centered */}
           <div className="flex justify-center gap-4">
             <button type="button" onClick={resetForm} className="px-6 py-2 rounded-md border bg-white text-slate-700">Cancel</button>
             <button type="submit" disabled={isSubmitting} className="px-6 py-2 rounded-md bg-blue-600 text-white flex items-center gap-2">
