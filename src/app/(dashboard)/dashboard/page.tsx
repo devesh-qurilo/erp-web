@@ -163,11 +163,13 @@ export default function Dashboard() {
 
   // pick best activity: prefer IN record without OUT, else first item
   const activity = activities?.find((x: any) => (x.type === "IN" || x.clockInTime) && !x.clockOutTime) ?? activities?.[0] ?? null;
-  const clockInTime = activity?.clockInTime ?? activity?.clockIn ?? null;
+  const clockInTime = activity?.time ?? activity?.clockIn ?? null;
   const clockOutTime = activity?.clockOutTime ?? activity?.clockOut ?? null;
   const clockInLocation = activity?.clockInLocation ?? activity?.clockInLocation ?? form.clockInLocation;
   const clockOutLocation = activity?.clockOutLocation ?? activity?.clockOutLocation ?? form.clockInLocation;
   const clockInLabel = clockInTime ? new Date(`${selectedDay}T${clockInTime}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "—";
+  //const clockInLabel = activity?.time 
+  
   const clockOutLabel = clockOutTime ? new Date(`${selectedDay}T${clockOutTime}`).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) : "Did not clock out";
   // preview of the clock-out time when user opens modal (shows current time)
   const previewClockOutLabel = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
@@ -175,6 +177,7 @@ export default function Dashboard() {
   const durationMs = clockInTime ? (clockOutTime ? (new Date(`${selectedDay}T${clockOutTime}`).getTime() - new Date(`${selectedDay}T${clockInTime}`).getTime()) : (Date.now() - new Date(`${selectedDay}T${clockInTime}`).getTime())) : 0;
   const durH = Math.floor(durationMs / 3600000); const durM = Math.floor((durationMs % 3600000) / 60000); const durS = Math.floor((durationMs % 60000) / 1000);
   const durationLabel = `${durH}h ${durM}m ${durS}s`;
+//const durationLabel = activity?.time 
 
   return (
     <div className="max-w-screen-xl p-6 space-y-6">
@@ -284,7 +287,7 @@ export default function Dashboard() {
 
                 <div className="bg-gray-50 rounded p-3 mb-4">
                   <div className="text-sm">Clock In</div>
-                  <div className="text-base font-medium">{clockInLabel}</div>
+                  <div className="text-base font-medium">{clockInLabel} </div>
                   <div className="text-xs text-muted-foreground mt-1">{clockInLocation}</div>
                 </div>
 
