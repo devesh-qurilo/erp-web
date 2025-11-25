@@ -32,6 +32,12 @@ export const CommonNavbar: React.FC = () => {
   const menuRef = useRef<HTMLDivElement>(null)
 
   const handleLogout = async () => {
+    // show confirmation popup first
+    const confirmed = window.confirm("Are you sure you want to logout?")
+    if (!confirmed) {
+      return
+    }
+
     // Optional: call your logout API here, clear tokens, etc.
     // Example placeholder:
     // await fetch('/api/auth/logout', { method: 'POST' });
@@ -90,7 +96,7 @@ export const CommonNavbar: React.FC = () => {
             className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-gray-100 cursor-pointer"
           >
             <img
-              src={"/mnt/data/Screenshot 2025-11-24 110347.png"}
+              src={"/mnt/data/Screenshot 2025-11-24 174249.png"}
               alt="avatar"
               className="h-full w-full object-cover"
             />
