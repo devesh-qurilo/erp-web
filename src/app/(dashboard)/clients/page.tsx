@@ -27,16 +27,17 @@ interface Client {
   id: string
   name: string
   clientId: string
-  profilePictureUrl?: string
+  profilePictureUrl?: string | null
   email: string
-  mobile?: string
-  country?: string
-  category?: string
-  subCategory?: string
-  company?: Company
-  companyLogoUrl?: string
+  mobile?: string | null
+  country?: string | null
+  category?: string | null
+  subCategory?: string | null
+  company?: Company | null
+  companyLogoUrl?: string | null
   status: "ACTIVE" | "INACTIVE" | string
   addedBy: string
+  createdAt?: string | null
 }
 
 export default function ClientsPage() {
@@ -48,16 +49,19 @@ export default function ClientsPage() {
   // existing filters/pagination (kept unchanged)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [searchQuery /* kept for existing internal use if needed */ , setSearchQuery] = useState("")
+  const [searchQuery /* kept for internal use */ , setSearchQuery] = useState("")
 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
-  // new: header filter drawer state and its form fields (matches uploaded image)
+  // header filter drawer state and its form fields
   const [showFiltersDrawer, setShowFiltersDrawer] = useState(false)
   const [dateFilterOn, setDateFilterOn] = useState("Created")
   const [clientNameFilter, setClientNameFilter] = useState("All")
   const [headerCategoryFilter, setHeaderCategoryFilter] = useState("All")
+
+  // placeholder avatar using uploaded screenshot path
+  const placeholderImg = "/mnt/data/Screenshot 2025-11-25 120245.png"
 
   async function fetchClients() {
     setLoading(true)
@@ -101,11 +105,10 @@ export default function ClientsPage() {
     }
   }
 
-  // Filter & search logic: keep existing behavior — but incorporate header drawer filters into the same pipeline
+  // Filtering pipeline (kept behavior - includes header drawer filters)
   useEffect(() => {
     let result = [...clients]
 
-    // searchQuery preserved (if used elsewhere). Not showing a top search anymore per your request.
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       result = result.filter(
@@ -114,14 +117,12 @@ export default function ClientsPage() {
           c.email.toLowerCase().includes(q) ||
           c.clientId.toLowerCase().includes(q) ||
           c.company?.companyName.toLowerCase().includes(q) ||
-          c.mobile?.toLowerCase().includes(q)
+          (c.mobile ?? "").toLowerCase().includes(q)
       )
     }
 
     if (statusFilter !== "all") result = result.filter((c) => c.status === statusFilter)
     if (categoryFilter !== "all") result = result.filter((c) => c.category === categoryFilter)
-
-    // additionally apply header drawer filters (client name & category) — these are optional and mirror the UI you've asked
     if (clientNameFilter !== "All") result = result.filter((c) => c.name === clientNameFilter)
     if (headerCategoryFilter !== "All") result = result.filter((c) => c.category === headerCategoryFilter)
 
@@ -129,11 +130,11 @@ export default function ClientsPage() {
     setCurrentPage(1)
   }, [searchQuery, statusFilter, categoryFilter, clients, clientNameFilter, headerCategoryFilter])
 
-  // unique lists used for header form dropdowns
+  // unique lists used in header drawer
   const categories = Array.from(new Set(clients.map((c) => c.category).filter(Boolean)))
   const clientNames = Array.from(new Set(clients.map((c) => c.name).filter(Boolean)))
 
-  // pagination helpers (unchanged)
+  // pagination helpers
   const totalPages = Math.ceil(filteredClients.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
@@ -145,7 +146,6 @@ export default function ClientsPage() {
     setCurrentPage(1)
   }
 
-  // header filter form actions
   const clearHeaderFilters = () => {
     setDateFilterOn("Created")
     setClientNameFilter("All")
@@ -177,32 +177,29 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="container  mx-auto py-6 px-4">
-      {/* Top header line with Added on (left) and Filters button (right). Filters opens the drawer containing the form you uploaded. */}
-      <div className="mb-3 flex items-center justify-between bg-white/60 px-3 py-2 border-slate-200">
-        <div className="text-sl mb-5 text-slate-600">
+    <div className="container mx-auto py-6 px-4">
+      {/* Top header line */}
+      <div className="mb-4 flex items-center justify-between bg-white/60 px-3 py-2 rounded-md border border-slate-200">
+        <div className="text-sm text-slate-600">
           Added on <span className="ml-2 text-slate-700">Start Date to End Date</span>
         </div>
 
         <div>
-          <Button variant="ghost" size="sm" className="h-8 text-sl" onClick={() => setShowFiltersDrawer(true)}>
+          <Button variant="ghost" size="sm" className="h-8" onClick={() => setShowFiltersDrawer(true)}>
             <Filter className="h-4 w-4 mr-2" /> Filters
           </Button>
         </div>
       </div>
 
-      {/* Row with Add Client (left) and small space on right (search removed as requested) */}
+      {/* Add client row */}
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
           <Link href="/clients/new">
             <Button className="bg-blue-600 hover:bg-blue-700 text-white">+ Add Client</Button>
           </Link>
         </div>
-        {/* intentionally empty space where search used to be (user requested removal) */}
-        <div />
+        <div /> {/* search removed per previous request */}
       </div>
-
-      {/* Removed the previous Search & Filters card per your request. The real filter form is in the drawer below. */}
 
       <Card>
         <CardHeader>
@@ -216,15 +213,17 @@ export default function ClientsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Contact</TableHead>
+                  {/* Updated header columns exactly as requested */}
+                  <TableHead>Client ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Mobile</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Added By</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="w-[80px]">Action</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {paginatedClients.length === 0 ? (
                   <TableRow>
@@ -236,10 +235,14 @@ export default function ClientsPage() {
                   paginatedClients.map((client) => (
                     <TableRow key={client.id}>
                       <TableCell>
+                        <div className="text-sm text-slate-700">{client.clientId}</div>
+                      </TableCell>
+
+                      <TableCell>
                         <Link href={`/clients/${client.id}`}>
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage src={client.profilePictureUrl || "/placeholder.svg"} alt={client.name} />
+                              <AvatarImage src={client.profilePictureUrl || placeholderImg} alt={client.name} />
                               <AvatarFallback>
                                 {client.name
                                   .split(" ")
@@ -250,59 +253,41 @@ export default function ClientsPage() {
                             </Avatar>
                             <div>
                               <div className="font-medium">{client.name}</div>
-                              <div className="text-sm text-muted-foreground">{client.clientId}</div>
+                              {client.company?.companyName && (
+                                <div className="text-xs text-muted-foreground">{client.company.companyName}</div>
+                              )}
                             </div>
                           </div>
                         </Link>
                       </TableCell>
+
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="text-sm">{client.email}</div>
-                          <div className="text-sm text-muted-foreground">{client.mobile ?? "—"}</div>
-                          {client.country && <div className="text-xs text-muted-foreground">{client.country}</div>}
-                        </div>
+                        <div className="text-sm">{client.email}</div>
                       </TableCell>
+
+                      <TableCell>
+                        <div className="text-sm">{client.mobile ?? "—"}</div>
+                      </TableCell>
+
                       <TableCell>
                         {client.category ? (
                           <div className="space-y-1">
                             <Badge variant="secondary">{client.category}</Badge>
-                            {client.subCategory && <div className="text-xs text-muted-foreground">{client.subCategory}</div>}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {client.company ? (
-                          <div className="flex items-center gap-2">
-                            {client.companyLogoUrl && (
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={client.companyLogoUrl || "/placeholder.svg"} alt={client.company.companyName} />
-                                <AvatarFallback className="text-xs">{client.company.companyName[0]}</AvatarFallback>
-                              </Avatar>
+                            {client.subCategory && (
+                              <div className="text-xs text-muted-foreground">{client.subCategory}</div>
                             )}
-                            <div>
-                              <div className="font-medium text-sm">{client.company.companyName}</div>
-                              {client.company.city && (
-                                <div className="text-xs text-muted-foreground">
-                                  {client.company.city}
-                                  {client.company.state ? `, ${client.company.state}` : ""}
-                                </div>
-                              )}
-                            </div>
                           </div>
                         ) : (
                           <span className="text-muted-foreground text-sm">—</span>
                         )}
                       </TableCell>
+
                       <TableCell>
-                        <Badge variant={client.status === "ACTIVE" ? "default" : "secondary"} className={client.status === "ACTIVE" ? "bg-green-500 hover:bg-green-600" : ""}>
-                          {client.status}
-                        </Badge>
+                        <div className="text-sm text-muted-foreground">
+                          {client.createdAt ? new Date(client.createdAt).toLocaleDateString() : "—"}
+                        </div>
                       </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">{client.addedBy}</span>
-                      </TableCell>
+
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -339,7 +324,7 @@ export default function ClientsPage() {
           {filteredClients.length > 0 && (
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Rows per page:</span>
+                <span className="text-sm text-muted-foreground">Result per page -</span>
                 <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
                   <SelectTrigger className="w-20">
                     <SelectValue />
@@ -377,13 +362,10 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      {/* Filters Drawer (matches the uploaded image form). Opens from right. */}
+      {/* Filters Drawer */}
       {showFiltersDrawer && (
         <div className="fixed inset-0 z-50 flex">
-          {/* overlay */}
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowFiltersDrawer(false)} />
-
-          {/* drawer panel */}
           <div className="relative ml-auto w-72 bg-white h-full border-l border-slate-200 shadow-xl p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-slate-800 font-medium">
