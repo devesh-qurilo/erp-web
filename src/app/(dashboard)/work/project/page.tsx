@@ -1026,7 +1026,7 @@ export default function AllProjectsPage() {
                       <Input value={ucShortCode} onChange={(e) => setUcShortCode(e.target.value)} />
                     </div>
                     <div>
-                      <label className="text-sm text-gray-600">Project Name *</label>
+                      <label className="text-sm text-gray-600">Project Name  *</label>
                       <Input value={ucProjectName} onChange={(e) => setUcProjectName(e.target.value)} />
                     </div>
 
@@ -1191,7 +1191,7 @@ export default function AllProjectsPage() {
                     <div className="flex items-center gap-4">
                       <label className="inline-flex items-center gap-2">
                         <input type="checkbox" checked={ucAllowManualTime} onChange={(e) => setUcAllowManualTime(e.target.checked)} />
-                        <span className="text-sm text-gray-600">Allow manual time logs</span>
+                        <span className="text-sm text-gray-600">Allow manual time logs </span>
                       </label>
                     </div>
 
@@ -1607,7 +1607,7 @@ export default function AllProjectsPage() {
 
           {/* PAGINATION */}
           <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-gray-600">Result per page - {filteredProjects.length ? filteredProjects.length : 0}</div>
+            <div className="text-sm text-gray-600">Result per page -{filteredProjects.length ? filteredProjects.length : 0}</div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="sm" onClick={() => { setCurrentPage((c) => Math.max(1, c - 1)); }} disabled={currentPage === 1}><ChevronLeft /> Prev</Button>
               <div className="text-sm text-gray-600">Page {currentPage} of {totalPages}</div>

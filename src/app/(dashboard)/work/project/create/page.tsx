@@ -213,7 +213,7 @@ export default function CreateProjectPage() {
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <input type="checkbox" name="allowManualTimeLogs" id="allowManualTimeLogs" className="w-4 h-4" />
                 <label htmlFor="allowManualTimeLogs" className="text-sm font-medium cursor-pointer">
-                  Allow Manual Time Logs
+                  Allow Manual Time Logs 
                 </label>
               </div>
             </CardContent>

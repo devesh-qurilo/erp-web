@@ -86,7 +86,7 @@ export default function ChatRoomsList() {
   if (error) return <p className="text-center text-destructive">{error}</p>
 
   if (!currentUser) {
-    return <p className="text-center text-muted-foreground">Unable to load user profile.</p>
+    return <p className="text-center text-muted-foreground">Unable to load user profile.  </p>
   }
 
   if (!rooms.length) return <p className="text-center text-muted-foreground">No chat rooms found.</p>
