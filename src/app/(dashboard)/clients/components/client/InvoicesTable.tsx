@@ -226,6 +226,7 @@ export default function InvoicesTable({
             if (Array.isArray(obj.items)) { setInvoices(obj.items); setLoading(false); return; }
           }
           setRawResponse(parsed.raw ?? null);
+          console.log("guuuuuuuu",rawResponse)
           setInvoices([]);
           setError("Server returned unexpected payload. See rawResponse for details.");
           setLoading(false);
@@ -447,18 +448,37 @@ export default function InvoicesTable({
       }
 
       // Optionally, if you want to immediately add returned URL to local invoice object for UI (non-breaking):
+      // if (returnedUrl) {
+      //   setInvoices((prev) => prev.map((iv) => {
+      //     const idA = iv.id ?? iv.invoiceNumber ?? null;
+      //     const idB = inv.id ?? inv.invoiceNumber ?? null;
+      //     if (idA != null && idB != null && String(idA) === String(idB)) {
+      //       const files = Array.isArray(iv.files) ? [...iv.files] : [];
+      //       files.unshift({ url: returnedUrl, name: uploadSelectedFile.name });
+      //       return { ...iv, files };
+      //     }
+      //     return iv;
+      //   }));
+      // }
+
       if (returnedUrl) {
-        setInvoices((prev) => prev.map((iv) => {
-          const idA = iv.id ?? iv.invoiceNumber ?? null;
-          const idB = inv.id ?? inv.invoiceNumber ?? null;
-          if (idA != null && idB != null && String(idA) === String(idB)) {
-            const files = Array.isArray(iv.files) ? [...iv.files] : [];
-            files.unshift({ url: returnedUrl, name: uploadSelectedFile.name });
-            return { ...iv, files };
-          }
-          return iv;
-        }));
-      }
+  setInvoices((prev) => prev.map((iv) => {
+    const idA = iv.id ?? iv.invoiceNumber ?? null;
+    const idB = inv.id ?? inv.invoiceNumber ?? null;
+    if (idA != null && idB != null && String(idA) === String(idB)) {
+      const files = Array.isArray(iv.files) ? [...iv.files] : [];
+      files.unshift({ url: returnedUrl, name: uploadSelectedFile.name });
+
+      const fileUrls = Array.isArray(iv.fileUrls) ? [...iv.fileUrls] : [];
+      // push string URL (avoid duplicates)
+      if (!fileUrls.includes(returnedUrl)) fileUrls.unshift(returnedUrl);
+
+      return { ...iv, files, fileUrls };
+    }
+    return iv;
+  }));
+}
+
 
       alert("Upload successful");
       setShowUploadModal(false);
@@ -908,13 +928,49 @@ export default function InvoicesTable({
   const taxAmount = (subtotal - discountAmount) * (Number(createForm.taxPercent || 0) / 100);
   const total = Math.max(0, subtotal - discountAmount + taxAmount);
 
-  const firstFileUrl = (inv: any) => {
-    if (!inv) return null;
-    if (inv.files && Array.isArray(inv.files) && inv.files.length > 0) return inv.files[0].url ?? inv.files[0].fileUrl ?? inv.files[0].path ?? null;
-    if (inv.attachments && Array.isArray(inv.attachments) && inv.attachments.length > 0) return inv.attachments[0].url ?? null;
-    if (Array.isArray(inv.filesList) && inv.filesList.length > 0) return inv.filesList[0].url ?? null;
-    return null;
+  // const firstFileUrl = (inv: any) => {
+  //   if (!inv) return null;
+  //   if (inv.files && Array.isArray(inv.files) && inv.files.length > 0) return inv.files[0].url ?? inv.files[0].fileUrl ?? inv.files[0].path ?? null;
+  //   if (inv.attachments && Array.isArray(inv.attachments) && inv.attachments.length > 0) return inv.attachments[0].url ?? null;
+  //   if (Array.isArray(inv.filesList) && inv.filesList.length > 0) return inv.filesList[0].url ?? null;
+  //   return null;
+  // };
+
+ const firstFileUrl = (inv: any) => {
+  if (!inv) return null;
+
+  const extractUrl = (f: any) => {
+    if (!f) return null;
+    if (typeof f === "string") return f;
+    return f.url ?? f.fileUrl ?? f.path ?? f.downloadUrl ?? null;
   };
+
+  // NEW: take the *latest* (last) item in each array
+
+  if (Array.isArray(inv.fileUrls) && inv.fileUrls.length > 0) {
+    const latest = inv.fileUrls[inv.fileUrls.length - 1];
+    return extractUrl(latest);
+  }
+
+  if (Array.isArray(inv.files) && inv.files.length > 0) {
+    const latest = inv.files[inv.files.length - 1];
+    return extractUrl(latest);
+  }
+
+  if (Array.isArray(inv.attachments) && inv.attachments.length > 0) {
+    const latest = inv.attachments[inv.attachments.length - 1];
+    return extractUrl(latest);
+  }
+
+  if (Array.isArray(inv.filesList) && inv.filesList.length > 0) {
+    const latest = inv.filesList[inv.filesList.length - 1];
+    return extractUrl(latest);
+  }
+
+  return extractUrl(inv.fileUrl ?? inv.downloadUrl ?? null);
+};
+
+
 
   // handle saving receipt (unchanged logic)
   const handleSaveReceipt = async () => {
@@ -1270,26 +1326,68 @@ export default function InvoicesTable({
                         <div className="text-xs text-gray-400">No files attached</div>
                       )}
                     </div>
+{(
+  (activeInvoice.files && activeInvoice.files.length > 0) ||
+  (activeInvoice.attachments && activeInvoice.attachments.length > 0) ||
+  (activeInvoice.filesList && activeInvoice.filesList.length > 0) ||
+  (activeInvoice.fileUrls && activeInvoice.fileUrls.length > 0)
+) && (
+  <div className="mt-3 space-y-2 text-sm">
+  {(() => {
+    const arr: { url: string | null; name?: string }[] = [];
 
-                    {((activeInvoice.files && activeInvoice.files.length > 0) || (activeInvoice.attachments && activeInvoice.attachments.length > 0)) && (
-                      <div className="mt-3 space-y-2 text-sm">
-                        {(activeInvoice.files ?? activeInvoice.attachments ?? []).map((f: any, idx: number) => {
-                          const url = f.url ?? f.fileUrl ?? f.path ?? null;
-                          const name = f.name ?? f.filename ?? f.fileName ?? `File ${idx + 1}`;
-                          if (!url) return null;
-                          return (
-                            <div key={idx} className="flex items-center justify-between gap-2">
-                              <div className="text-gray-700 truncate">{name}</div>
-                              <div className="flex items-center gap-2">
-                                <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center px-2 py-1 border rounded text-xs">
-                                  <Download className="h-3 w-3 mr-1" /> Download
-                                </a>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+    const pushFrom = (f: any) => {
+      if (!f) return;
+
+      if (typeof f === "string") {
+        arr.push({
+          url: f,
+          name: f.split("/").pop(),
+        });
+        return;
+      }
+
+      const url = f.url ?? f.fileUrl ?? f.path ?? f.downloadUrl ?? null;
+      const name =
+        f.name ??
+        f.filename ??
+        f.fileName ??
+        (typeof url === "string" ? url.split("/").pop() : undefined);
+
+      arr.push({ url, name });
+    };
+
+    (activeInvoice.files ?? []).forEach(pushFrom);
+    (activeInvoice.attachments ?? []).forEach(pushFrom);
+    (activeInvoice.filesList ?? []).forEach(pushFrom);
+    (activeInvoice.fileUrls ?? []).forEach(pushFrom);
+
+    // 🔥 Sort newest first (last pushed = newest = first displayed)
+    const latestFirst = arr.reverse();
+
+    return latestFirst.map((f, idx) => {
+      if (!f.url) return null;
+      return (
+        <div key={idx} className="flex items-center justify-between gap-2">
+          <div className="text-gray-700 truncate">
+            {f.name ?? `File ${idx + 1}`}
+          </div>
+          <a
+            href={f.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center px-2 py-1 border rounded text-xs"
+          >
+            <Download className="h-3 w-3 mr-1" /> Download
+          </a>
+        </div>
+      );
+    });
+  })()}
+</div>
+
+)}
+
                   </div>
                 </div>
 
