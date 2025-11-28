@@ -88,7 +88,7 @@ type Note = {
   updatedAt?: string;
 };
 
-const BASE = "https://chat.swiftandgo.in"; // change if needed
+const BASE = "https://6jnqmj85-80.inc1.devtunnels.ms"; // change if needed
 const CREATE_URL = `${BASE}/deals`; // adjust if your create endpoint differs
 const EMP_API = `${BASE}/employee/all?page=0&size=20`;
 const CAT_API = `${BASE}/deals/dealCategory`;

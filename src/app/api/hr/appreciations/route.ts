@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const API_URL = "https://chat.swiftandgo.in/employee/appreciations"
+const API_URL = "https://6jnqmj85-80.inc1.devtunnels.ms/employee/appreciations"
 
 // Helper to normalize Authorization header
 function formatAuthHeader(token: string | null) {
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   
       // Forward FormData to external API
       const externalResponse = await fetch(
-        "https://chat.swiftandgo.in/employee/appreciations",
+        "https://6jnqmj85-80.inc1.devtunnels.ms/employee/appreciations",
         {
           method: "POST",
           headers: {

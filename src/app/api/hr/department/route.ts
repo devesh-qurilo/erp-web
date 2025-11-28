@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Authorization token missing' }, { status: 401 });
     }
 
-    const response = await fetch('https://chat.swiftandgo.in/admin/departments', {
+    const response = await fetch('https://6jnqmj85-80.inc1.devtunnels.ms/admin/departments', {
       method: 'GET',
       headers: {
         'Authorization': token,
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'departmentName is required' }, { status: 400 });
       }
   
-      const response = await fetch('https://chat.swiftandgo.in/admin/departments', {
+      const response = await fetch('https://6jnqmj85-80.inc1.devtunnels.ms/admin/departments', {
         method: 'POST',
         headers: {
           'Authorization': token,

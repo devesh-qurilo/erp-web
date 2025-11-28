@@ -51,7 +51,7 @@ type TaskItem = {
   // other fields not needed for counting
 };
 
-const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://chat.swiftandgo.in";
+const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 /**
  * Small helper: convert hex-like labelColor from backend to usable CSS color
@@ -470,7 +470,7 @@ export default function ProjectDetailsPage() {
         {/* other components shown for reference */}
         <div className="mt-6 grid grid-cols-1 lg:grid-rows-2 gap-2">
           <ProjectMembersTable projectId={project.id} />
-          <TimesheetsTableNew gatewayPath="https://chat.swiftandgo.in/timesheets" />
+          <TimesheetsTableNew gatewayPath="https://6jnqmj85-80.inc1.devtunnels.ms/timesheets" />
           <MilestonesTable projectId={project.id} />
        
 

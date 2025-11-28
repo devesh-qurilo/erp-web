@@ -51,7 +51,7 @@ type StatusItem = {
   createdBy?: string;
 };
 
-const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://chat.swiftandgo.in";
+const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 export default function TasksTable({ projectId }: { projectId: number }) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -281,7 +281,7 @@ export default function TasksTable({ projectId }: { projectId: number }) {
     const token = getStorage();
     try {
       // Use the exact endpoint you provided:
-      // PUT https://chat.swiftandgo.in/api/projects/tasks/{taskId}/status?statusId={stageId}
+      // PUT https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/tasks/{taskId}/status?statusId={stageId}
       const url = `${MAIN}/api/projects/tasks/${task.id}/status?statusId=${statusItem.id}`;
 
       await axios.patch(

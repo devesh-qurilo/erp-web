@@ -12,7 +12,7 @@ export async function GET(
     }
     const accessToken = authHeader.split(" ")[1];
     const response = await fetch(
-      `https://chat.swiftandgo.in/clients/${id}`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/clients/${id}`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,

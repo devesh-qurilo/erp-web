@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const API_BASE = "https://chat.swiftandgo.in";
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 type Company = {
   companyName?: string;

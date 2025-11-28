@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const API_URL = "https://chat.swiftandgo.in/employee/api/awards"
+const API_URL = "https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/awards"
 
 // ✅ Update award
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
@@ -13,7 +13,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
 
     const formData = await req.formData()
 
-    const res = await fetch(`https://chat.swiftandgo.in/employee/api/awards/${id}`, {
+    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/awards/${id}`, {
       method: "PUT",
       headers: { Authorization: authHeader },
       body: formData,
@@ -40,7 +40,7 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
     const authHeader = req.headers.get("authorization")
   
     const res = await fetch(
-      `https://chat.swiftandgo.in/employee/api/awards/${id}`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/awards/${id}`,
       {
         method: "DELETE",
         headers: { Authorization: authHeader || "" },

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const progress = searchParams.get("progress") || ""
     const duration = searchParams.get("duration") || ""
 
-    const res = await fetch("https://chat.swiftandgo.in/api/projects/AllProject", {
+    const res = await fetch("https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/AllProject", {
       method: "GET",
       cache: "no-store",
       headers: {
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       const accessToken = authHeader.split(" ")[1];
       const formData = await request.formData();
   
-      const res = await fetch("https://chat.swiftandgo.in/api/projects", {
+      const res = await fetch("https://6jnqmj85-80.inc1.devtunnels.ms/api/projects", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -154,7 +154,7 @@ export async function POST(request: Request) {
         body = await request.formData()
       }
   
-      const res = await fetch(`https://chat.swiftandgo.in/api/projects/${projectId}`, {
+      const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${projectId}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,

@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     }
 
     const response = await fetch(
-      `https://chat.swiftandgo.in/employee/api/holidays/month?year=${year}&month=${month}`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/holidays/month?year=${year}&month=${month}`,
       {
         headers: {
           Authorization: authHeader,

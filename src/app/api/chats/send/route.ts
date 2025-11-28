@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const formData = await request.formData()
 
     // Forward the form data directly to your backend API
-    const res = await fetch("https://chat.swiftandgo.in/api/chat/send", {
+    const res = await fetch("https://6jnqmj85-80.inc1.devtunnels.ms/api/chat/send", {
       method: "POST",
       body: formData, // already in FormData format; let fetch set proper multipart boundary
       headers: {

@@ -16,7 +16,7 @@ export async function PUT(
 
     console.log("🟡 PUT /api/deals/create/[id]", id, body);
 
-    const res = await fetch(`https://chat.swiftandgo.in/deals/${id}`, {
+    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/deals/${id}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${accessToken}`,

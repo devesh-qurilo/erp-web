@@ -14,7 +14,7 @@ export async function PATCH(
     }
 
     const apiRes = await fetch(
-      `https://chat.swiftandgo.in/employee/api/leaves/${id}/status`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/leaves/${id}/status`,
       {
         method: "PATCH",
         headers: {

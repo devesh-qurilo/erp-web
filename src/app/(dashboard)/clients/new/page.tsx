@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { X, CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import ClientDetailPage from "../[id]/page"
 
-const API_BASE = "https://chat.swiftandgo.in"
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms"
 
 export default function AddClientDetails() {
   const router = useRouter()

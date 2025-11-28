@@ -84,7 +84,7 @@ type PriorityItem = {
   isGlobal?: boolean
 }
 
-const BASE_URL = "https://chat.swiftandgo.in"
+const BASE_URL = "https://6jnqmj85-80.inc1.devtunnels.ms"
 
 // Use uploaded images as fallback avatars (local paths provided earlier)
 const sampleDesktopImage = "/mnt/data/Screenshot 2025-11-21 122016.png"

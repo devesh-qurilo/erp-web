@@ -21,7 +21,7 @@ type Project = {
   projectAdminId?: string | null;
 };
 
-const MAIN = process.env.NEXT_PUBLIC_MAIN || ""; // set this to API origin (e.g. https://chat.swiftandgo.in) or leave empty to use relative /api/ paths
+const MAIN = process.env.NEXT_PUBLIC_MAIN || ""; // set this to API origin (e.g. https://6jnqmj85-80.inc1.devtunnels.ms) or leave empty to use relative /api/ paths
 
 export default function ProjectMembersTableFetch({ projectId }: { projectId: number }) {
   const [project, setProject] = useState<Project | null>(null);
@@ -91,7 +91,7 @@ export default function ProjectMembersTableFetch({ projectId }: { projectId: num
     setLoading(true);
     setError(null);
     try {
-      const url = base(`https://chat.swiftandgo.in/api/projects/${projectId}`);
+      const url = base(`https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${projectId}`);
       console.log("[members] GET", url);
       const data = await doFetch(url, {
         method: "GET",
@@ -128,7 +128,7 @@ export default function ProjectMembersTableFetch({ projectId }: { projectId: num
     setLoading(true);
     setError(null);
     try {
-      const url = `https://chat.swiftandgo.in/api/projects/${projectId}/assign`;
+      const url = `https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${projectId}/assign`;
       console.log("[members] POST assign", url, employeeIds);
       const res = await doFetch(url, {
         method: "POST",

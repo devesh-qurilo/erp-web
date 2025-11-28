@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ inv
     }
 
     const accessToken = authHeader.split(" ")[1];
-    const res = await fetch(`https://chat.swiftandgo.in/api/payments/invoice/${invoiceNumber}`, {
+    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/api/payments/invoice/${invoiceNumber}`, {
       cache: "no-store",
       headers: {
         Authorization: `Bearer ${accessToken}`,

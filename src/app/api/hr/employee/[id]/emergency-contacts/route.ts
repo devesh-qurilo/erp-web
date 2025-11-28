@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const API_BASE = "https://chat.swiftandgo.in/employee"
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms/employee"
 
 // Proxy: GET /api/hr/employee/[id]/emergency-contacts -> external /employee/{id}/emergency-contacts
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {

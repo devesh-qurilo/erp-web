@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
 
     const accessToken = authHeader.split(" ")[1];
 
-    const res = await fetch(`https://chat.swiftandgo.in/api/projects/${id}`, {
+    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${id}`, {
       method: "GET",
       cache: "no-store",
       headers: {
@@ -48,7 +48,7 @@ export async function PUT(
   
       const formData = await request.formData();
   
-      const res = await fetch(`https://chat.swiftandgo.in/api/projects/${id}`, {
+      const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,

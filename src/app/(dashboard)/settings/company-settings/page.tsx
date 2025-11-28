@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const API_BASE = "https://chat.swiftandgo.in";
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 type CompanyPayload = {
   companyName: string;

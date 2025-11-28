@@ -44,7 +44,7 @@ import {
   Archive,
 } from "lucide-react";
 
-const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://chat.swiftandgo.in";
+const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 const STATUS_OPTIONS = [
   "IN_PROGRESS",

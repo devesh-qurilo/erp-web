@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const API_URL = "https://chat.swiftandgo.in/employee/api/awards/active"
+const API_URL = "https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/awards/active"
 
 
 

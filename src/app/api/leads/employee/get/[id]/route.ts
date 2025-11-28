@@ -14,7 +14,7 @@ export async function GET(
     const accessToken = authHeader.split(" ")[1];
 
     const res = await fetch(
-      `https://chat.swiftandgo.in/leads/${id}`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/leads/${id}`,
       {
         cache: "no-store",
         headers: {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = 'https://chat.swiftandgo.in/admin/designations';
+const API_URL = 'https://6jnqmj85-80.inc1.devtunnels.ms/admin/designations';
 
 // ✅ GET single designation
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {

@@ -14,7 +14,7 @@ export async function GET(
 
     const accessToken = authHeader.split(" ")[1];
 
-    const response = await fetch(`https://chat.swiftandgo.in/clients/${id}/documents`, {
+    const response = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/clients/${id}/documents`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
@@ -62,7 +62,7 @@ export async function POST(
     backendForm.append("file", file);
 
     const backendRes = await fetch(
-      `https://chat.swiftandgo.in/clients/${id}/documents`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/clients/${id}/documents`,
       {
         method: "POST",
         headers: {
@@ -112,7 +112,7 @@ export async function DELETE(
     }
 
     const backendRes = await fetch(
-      `https://chat.swiftandgo.in/clients/${id}/documents/${documentId}`,
+      `https://6jnqmj85-80.inc1.devtunnels.ms/clients/${id}/documents/${documentId}`,
       {
         method: "DELETE",
         headers: {

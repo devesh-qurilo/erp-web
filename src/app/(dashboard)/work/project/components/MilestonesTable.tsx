@@ -15,7 +15,7 @@ type Milestone = {
   [k: string]: any;
 };
 
-const DEFAULT_MAIN = process.env.NEXT_PUBLIC_MAIN || "https://chat.swiftandgo.in";
+const DEFAULT_MAIN = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 // Temporary provided token (for local testing only). DON'T commit real tokens.
 const PROVIDED_TOKEN =

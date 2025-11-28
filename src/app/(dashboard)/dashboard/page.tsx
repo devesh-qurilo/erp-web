@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 type Employee = { employeeId: string; name: string; departmentName: string; designationName: string; profilePictureUrl?: string; };
 type Appreciation = { id: number; awardTitle: string; givenToEmployeeName: string; date: string; photoUrl?: string; summary?: string; };
 
-const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://chat.swiftandgo.in";
+const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
 const GATEWAY = process.env.NEXT_PUBLIC_GATEWAY || MAIN;
 const URLS = {
   PROFILE: `${MAIN}/employee/me`,

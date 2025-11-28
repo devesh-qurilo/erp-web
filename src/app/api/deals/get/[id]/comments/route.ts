@@ -1,7 +1,7 @@
 // app/api/deals/get/[id]/comments/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 
-const BASE_URL = "https://chat.swiftandgo.in"
+const BASE_URL = "https://6jnqmj85-80.inc1.devtunnels.ms"
 
 // GET: Fetch all comments for a deal
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

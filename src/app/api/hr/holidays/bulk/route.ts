@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const response = await fetch(
-      "https://chat.swiftandgo.in/employee/api/leaves/admin/apply",
+      "https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/leaves/admin/apply",
       {
         method: "POST",
         headers: {

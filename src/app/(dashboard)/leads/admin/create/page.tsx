@@ -51,7 +51,7 @@ type Lead = {
   addedByMeta?: { name?: string };
 };
 
-const BASE = "https://chat.swiftandgo.in";
+const BASE = "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 const fetcher = async (url: string) => {
   const token = localStorage.getItem("accessToken");

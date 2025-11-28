@@ -37,7 +37,7 @@ type ProjectData = {
   addedBy?: string | null
 }
 
-const GATEWAY = "https://chat.swiftandgo.in"
+const GATEWAY = "https://6jnqmj85-80.inc1.devtunnels.ms"
 
 /* -------------------------
    ProjectCategoryModal (unchanged)

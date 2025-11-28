@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: "Project ID is required" }, { status: 400 })
     }
 
-    const res = await fetch(`https://chat.swiftandgo.in/projects/${id}/pin`, {
+    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/projects/${id}/pin`, {
       method: "POST", // Assuming POST for toggle; change to PATCH if needed
       cache: "no-store",
       headers: {
@@ -82,7 +82,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Project ID is required" }, { status: 400 })
     }
 
-    const res = await fetch(`https://chat.swiftandgo.in/projects/${id}/pin`, {
+    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/projects/${id}/pin`, {
       method: "DELETE",
       cache: "no-store",
       headers: {

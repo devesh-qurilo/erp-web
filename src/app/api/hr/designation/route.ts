@@ -1,7 +1,7 @@
 // src/app/api/hr/designation/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = 'https://chat.swiftandgo.in/admin/designations';
+const API_URL = 'https://6jnqmj85-80.inc1.devtunnels.ms/admin/designations';
 
 // ✅ GET handler (already working)
 export async function GET(request: NextRequest) {

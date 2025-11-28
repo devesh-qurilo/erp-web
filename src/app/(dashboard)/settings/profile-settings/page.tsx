@@ -26,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-const API_BASE = "https://chat.swiftandgo.in";
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 type ProfilePayload = {
   employeeId?: string;
@@ -434,7 +434,7 @@ export default function ProfileForm() {
 
   /**
    * DELETE document using API:
-   * DELETE https://chat.swiftandgo.in/employee/{{empId}}/documents/{{docId}}
+   * DELETE https://6jnqmj85-80.inc1.devtunnels.ms/employee/{{empId}}/documents/{{docId}}
    */
   const handleDeleteDocument = async (docId?: number) => {
     setDocActionError("");

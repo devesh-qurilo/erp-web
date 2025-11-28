@@ -11,7 +11,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     }
 
     const accessToken = authHeader.split(" ")[1];
-    const upstream = await fetch(`https://chat.swiftandgo.in/leads/${id}`, {
+    const upstream = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/leads/${id}`, {
       cache: "no-store",
       headers: {
         Authorization: `Bearer ${accessToken}`,

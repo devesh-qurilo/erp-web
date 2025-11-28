@@ -46,7 +46,7 @@ import {
   X,
 } from "lucide-react"
 
-const API_BASE = "https://chat.swiftandgo.in"
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms"
 
 // safe text parser (handles stringified JSON responses)
 const safeParseText = (text: string) => {
@@ -523,6 +523,8 @@ export default function ClientDetailPage() {
   const [allowManualTimeLogs, setAllowManualTimeLogs] = useState(false)
   const [addedBy, setAddedBy] = useState<string>("you")
   const [submitting, setSubmitting] = useState(false)
+  
+   const clientId=client?.clientId
 
   const resetAddForm = () => {
     setShortCode("")
@@ -637,18 +639,21 @@ export default function ClientDetailPage() {
   }, [client])
 
   // when user activates Projects tab, load projects
-  useEffect(() => {
-    if (activeTab === "projects" && client?.clientId) {
-      fetchProjectsForClient(client.clientId)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, client])
+ // Fetch projects AS SOON as client loads (so ProfileSection gets data)
+useEffect(() => {
+  if (client?.clientId) {
+    fetchProjectsForClient(client.clientId)
+  }
+}, [client])
+
 
   // when user activates Invoices tab, load invoices
   useEffect(() => {
     if (activeTab === "invoices" && client?.clientId) {
       fetchInvoicesForClient(client.clientId)
     }
+
+    
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, client])
 
@@ -835,8 +840,13 @@ export default function ClientDetailPage() {
         />
       )}
 
+
+
+
       {/* Main content by tab */}
-      {activeTab === "profile" && <ProfileSection client={client} />}
+      {activeTab === "profile" && <ProfileSection client={client} projects={projects} />}
+      {/* <ProfileSection client={client} projects={projects} /> */}
+
 
       {activeTab === "projects" && (
         <div className="mt-6">
@@ -850,6 +860,7 @@ export default function ClientDetailPage() {
               <Button className="bg-blue-600 text-white" onClick={() => { setShowAddModal(true); /* preselect client */ setClientField(client?.clientId ? String(client.clientId) : "none") }}>+ Add Project</Button>
             </div>
           </div>
+
 
           <div className="bg-white rounded-lg border overflow-hidden">
             <div className="overflow-auto p-4">
@@ -880,16 +891,14 @@ export default function ClientDetailPage() {
             </div>
           </div>
         </div>
+        
       )}
 
       {activeTab === "invoices" && (
-        <InvoicesTable
-          invoices={invoices}
-          loading={invoicesLoading}
-          error={invoicesError}
-          onRefresh={() => client?.clientId && fetchInvoicesForClient(client.clientId)}
-          onView={(iid) => router.push(`/invoices/${iid}`)}
-        />
+    
+       <InvoicesTable clientId={`${clientId}`} />
+      // <InvoicesTable clientId="CLI005" />
+
       )}
 
       {/* ADD PROJECT MODAL */}
@@ -1067,3 +1076,4 @@ export default function ClientDetailPage() {
     </div>
   )
 }
+

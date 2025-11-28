@@ -49,7 +49,7 @@ type TagItem = {
 
 type TabKey = "files" | "followups" | "people" | "notes" | "comments" | "tags";
 
-const BASE_URL = "https://chat.swiftandgo.in";
+const BASE_URL = "https://6jnqmj85-80.inc1.devtunnels.ms";
 
 // Use the uploaded screenshot path as the developer local fallback (infra will transform to a URL)
 const UPLOADED_LOCAL_PATH = "/mnt/data/Screenshot 2025-11-22 120859.png";

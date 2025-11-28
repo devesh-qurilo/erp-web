@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
 
+
 const placeholderImg = "/mnt/data/Screenshot 2025-11-25 124734.png"
 
 export const ProjectsTable: React.FC<{

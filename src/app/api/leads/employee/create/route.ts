@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       const accessToken = authHeader.split(" ")[1];
       const body = await request.json();
   
-      const upstream = await fetch("https://chat.swiftandgo.in/leads", {
+      const upstream = await fetch("https://6jnqmj85-80.inc1.devtunnels.ms/leads", {
         method: "POST",
         cache: "no-store",
         headers: {
