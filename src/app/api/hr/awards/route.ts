@@ -1,17 +1,17 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server";
 
-const API_URL = "https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/awards"
+const API_URL = `${process.env.NEXT_PUBLIC_MAIN}/employee/api/awards`;
 
 // Helper to normalize Authorization header
 function formatAuthHeader(token: string | null) {
-    if (!token) return ""
-    return token.startsWith("Bearer ") ? token : `Bearer ${token}`
-  }
+  if (!token) return "";
+  return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+}
 
 export async function GET(request: NextRequest) {
   try {
     // Get the authorization token from the incoming request
-    const token = request.headers.get("authorization")
+    const token = request.headers.get("authorization");
 
     // Fetch data from the external API
     const res = await fetch(API_URL, {
@@ -19,18 +19,24 @@ export async function GET(request: NextRequest) {
         Authorization: token || "",
       },
       cache: "no-store", // Disable caching for fresh data
-    })
+    });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "Failed to fetch awards" }, { status: res.status })
+      return NextResponse.json(
+        { error: "Failed to fetch awards" },
+        { status: res.status }
+      );
     }
 
-    const data = await res.json()
+    const data = await res.json();
 
-    return NextResponse.json(data)
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching awards:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Error fetching awards:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -45,14 +51,17 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
 
     // Forward request to backend
-    const res = await fetch(`https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/awards`, {
-      method: "POST",
-      headers: {
-        "Authorization": authHeader,
-        // ❌ don't set Content-Type here, fetch will set it correctly for FormData
-      },
-      body: formData,
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_MAIN}/employee/api/awards`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: authHeader,
+          // ❌ don't set Content-Type here, fetch will set it correctly for FormData
+        },
+        body: formData,
+      }
+    );
 
     // ✅ Handle backend response
     let data: any = null;
@@ -68,4 +77,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

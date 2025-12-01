@@ -5,13 +5,16 @@ export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
-      return NextResponse.json({ error: "Missing Authorization Header" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Missing Authorization Header" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
 
     const response = await fetch(
-      "https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/leaves/admin/apply",
+      `${process.env.NEXT_PUBLIC_MAIN}/employee/api/leaves/admin/apply`,
       {
         method: "POST",
         headers: {
@@ -26,6 +29,9 @@ export async function POST(req: Request) {
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error("Bulk Holiday API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

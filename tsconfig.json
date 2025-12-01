@@ -26,6 +26,6 @@
 
 
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/(dashboard)/clients/components/client/InvoicesTable.jsx", "src/app/(dashboard)/clients/components/client/InvoicesTable.jsx"],
   "exclude": ["node_modules"]
 }

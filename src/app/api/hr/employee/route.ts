@@ -1,14 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = 'https://6jnqmj85-80.inc1.devtunnels.ms/employee?page=0&size=20';
+// const API_URL = 'https://6jnqmj85-80.inc1.devtunnels.ms/employee?page=0&size=20';
+const API_URL = process.env.NEXT_PUBLIC_MAIN;
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization'); // optional if your external API requires it
+    const token = request.headers.get("authorization"); // optional if your external API requires it
 
-    const res = await fetch(API_URL, {
+    const res = await fetch(`${API_URL}/employee?page=0&size=20`, {
       headers: {
-        'Authorization': token || '',
+        Authorization: token || "",
       },
     });
 

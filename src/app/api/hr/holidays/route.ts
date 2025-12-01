@@ -6,11 +6,14 @@ export async function GET(req: Request) {
     const authHeader = req.headers.get("authorization");
 
     if (!authHeader) {
-      return NextResponse.json({ error: "Missing Authorization Header" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Missing Authorization Header" },
+        { status: 401 }
+      );
     }
 
     const response = await fetch(
-      "https://6jnqmj85-80.inc1.devtunnels.ms/employee/api/holidays",
+      `${process.env.NEXT_PUBLIC_MAIN}/employee/api/holidays`,
       {
         headers: {
           Authorization: authHeader,
@@ -21,13 +24,19 @@ export async function GET(req: Request) {
     );
 
     if (!response.ok) {
-      return NextResponse.json({ error: "Failed to fetch holidays" }, { status: response.status });
+      return NextResponse.json(
+        { error: "Failed to fetch holidays" },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
     console.error("API Error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
