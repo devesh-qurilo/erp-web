@@ -45,6 +45,8 @@ import {
   Search,
   X,
 } from "lucide-react";
+import ClientCreditNotesTable from "../components/client/ClientCreditNotesTable";
+import ClientPaymentsTable from "../components/client/ClientPaymentsTable";
 
 const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms"
 
@@ -144,7 +146,7 @@ export default function ClientDetailPage() {
 
   // tabs
   const [activeTab, setActiveTab] = useState<
-    "profile" | "projects" | "invoices" | string
+    "profile" | "projects" | "invoices" |"creditnotes"| "Payments"| string
   >("profile");
 
   // ---------- fetch client ----------
@@ -795,6 +797,8 @@ useEffect(() => {
           <p className="text-muted-foreground">Loading client details...</p>
         </div>
       </div>
+
+      
     );
   }
 
@@ -1092,7 +1096,9 @@ useEffect(() => {
       )}
 
 
-
+ {activeTab === "creditnotes" && (
+        <ClientCreditNotesTable clientId={client.clientId} />
+      )}
 
       {/* Main content by tab */}
       {activeTab === "profile" && <ProfileSection client={client} projects={projects} />}
@@ -1113,6 +1119,8 @@ useEffect(() => {
                   onChange={() => {
                     /* implement search if needed */
                   }}
+
+
                   className="border-0 bg-transparent focus-visible:ring-0"
                 />
               </div>
@@ -1177,6 +1185,30 @@ useEffect(() => {
       // <InvoicesTable clientId="CLI005" />
 
       )}
+
+
+{/* NEW: Payments tab rendering */}
+      {(activeTab === "payments" || activeTab === "Payments") && (
+        <div className="mt-6">
+          <ClientPaymentsTable
+            clientId={client.clientId}
+            onAdd={() => {
+              /* open add payment modal if you have one */
+              console.log("Open add payment");
+            }}
+            onSearch={(q) => {
+              console.log("search payments:", q);
+            }}
+            onAction={(p) => {
+              // You can open a payment details modal here if you want
+              console.log("payment row action", p);
+            }}
+          />
+        </div>
+      )}
+
+
+
 
       {/* ADD PROJECT MODAL */}
       {showAddModal && (

@@ -19,7 +19,7 @@ const tabs = [
 { key: "profile", label: "Profile" },
 { key: "projects", label: "Projects" },
 { key: "invoices", label: "Invoices" },
-{ key: "creditnotes", label: "Credit Notes" },
+{ key: "creditnotes", label: "Credit Notes " },
 { key: "payments", label: "Payments" },
 { key: "documents", label: "Documents" },
 { key: "notes", label: "Notes" },
@@ -37,7 +37,7 @@ return (
 
 <div className="flex items-center gap-3">
 <Button variant="ghost" className="hidden sm:inline-flex items-center gap-2" onClick={onBack}>
-<ArrowLeft className="mr-1 h-4 w-4" /> Back to Clients
+<ArrowLeft className="mr-1 h-4 w-4" /> Back to Clients 
 </Button>
 
 
@@ -66,6 +66,9 @@ onClick={() => onOpenTab?.(t.key)}
 className={`pb-3 ${activeTab === t.key ? "border-b-2 border-primary text-primary font-medium" : ""}`}>
 {t.label}
 </button>
+
+
+
 ))}
 </nav>
 </div>

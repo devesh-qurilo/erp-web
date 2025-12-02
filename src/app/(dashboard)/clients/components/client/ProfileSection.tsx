@@ -95,7 +95,7 @@ export const ProfileSection: React.FC<{ client: any; projects?: any[] }> = ({ cl
         <Card>
           <CardHeader>
             <CardTitle>Profile Information </CardTitle>
-            <CardDescription>Details about client </CardDescription>
+            <CardDescription>Details about client</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-0">
@@ -206,7 +206,7 @@ export const ProfileSection: React.FC<{ client: any; projects?: any[] }> = ({ cl
 
         <Card>
           <CardHeader>
-            <CardTitle>Invoices</CardTitle>
+            <CardTitle>Invoices </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-40 flex items-center justify-center">

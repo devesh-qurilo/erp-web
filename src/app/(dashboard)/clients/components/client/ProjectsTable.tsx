@@ -27,7 +27,7 @@ export const ProjectsTable: React.FC<{
       <CardContent>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={onAdd}>+ Add Project</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={onAdd}>+ Add Project dfnfj</Button>
           </div>
           <div className="w-64">
             <input placeholder="Search" className="w-full px-3 py-2 border rounded" />
