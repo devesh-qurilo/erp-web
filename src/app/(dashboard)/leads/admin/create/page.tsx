@@ -423,7 +423,7 @@ export default function LeadsPage() {
       {/* Footer */}
       <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
         <div>Result per page - 8</div>
-        <div>Page 1 of 1</div>
+        <div>Page 1 of 1 </div>
         <div className="flex items-center gap-3">
           <button className="p-2 rounded hover:bg-slate-100">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">

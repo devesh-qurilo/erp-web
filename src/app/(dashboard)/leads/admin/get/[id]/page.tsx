@@ -1705,7 +1705,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                         <select className="border rounded p-2 text-sm">
                           <option>{data?.deals && (data as any).deals?.length ? data?.deals : data?.pipeline ?? "Default Pipeline"}</option>
                           <option>Sales</option>
-                          <option>Default Pipeline</option>
+                          <option>Default Pipeline </option>
                         </select>
                       </div>
                     </div>
@@ -1789,7 +1789,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                               <td className="px-4 py-3">
                                 <select defaultValue={d.dealStage} className="border rounded p-1 text-sm">
                                   <option>{d.dealStage ?? "Generated"}</option>
-                                  <option>Generated</option>
+                                  <option>Generated </option>
                                   <option>Qualified</option>
                                   <option>Proposal</option>
                                   <option>Won</option>
@@ -1808,6 +1808,22 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                                   >
                                     View
                                   </button>
+
+                               {/* EDIT BUTTON - navigates to /deals/[id]/edit */}
+                              <button
+                                onClick={() => {
+                                  // navigate to edit page within the app
+                                  //router.push(`/deals/${d.id}/edit`);
+                                router.push(`/deals/create/DealEdit/${d.id}`);
+                                 //router.push(`/deals/create/[id]/DealEdit${d.id}`);
+                                }}
+                                className="text-sm px-2 py-1 border rounded hover:bg-slate-50"
+                              >
+                                Edit
+                              </button>
+
+
+
 
                                   <button
                                     onClick={async () => {
@@ -1840,7 +1856,7 @@ export default function LeadDetailPage({ params }: { params: { id: string } }) {
                   </div>
 
                   <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                    <div>Page 1 of 1</div>
+                    <div>Page 1 of 1 </div>
                     <div className="flex items-center gap-2">
                       <button className="px-2 py-1" disabled>‹</button>
                       <button className="px-2 py-1" disabled>›</button>
