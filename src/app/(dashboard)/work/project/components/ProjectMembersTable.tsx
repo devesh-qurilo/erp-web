@@ -1,8 +1,8 @@
-// components/ProjectMembersTableFetch.tsx
+
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { UserIcon } from "@heroicons/react/24/outline";
-import { getStorage } from "../../../../../lib/storage/storege"; // adjust path if needed
 
 type AssignedEmployee = {
   employeeId: string;
@@ -21,9 +21,41 @@ type Project = {
   projectAdminId?: string | null;
 };
 
-const MAIN = process.env.NEXT_PUBLIC_MAIN || ""; // set this to API origin (e.g. https://6jnqmj85-80.inc1.devtunnels.ms) or leave empty to use relative /api/ paths
+const MAIN = process.env.NEXT_PUBLIC_MAIN || "";
 
-export default function ProjectMembersTableFetch({ projectId }: { projectId: number }) {
+// ------------------------------------------
+// AXIOS INSTANCE SETUP
+// ------------------------------------------
+const api = axios.create({
+  baseURL: MAIN || "/", // if MAIN empty → use Next.js API routes
+  timeout: 15000,
+});
+
+// Auto-add token
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Auto-handle JSON + errors
+api.interceptors.response.use(
+  (res) => res.data,
+  (err) => {
+    const message =
+      err?.response?.data?.message ||
+      err?.response?.statusText ||
+      err.message ||
+      "Request failed";
+    return Promise.reject(new Error(message));
+  }
+);
+
+export default function ProjectMembersTableFetch({
+  projectId,
+}: {
+  projectId: number;
+}) {
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<AssignedEmployee[]>([]);
   const [loading, setLoading] = useState(false);
@@ -34,79 +66,24 @@ export default function ProjectMembersTableFetch({ projectId }: { projectId: num
   const [search, setSearch] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  const base = (path: string) => (MAIN ? `${MAIN}${path}` : path);
-
-  // get token — getStorage may return string or object — handle both:
-  const token = useMemo(() => {
-    try {
-      const t = localStorage.getItem("accessToken");
-      if (!t) return null;
-      if (typeof t === "string") return t;
-      // if object, try common fields
-      return (t as any).accessToken || (t as any).token || null;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const headersWithAuth = (extra: Record<string, string> = {}) => {
-    const h: Record<string, string> = { ...extra };
-    if (token) h["Authorization"] = `Bearer ${token}`;
-    return h;
-  };
-
-  // helper: fetch with timeout + nicer errors (detect HTML 404)
-  // const doFetch = async (url: string, init: RequestInit = {}, msTimeout = 15000) => {
-  //   const controller = new AbortController();
-  //   const timeout = setTimeout(() => controller.abort(), msTimeout);
-  //   try {
-  //     const merged = { ...init, signal: controller.signal };
-  //     const res = await fetch(url, merged);
-  //     clearTimeout(timeout);
-
-  //     const ct = res.headers.get("content-type") || "";
-  //     const textBody = await res.text().catch(() => "");
-  //     if (!res.ok) {
-  //       if (ct.includes("text/html") || textBody.trim().startsWith("<!DOCTYPE html")) {
-  //         throw new Error(`HTTP ${res.status} ${res.statusText} — server returned HTML (likely wrong URL). URL: ${url}`);
-  //       }
-  //       throw new Error(`HTTP ${res.status} ${res.statusText} ${textBody ? "- " + textBody : ""}`);
-  //     }
-
-  //     if (ct.includes("application/json")) {
-  //       return JSON.parse(textBody || "{}");
-  //     }
-  //     return textBody;
-  //   } catch (err: any) {
-  //     if (err.name === "AbortError") throw new Error("Request timed out");
-  //     if (err.message === "Failed to fetch") throw new Error("Network Error — check CORS / server availability");
-  //     throw err;
-  //   } finally {
-  //     clearTimeout(timeout);
-  //   }
-  // };
-  
-  // GET project + members
+  // ------------------------------------------
+  // GET Project Members
+  // ------------------------------------------
   const fetchProject = async () => {
-    setLoading(true);
-    setError(null);
     try {
-     const token =  localStorage.getItem("accessToken")
-      const url = base(`https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${projectId}`);
-      console.log("[members] GET", url);
-      const data = await doFetch(url, {
-        method: "GET",
-             headers: { Authorization: token ? `Bearer ${token}` : "" },
-       // headers: headersWithAuth({ "Content-Type": "application/json",  }),
-        //credentials: "same-origin",
-      });
+      setLoading(true);
+      setError(null);
 
-      // ensure data shape
+      const url = `/api/projects/${projectId}`;
+      const full = `${MAIN}/api/projects/${projectId}`;
+      console.log("GET:", full);
+
+      const data = await api.get(full);
+
       setProject(data);
-      setMembers(Array.isArray(data?.assignedEmployees) ? data.assignedEmployees : []);
+      setMembers(data?.assignedEmployees ?? []);
     } catch (err: any) {
-      console.error("fetchProject error:", err);
-      setError(err?.message || "Failed to load project");
+      setError(err.message);
       setProject(null);
       setMembers([]);
     } finally {
@@ -116,219 +93,274 @@ export default function ProjectMembersTableFetch({ projectId }: { projectId: num
 
   useEffect(() => {
     fetchProject();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  // POST assign members
-  const handleAssign = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const raw = (newMemberInput || "").trim();
-    if (!raw) return alert("Enter employee IDs (comma separated) e.g. EMP-015,EMP-010");
-    const employeeIds = raw.split(",").map(s => s.trim()).filter(Boolean);
-    if (employeeIds.length === 0) return alert("No valid IDs found");
+  // ------------------------------------------
+  // POST Assign Members
+  // ------------------------------------------
+  const handleAssign = async () => {
+    const raw = newMemberInput.trim();
+    if (!raw) return alert("Enter employee IDs");
 
-    setLoading(true);
-    setError(null);
+    const employeeIds = raw.split(",").map((x) => x.trim());
+
     try {
-      const url = `https://6jnqmj85-80.inc1.devtunnels.ms/api/projects/${projectId}/assign`;
-      console.log("[members] POST assign", url, employeeIds);
-      const res = await doFetch(url, {
-        method: "POST",
-        headers: headersWithAuth({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ employeeIds }),
-        credentials: "same-origin",
-      });
-      console.log("Assign response:", res);
-      setNewMemberInput("");
+      setLoading(true);
+      setError(null);
+
+      const url = `${MAIN}/api/projects/${projectId}/assign`;
+      console.log("kikikiki", employeeIds);
+      await api.post(url, { employeeIds });
+
       setShowAddModal(false);
-      await fetchProject();
+      setNewMemberInput("");
+      fetchProject();
     } catch (err: any) {
-      console.error("assign error:", err);
-      setError(err?.message || "Failed to assign members");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // DELETE member (remove assignment)
+  // ------------------------------------------
+  // DELETE Member
+  // ------------------------------------------
   const handleRemove = async (employeeId: string) => {
-    if (!confirm(`Remove ${employeeId} from project?`)) return;
-    setActionLoadingId(employeeId);
-    setError(null);
-    try {
-      const url = base(`/api/projects/${projectId}/assign/${encodeURIComponent(employeeId)}`);
-      console.log("[members] DELETE", url);
-      await doFetch(url, {
-        method: "DELETE",
-        headers: headersWithAuth({ "Content-Type": "application/json" }),
-        credentials: "same-origin",
-      });
+    if (!confirm(`Remove ${employeeId}   from project?`)) return;
 
-      // If this member was projectAdmin, try to clear projectAdminId on project (best-effort)
+    try {
+      setActionLoadingId(employeeId);
+      setError(null);
+
+      const url = `${MAIN}/api/projects/${projectId}/assign/${employeeId}`;
+
+      await api.delete(url);
+
+      // If admin removed → clear admin role
       if (project?.projectAdminId === employeeId) {
-        try {
-          const patchUrl = base(`/api/projects/${projectId}`);
-          // Many backends accept PATCH to update fields; adjust if your API uses a different endpoint.
-          await doFetch(patchUrl, {
-            method: "PATCH",
-            headers: headersWithAuth({ "Content-Type": "application/json" }),
-            body: JSON.stringify({ projectAdminId: null }),
-            credentials: "same-origin",
-          });
-        } catch (innerErr) {
-          console.warn("Failed to clear projectAdminId (this is optional):", innerErr);
-          // it's okay — the main delete already removed the member; refresh below will reflect reality.
-        }
+        await api.patch(`${MAIN}/api/projects/${projectId}`, {
+          projectAdminId: null,
+        });
       }
 
-      await fetchProject();
+      fetchProject();
     } catch (err: any) {
-      console.error("remove error:", err);
-      setError(err?.message || "Failed to remove member");
+      setError(err.message);
     } finally {
       setActionLoadingId(null);
     }
   };
 
-  // Remove Project Admin button handler:
-  // We try to clear admin flag (if server supports PATCH). If server instead expects special endpoint,
-  // change the `patchUrl` and payload accordingly.
-  const handleRemoveAdmin = async (employeeId: string) => {
-    if (!confirm(`Remove Project Admin role from ${employeeId}?`)) return;
-    setActionLoadingId(employeeId);
-    setError(null);
+  const handleMakeAdmin = async (employeeId: string) => {
+    if (!confirm(`Make ${employeeId} Project Admin?`)) return;
+
     try {
-      // Try PATCH to clear projectAdminId
-      const patchUrl = base(`/api/projects/${projectId}`);
-      console.log("[members] PATCH clear admin", patchUrl);
-      await doFetch(patchUrl, {
-        method: "PATCH",
-        headers: headersWithAuth({ "Content-Type": "application/json" }),
-        body: JSON.stringify({ projectAdminId: null }),
-        credentials: "same-origin",
-      });
+      setActionLoadingId(employeeId);
+      setError(null);
 
-      // After clearing admin field, refresh project
-      await fetchProject();
+      const url = `${MAIN}/projects/${projectId}/admin?userId=${employeeId}`;
+
+      await api.post(url);
+
+      fetchProject();
     } catch (err: any) {
-      console.error("removeAdmin error:", err);
-      setError(err?.message || "Failed to remove project admin (server may not support PATCH).");
+      setError(err.message);
     } finally {
       setActionLoadingId(null);
     }
   };
 
+  // ------------------------------------------
+  // REMOVE Project Admin Only
+  // ------------------------------------------
+  const handleRemoveAdmin = async () => {
+    if (!confirm("Remove Project Admin?")) return;
+
+    try {
+      setActionLoadingId("admin");
+      setError(null);
+
+      const url = `${MAIN}/projects/${projectId}/admin`;
+
+      await api.delete(url);
+
+      fetchProject();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // ------------------------------------------
+  // SEARCH FILTER
+  // ------------------------------------------
   const filtered = members.filter((m) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (m.name || "").toLowerCase().includes(q) || (m.employeeId || "").toLowerCase().includes(q) || (m.designation || "").toLowerCase().includes(q);
+    const t = search.toLowerCase();
+    return (
+      m.name?.toLowerCase().includes(t) ||
+      m.employeeId.toLowerCase().includes(t) ||
+      m.designation?.toLowerCase().includes(t)
+    );
   });
 
+  // ------------------------------------------
+  // UI
+  // ------------------------------------------
+
   return (
-    
     <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 className="text-xl font-semibold mb-4">Member</h2>
 
-    <h2 className="text-xl font-semibold mb-4 ">Member</h2>
+      {/* Top Controls */}
+      <div className="flex justify-between mb-4">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          + Add Project Members
+        </button>
 
-      {/* Top controls: Add button moved to left as requested */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-           
-          <button onClick={() => { setShowAddModal(true); setNewMemberInput(""); }} className="bg-blue-600 text-white px-4 py-2 rounded shadow-sm hover:bg-blue-700">
-            + Add Project Members
+        <div className="flex gap-3">
+          <input
+            type="search"
+            placeholder="Search"
+            className="border px-3 py-2 rounded"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button
+            onClick={fetchProject}
+            className="bg-gray-100 px-3 py-2 rounded"
+          >
+            Refresh
           </button>
-         
-        </div>
-
-        <div className="flex items-center gap-3">
-          <input type="search" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} className="border px-3 py-2 rounded-md text-sm" />
-          <button onClick={fetchProject} className="bg-gray-100 px-3 py-2 rounded text-sm border hover:bg-gray-200">Refresh</button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-6 text-center text-gray-500">Loading members...</div>
-      ) : (
-        <>
-          {error && <div className="mb-4 p-3 rounded bg-red-50 text-red-700"><strong>Error:</strong> {error}</div>}
+      {loading && <div className="text-center py-5">Loading…</div>}
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-blue-50 text-left text-gray-600">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">User Role</th>
-                  <th className="px-4 py-3">Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={3} className="py-6 text-center text-gray-500">No members found</td></tr>
-                ) : (
-                  filtered.map((m) => (
-                    <tr key={m.employeeId} className="border-b last:border-b-0 bg-white">
-                      <td className="px-4 py-4 align-top flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                          {m.profileUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={m.profileUrl} alt={m.name} className="w-full h-full object-cover" />
-                          ) : <UserIcon className="w-6 h-6 text-gray-400 p-1" />}
-                        </div>
-                        <div>
-                          <div className="font-medium">{m.name || m.employeeId}</div>
-                          <div className="text-xs text-gray-500">{m.designation || m.department || m.employeeId}</div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-4 align-top">
-                        <div className="flex items-center gap-2 text-sm">
-                          <input type="radio" checked={project?.projectAdminId === m.employeeId} readOnly />
-                          <span className="ml-1">Project Admin</span>
-                          {project?.projectAdminId === m.employeeId && (
-                            <button onClick={() => handleRemoveAdmin(m.employeeId)} disabled={actionLoadingId === m.employeeId} className="ml-3 px-3 py-1 border rounded text-sm bg-white">
-                              {actionLoadingId === m.employeeId ? "Removing..." : "Remove Project Admin"}
-                            </button>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-4 align-top">
-                        <button onClick={() => handleRemove(m.employeeId)} className="text-red-600 flex items-center gap-2" disabled={actionLoadingId === m.employeeId}>
-                          {actionLoadingId === m.employeeId ? "Removing..." : "Delete"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
+      {error && (
+        <div className="p-3 bg-red-50 text-red-600 rounded mb-3">{error}</div>
       )}
 
-      {/* Add modal */}
+      {!loading && (
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-blue-50">
+              <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">User Role</th>
+              <th className="px-4 py-3">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filtered.map((m) => (
+              <tr key={m.employeeId} className="border-b">
+                <td className="px-4 py-4 flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {m.profileUrl ? (
+                      <img
+                        src={m.profileUrl}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserIcon className="w-6 h-6 text-gray-400" />
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="font-medium">{m.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {m.designation ?? m.department}
+                    </div>
+                  </div>
+                </td>
+
+                {/* Role */}
+                <td className="px-4 py-4">
+                  {/* <div className="flex items-center gap-2 text-sm"> */}
+                  <input
+                    type="radio"
+                    checked={project?.projectAdminId === m.employeeId}
+                    onChange={() => handleMakeAdmin(m.employeeId)}
+                  />
+                  <span className="ml-1">Project Admin</span>
+
+                  {project?.projectAdminId === m.employeeId && (
+                    <button
+                      onClick={() => handleRemoveAdmin()}
+                      disabled={actionLoadingId}
+                      className="ml-3 px-3 py-1 border rounded text-sm bg-white"
+                    >
+                      {actionLoadingId ? "Removing..." : "Remove Admin"}
+                    </button>
+                  )}
+                </td>
+
+                {/* Remove */}
+                <td className="px-4 py-4">
+                  <button
+                    onClick={() => handleRemove(m.employeeId)}
+                    disabled={actionLoadingId === m.employeeId}
+                    className="text-red-600"
+                  >
+                    {actionLoadingId === m.employeeId ? "Removing…" : "Delete"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={3} className="py-6 text-center text-gray-500">
+                  No members found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+
+      {/* ADD MODAL */}
       {showAddModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <form onSubmit={(e) => { e.preventDefault(); handleAssign(); }} className="bg-white w-full max-w-lg rounded-lg p-6 shadow-lg">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Add Project Members</h3>
-              <button type="button" onClick={() => setShowAddModal(false)} className="text-gray-500">Close</button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Project Members</h3>
+
+            <input
+              className="border px-3 py-2 w-full rounded"
+              placeholder="EMP-015, EMP-010"
+              value={newMemberInput}
+              onChange={(e) => setNewMemberInput(e.target.value)}
+            />
+
+            <div className="text-xs text-gray-500 mt-1">
+              Example: EMP-015, EMP-010
             </div>
 
-            <div className="mb-3">
-              <label className="text-xs text-gray-600">Employee IDs (comma separated)</label>
-              <input value={newMemberInput} onChange={(e) => setNewMemberInput(e.target.value)} placeholder="EMP-015,EMP-010" className="w-full border px-3 py-2 rounded mt-1" />
-              <div className="text-xs text-gray-500 mt-1">Example: <code>EMP-015,EMP-010</code></div>
-            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                className="px-4 py-2 border rounded"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </button>
 
-            <div className="flex justify-end gap-3">
-              <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded border">Cancel</button>
-              <button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white">Add</button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+                onClick={handleAssign}
+              >
+                Add
+              </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+
+
+

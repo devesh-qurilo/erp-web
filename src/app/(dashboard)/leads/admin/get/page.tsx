@@ -729,7 +729,7 @@ export function AddLeadModal({
         >
           <div className="flex items-start justify-between p-4 border-b bg-white sticky top-0 z-10">
             <div>
-              <h3 className="text-lg font-semibold text-left">Add Lead Contact Information</h3>
+              <h3 className="text-lg font-semibold text-left">Add Lead Contact Information </h3>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={onClose} className="p-2 rounded hover:bg-slate-100">✕</button>

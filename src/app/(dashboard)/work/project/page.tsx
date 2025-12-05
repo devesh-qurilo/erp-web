@@ -1004,7 +1004,8 @@ export default function AllProjectsPage() {
     };
 
     return (
-      <div className="fixed inset-0 z-[12000] flex items-start justify-center pt-12 px-4 overflow-y-auto">
+      <div className="fixed inset-0 z-[12000] flex items-start justify-center pt-12 px-4 overflow-y-auto;
+">
         <div className="fixed inset-0 bg-black/40" onClick={() => { onClose(); resetLocal(); }} />
         <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-y-auto z-10">
           <div className="flex items-center justify-between p-4 border-b">
