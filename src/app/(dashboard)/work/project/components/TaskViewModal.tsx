@@ -32,6 +32,13 @@ export type TaskForView = {
   // optional: subtasks could be added later
 };
 
+type Note = {
+  id: number;
+  title: string;
+  type: "public" | "private";
+  content?: string;
+};
+
 export default function TaskViewModal({
   open,
   task,
@@ -82,6 +89,20 @@ export default function TaskViewModal({
   const [editSubtaskDesc, setEditSubtaskDesc] = useState("");
   const [editTitleError, setEditTitleError] = useState<string | null>(null);
 
+  // Notes data + UI state
+  const [notes, setNotes] = useState<Note[]>([
+    // sample note to match your screenshot
+    { id: 1, title: "My Note", type: "public", content: "This is the body of My Note." },
+  ]);
+  const [openNoteMenuId, setOpenNoteMenuId] = useState<number | null>(null);
+  const [viewNoteOpen, setViewNoteOpen] = useState(false);
+  const [editNoteOpen, setEditNoteOpen] = useState(false);
+  const [deleteNoteConfirmOpen, setDeleteNoteConfirmOpen] = useState(false);
+  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [editNoteTitle, setEditNoteTitle] = useState("");
+  const [editNoteType, setEditNoteType] = useState<"public" | "private">("public");
+  const [editNoteContent, setEditNoteContent] = useState("");
+
   useEffect(() => {
     if (open) setIsVisible(true);
     else {
@@ -92,6 +113,12 @@ export default function TaskViewModal({
       setAddSubtaskOpen(false);
       setViewSubtaskOpen(false);
       setEditSubtaskOpen(false);
+      // reset notes UI menus/modals when closing
+      setOpenNoteMenuId(null);
+      setViewNoteOpen(false);
+      setEditNoteOpen(false);
+      setDeleteNoteConfirmOpen(false);
+      setCurrentNote(null);
     }
   }, [open]);
 
@@ -128,6 +155,15 @@ export default function TaskViewModal({
       ) {
         setReminderConfirmOpen(false);
       }
+
+      // notes row menu: close if click outside any notes menu/button
+      if (openNoteMenuId !== null) {
+        const insideMenu = (e.target as Element).closest("[data-notes-menu]");
+        const onBtn = (e.target as Element).closest("[data-notes-menu-btn]");
+        if (!insideMenu && !onBtn) {
+          setOpenNoteMenuId(null);
+        }
+      }
     }
 
     function handleKey(e: KeyboardEvent) {
@@ -138,6 +174,10 @@ export default function TaskViewModal({
         setAddSubtaskOpen(false);
         setViewSubtaskOpen(false);
         setEditSubtaskOpen(false);
+        setOpenNoteMenuId(null);
+        setViewNoteOpen(false);
+        setEditNoteOpen(false);
+        setDeleteNoteConfirmOpen(false);
       }
     }
 
@@ -147,7 +187,7 @@ export default function TaskViewModal({
       document.removeEventListener("mousedown", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [menuOpen, subtaskMenuOpen, reminderConfirmOpen]);
+  }, [menuOpen, subtaskMenuOpen, reminderConfirmOpen, openNoteMenuId]);
 
   const priorityDot = useMemo(() => {
     const priority = (task?.priority || "").toLowerCase();
@@ -296,6 +336,71 @@ export default function TaskViewModal({
       return url;
     }
   };
+
+  // ----- Notes handlers (UI-only) -----
+  const onOpenNoteMenu = (id: number) => {
+    setOpenNoteMenuId((prev) => (prev === id ? null : id));
+  };
+
+  const onViewNote = (note: Note) => {
+    setOpenNoteMenuId(null);
+    setCurrentNote(note);
+    setViewNoteOpen(true);
+  };
+
+  const onEditNote = (note: Note) => {
+    setOpenNoteMenuId(null);
+    setCurrentNote(note);
+    setEditNoteTitle(note.title);
+    setEditNoteType(note.type);
+    setEditNoteContent(note.content ?? "");
+    setEditNoteOpen(true);
+  };
+
+  const onDeleteNote = (note: Note) => {
+    setOpenNoteMenuId(null);
+    setCurrentNote(note);
+    setDeleteNoteConfirmOpen(true);
+  };
+
+  const confirmDeleteNote = () => {
+    if (!currentNote) {
+      setDeleteNoteConfirmOpen(false);
+      return;
+    }
+    setNotes((n) => n.filter((x) => x.id !== currentNote.id));
+    setDeleteNoteConfirmOpen(false);
+    setCurrentNote(null);
+  };
+
+  const cancelDeleteNote = () => {
+    setDeleteNoteConfirmOpen(false);
+    setCurrentNote(null);
+  };
+
+  const saveNoteEdit = () => {
+    if (!currentNote) return;
+    if (!editNoteTitle.trim()) {
+      alert("Title is required");
+      return;
+    }
+    setNotes((n) =>
+      n.map((x) =>
+        x.id === currentNote.id
+          ? { ...x, title: editNoteTitle.trim(), type: editNoteType, content: editNoteContent }
+          : x
+      )
+    );
+    setEditNoteOpen(false);
+    setCurrentNote(null);
+  };
+
+  const closeViewNote = () => {
+    setViewNoteOpen(false);
+    setCurrentNote(null);
+  };
+
+  // ----- end Notes handlers -----
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/0">
@@ -597,7 +702,105 @@ export default function TaskViewModal({
 
                 {/* ----- TIMESHEET & NOTES placeholders ----- */}
                 {tab === "timesheet" && <div className="text-gray-500">Timesheet (placeholder)</div>}
-                {tab === "notes" && <div className="text-gray-500">Notes (placeholder)</div>}
+
+                {/* ----- NOTES TAB: table UI matching screenshot + 3-dot actions ----- */}
+                {tab === "notes" && (
+                  <div className="h-full flex flex-col">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() =>
+                          setNotes((n) => [
+                            ...n,
+                            {
+                              id: n.length ? Math.max(...n.map((x) => x.id)) + 1 : 1,
+                              title: "New Note",
+                              type: "private",
+                              content: "",
+                            },
+                          ])
+                        }
+                        className="inline-flex items-center gap-2 text-blue-600 text-sm font-medium hover:underline"
+                        aria-label="Add a Note"
+                        title="Add a Note"
+                      >
+                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-white border border-blue-600 text-blue-600 text-xs">+</span>
+                        <span>Add a Note</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-4 flex-1 overflow-auto">
+                      <div className="rounded-md overflow-hidden border">
+                        {/* header */}
+                        <div className="bg-[#e8f2fb] px-4 py-3 text-sm text-gray-700 grid grid-cols-3 gap-4 items-center">
+                          <div className="font-medium">Note Title</div>
+                          <div className="font-medium">Note Type</div>
+                          <div className="font-medium text-right">Action</div>
+                        </div>
+
+                        {/* rows */}
+                        <div className="bg-white p-3 text-sm">
+                          {notes.length ? (
+                            <ul className="space-y-3">
+                              {notes.map((note) => (
+                                <li key={note.id} className="flex items-center justify-between">
+                                  <div className="truncate max-w-[40%]">{note.title}</div>
+
+                                  <div className="flex items-center gap-2 text-gray-600">
+                                    {note.type === "public" ? (
+                                      <span className="flex items-center gap-1">
+                                        <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM2 12h20" stroke="currentColor" strokeWidth="1.2"/></svg>
+                                        <span>Public</span>
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center gap-1">
+                                        <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM8 12h8" stroke="currentColor" strokeWidth="1.2"/></svg>
+                                        <span>Private</span>
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="relative">
+                                    <button
+                                      data-notes-menu-btn
+                                      onClick={() => onOpenNoteMenu(note.id)}
+                                      className="p-2 rounded hover:bg-gray-100"
+                                      aria-label="note actions"
+                                    >
+                                      <svg className="w-5 h-5 text-gray-600" fill="currentColor">
+                                        <circle cx="5" cy="12" r="1.5" />
+                                        <circle cx="12" cy="12" r="1.5" />
+                                        <circle cx="19" cy="12" r="1.5" />
+                                      </svg>
+                                    </button>
+
+                                    {openNoteMenuId === note.id && (
+                                      <div data-notes-menu className="absolute right-0 top-8 w-40 bg-white border rounded-lg shadow-md p-1 z-50">
+                                        <button onClick={() => onViewNote(note)} className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                          <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M12 5c-7 0-11 7-11 7s4 7 11 7 11-7 11-7-4-7-11-7z" stroke="currentColor" strokeWidth="1.2"/></svg>
+                                          View
+                                        </button>
+                                        <button onClick={() => onEditNote(note)} className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm flex items-center gap-2">
+                                          <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none"><path d="M3 21l3-1 11-11 2 2-11 11-1 3H3z" stroke="currentColor" strokeWidth="1.2"/></svg>
+                                          Edit
+                                        </button>
+                                        <button onClick={() => onDeleteNote(note)} className="w-full text-left px-3 py-2 hover:bg-gray-100 text-sm flex items-center gap-2 text-red-600">
+                                          <svg className="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6v12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6M10 6V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="1.2"/></svg>
+                                          Delete
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <div className="text-gray-500 p-4">No notes yet</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -683,9 +886,7 @@ export default function TaskViewModal({
               <div className="font-medium">Title of the sub task</div>
 
               <div className="text-gray-500">Description</div>
-              <div className="font-medium">{/* placeholder desc */}
-                --
-              </div>
+              <div className="font-medium">{/* placeholder desc */} --</div>
             </div>
 
             <div className="mt-6 flex justify-end">
@@ -744,6 +945,110 @@ export default function TaskViewModal({
               >
                 Update
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----- Notes: View Note modal ----- */}
+      {viewNoteOpen && currentNote && (
+        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/30 px-4">
+          <div role="dialog" aria-modal="true" className="w-full max-w-lg bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">View Note</h3>
+              <button onClick={closeViewNote} className="p-2 rounded hover:bg-gray-100">
+                <XMarkIcon className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div className="text-gray-500">Title</div>
+              <div className="font-medium">{currentNote.title}</div>
+
+              <div className="text-gray-500">Type</div>
+              <div className="font-medium">{currentNote.type === "public" ? "Public" : "Private"}</div>
+
+              <div className="text-gray-500">Content</div>
+              <div className="font-medium whitespace-pre-wrap">{currentNote.content ?? "--"}</div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button onClick={closeViewNote} className="px-6 py-2 rounded-full border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----- Notes: Edit Note modal ----- */}
+      {editNoteOpen && currentNote && (
+        <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/30 px-4">
+          <div role="dialog" aria-modal="true" className="w-full max-w-lg bg-white rounded-lg shadow-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Edit Note</h3>
+              <button onClick={() => { setEditNoteOpen(false); setCurrentNote(null); }} className="p-2 rounded hover:bg-gray-100">
+                <XMarkIcon className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">Title <span className="text-red-500">*</span></label>
+              <input
+                value={editNoteTitle}
+                onChange={(e) => setEditNoteTitle(e.target.value)}
+                className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter note title"
+                autoFocus
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">Type</label>
+              <select
+                value={editNoteType}
+                onChange={(e) => setEditNoteType(e.target.value as "public" | "private")}
+                className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700">Content</label>
+              <textarea
+                value={editNoteContent}
+                onChange={(e) => setEditNoteContent(e.target.value)}
+                className="mt-2 w-full min-h-[120px] rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="Enter note content (optional)"
+              />
+            </div>
+
+            <div className="flex items-center justify-center gap-6">
+              <button onClick={() => { setEditNoteOpen(false); setCurrentNote(null); }} className="px-6 py-2 rounded-full border border-blue-600 text-blue-600 text-sm hover:bg-gray-50">
+                Cancel
+              </button>
+              <button onClick={saveNoteEdit} className="px-6 py-2 rounded-full bg-blue-600 text-white text-sm hover:bg-blue-700">
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----- Notes: Delete Confirm modal ----- */}
+      {deleteNoteConfirmOpen && currentNote && (
+        <div className="fixed inset-0 z-[96] flex items-center justify-center bg-black/30 px-4">
+          <div role="dialog" aria-modal="true" className="w-full max-w-md bg-white rounded-lg shadow-lg p-6">
+            <div className="text-center">
+              <h3 className="text-xl font-semibold">Are you sure?</h3>
+              <p className="mt-3 text-sm text-gray-500">Delete note &quot;{currentNote.title}&quot;. This action cannot be undone.</p>
+            </div>
+
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <button onClick={cancelDeleteNote} className="px-6 py-2 border border-blue-600 text-blue-600 rounded-full text-sm hover:bg-gray-50">Cancel</button>
+              <button onClick={confirmDeleteNote} className="px-6 py-2 bg-red-600 text-white rounded-full text-sm hover:bg-red-700">Delete</button>
             </div>
           </div>
         </div>
