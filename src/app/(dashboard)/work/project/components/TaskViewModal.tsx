@@ -116,6 +116,33 @@ export default function TaskViewModal({
   const [editNoteType, setEditNoteType] = useState<"public" | "private">("public");
   const [editNoteContent, setEditNoteContent] = useState("");
 
+  // Edit Task modal state + fields (NEW: full UI per screenshot)
+  const [editTaskOpen, setEditTaskOpen] = useState(false);
+
+  // Task Information fields
+  const [etTitle, setEtTitle] = useState("");
+  const [etTaskCategory, setEtTaskCategory] = useState("");
+  const [etProject, setEtProject] = useState(""); // project id/name string for select
+  const [etStartDate, setEtStartDate] = useState<string | null>(null);
+  const [etDueDate, setEtDueDate] = useState<string | null>(null);
+  const [etWithoutDueDate, setEtWithoutDueDate] = useState(false);
+  const [etStatus, setEtStatus] = useState<string>("Doing");
+  const [etAssignedTo, setEtAssignedTo] = useState<string>(""); // assigned employee id or name
+  const [etDescription, setEtDescription] = useState("");
+
+  // Other Details
+  const [etLabel, setEtLabel] = useState("");
+  const [etMilestone, setEtMilestone] = useState("");
+  const [etPriority, setEtPriority] = useState<"Low" | "Medium" | "High" | "Urgent">("Low");
+  const [etMakePrivate, setEtMakePrivate] = useState(false);
+  const [etTimeEstimateChecked, setEtTimeEstimateChecked] = useState(false);
+  const [etTimeEstimateMins, setEtTimeEstimateMins] = useState<number | "">("");
+  const [etDependentChecked, setEtDependentChecked] = useState(false);
+  const [etDependentTask, setEtDependentTask] = useState("");
+  const [etFile, setEtFile] = useState<File | null>(null);
+
+  const [editTaskErrors, setEditTaskErrors] = useState<string | null>(null);
+
   // Timesheet placeholder data (to match the provided UI)
   const [timesheets] = useState<TimesheetRow[]>([
     {
@@ -168,6 +195,7 @@ export default function TaskViewModal({
       setDeleteNoteConfirmOpen(false);
       setCurrentNote(null);
       setAddNoteOpen(false);
+      setEditTaskOpen(false);
     }
   }, [open]);
 
@@ -228,6 +256,7 @@ export default function TaskViewModal({
         setEditNoteOpen(false);
         setDeleteNoteConfirmOpen(false);
         setAddNoteOpen(false);
+        setEditTaskOpen(false);
       }
     }
 
@@ -287,10 +316,43 @@ export default function TaskViewModal({
     setMenuOpen(false);
     setReminderConfirmOpen(true);
   };
+
+  // --- UPDATED: open Edit Task modal instead of alert; prefill fields ---
   const handleEditTask = () => {
     setMenuOpen(false);
-    alert("Edit Task clicked");
+
+    // Prefill UI fields using `task`
+    setEtTitle(task.title ?? "");
+    setEtTaskCategory(""); // not available on task object in shape provided
+    setEtProject(task.projectName ?? "");
+    setEtStartDate(task.startDate ?? null);
+    setEtDueDate(task.dueDate ?? null);
+    setEtWithoutDueDate(Boolean(task.noDueDate));
+    setEtStatus(task.taskStage?.name ?? "Doing");
+    setEtAssignedTo(
+      (task.assignedEmployees && task.assignedEmployees.length && task.assignedEmployees[0].name) ??
+        (task.assignedEmployeeIds && task.assignedEmployeeIds[0]) ??
+        ""
+    );
+    setEtDescription(task.description ?? "");
+    setEtLabel((task.labels && task.labels[0]?.name) ?? "");
+    setEtMilestone(task.milestone?.title ?? "");
+    setEtPriority((task.priority ? (String(task.priority).charAt(0).toUpperCase() + String(task.priority).slice(1)) : "Low") as
+      | "Low"
+      | "Medium"
+      | "High"
+      | "Urgent");
+    setEtMakePrivate(Boolean(task.isPrivate));
+    setEtTimeEstimateChecked(Boolean(task.timeEstimateMinutes));
+    setEtTimeEstimateMins(task.timeEstimateMinutes ?? "");
+    setEtDependentChecked(Boolean(task.isDependent));
+    setEtDependentTask("");
+    setEtFile(null);
+    setEditTaskErrors(null);
+
+    setEditTaskOpen(true);
   };
+
   const handlePinTask = () => {
     setMenuOpen(false);
     alert("Pin Task clicked");
@@ -491,6 +553,75 @@ export default function TaskViewModal({
   };
 
   // ----- end Notes handlers -----
+
+  // ----- Edit Task modal handlers (NEW UI) -----
+  const onAddCategoryClick = () => {
+    alert("Add Task Category clicked (UI-only).");
+  };
+
+  const onAddLabelClick = () => {
+    alert("Add Label clicked (UI-only).");
+  };
+
+  const onFileDrop = (f: File | null) => {
+    setEtFile(f);
+  };
+
+  const onCancelEditTask = () => {
+    setEditTaskOpen(false);
+    setEditTaskErrors(null);
+  };
+
+  const onUpdateTask = () => {
+    // basic validations
+    if (!etTitle.trim()) {
+      setEditTaskErrors("Title is required");
+      return;
+    }
+    if (etDependentChecked && !etDependentTask.trim()) {
+      setEditTaskErrors("Dependent Task is required when dependency is checked");
+      return;
+    }
+
+    // build payload (UI-only)
+    const payload = {
+      id: task.id,
+      title: etTitle.trim(),
+      category: etTaskCategory.trim(),
+      project: etProject,
+      startDate: etStartDate,
+      dueDate: etWithoutDueDate ? null : etDueDate,
+      withoutDueDate: etWithoutDueDate,
+      status: etStatus,
+      assignedTo: etAssignedTo,
+      description: etDescription.trim(),
+      label: etLabel,
+      milestone: etMilestone,
+      priority: etPriority,
+      isPrivate: etMakePrivate,
+      timeEstimateMins: etTimeEstimateChecked ? Number(etTimeEstimateMins || 0) : null,
+      isDependent: etDependentChecked,
+      dependentTask: etDependentTask,
+      fileName: etFile ? etFile.name : null,
+    };
+
+    alert("Update (UI-only) payload:\n" + JSON.stringify(payload, null, 2));
+    setEditTaskOpen(false);
+  };
+
+  const onChooseFileClick = () => {
+    // open native file dialog (hidden input)
+    fileInputRef.current?.click();
+  };
+
+  const onHiddenFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) {
+      setEtFile(f);
+    }
+    // clear input so same file can be picked again if needed
+    e.currentTarget.value = "";
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/0">
@@ -1241,6 +1372,234 @@ export default function TaskViewModal({
           </div>
         </div>
       )}
+
+      {/* ------------------ EDIT TASK modal (FULL UI per screenshot) ------------------ */}
+      {editTaskOpen && (
+        <div className="fixed inset-0 z-[95] flex items-start justify-center pt-10 pb-10 overflow-auto bg-black/30 px-4">
+          <div role="dialog" aria-modal="true" className="w-full max-w-[980px] bg-white rounded-lg shadow-lg p-4">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b pb-3 px-4">
+              <div className="text-lg font-semibold">Update Task Details</div>
+              <button onClick={() => setEditTaskOpen(false)} className="p-1 rounded hover:bg-gray-100">
+                <XMarkIcon className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Task Information card */}
+              <div className="border rounded-lg p-4">
+                <div className="text-sm font-medium mb-3">Task Information</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Title */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-gray-600">Title <span className="text-red-500">*</span></label>
+                    <input
+                      value={etTitle}
+                      onChange={(e) => { setEtTitle(e.target.value); if (editTaskErrors) setEditTaskErrors(null); }}
+                      className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Task Name"
+                    />
+                  </div>
+
+                  {/* Task Category */}
+                  <div>
+                    <label className="block text-sm text-gray-600">Task Category</label>
+                    <div className="mt-2 flex gap-2">
+                      <select value={etTaskCategory} onChange={(e) => setEtTaskCategory(e.target.value)} className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="">--</option>
+                      </select>
+                      <button onClick={onAddCategoryClick} className="px-3 py-2 rounded border bg-gray-100 text-sm">Add</button>
+                    </div>
+                  </div>
+
+                  {/* Project (full width next row) */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-gray-600 mt-2">Project <span className="text-red-500">*</span></label>
+                    <select value={etProject} onChange={(e) => setEtProject(e.target.value)} className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <option value={task.projectName ?? ""}>{task.projectName ?? "Project Name"}</option>
+                    </select>
+                  </div>
+
+                  {/* Client details area */}
+                  <div>
+                    <div className="text-sm text-gray-600 mt-2">Client Details</div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs">JD</div>
+                      <div className="text-sm">
+                        <div className="font-medium">John Doe</div>
+                        <div className="text-xs text-gray-500">Curilo Solutions</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Start Date */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mt-2">Start Date</label>
+                    <input
+                      type="date"
+                      value={etStartDate ? etStartDate.split("T")[0] : ""}
+                      onChange={(e) => setEtStartDate(e.target.value ? e.target.value : null)}
+                      className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Due Date */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mt-2">Due Date</label>
+                    <input
+                      type="date"
+                      value={etDueDate ? etDueDate.split("T")[0] : ""}
+                      onChange={(e) => setEtDueDate(e.target.value ? e.target.value : null)}
+                      disabled={etWithoutDueDate}
+                      className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60"
+                    />
+                    <label className="inline-flex items-center gap-2 mt-2 text-sm">
+                      <input type="checkbox" checked={etWithoutDueDate} onChange={(e) => setEtWithoutDueDate(e.target.checked)} />
+                      <span>Without Due Date</span>
+                    </label>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mt-2">Status</label>
+                    <select value={etStatus} onChange={(e) => setEtStatus(e.target.value)} className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <option value="Doing">Doing</option>
+                      <option value="To Do">To Do</option>
+                      <option value="Done">Done</option>
+                    </select>
+                  </div>
+
+                  {/* Assigned To */}
+                  <div>
+                    <label className="block text-sm text-gray-600 mt-2">Assigned To</label>
+                    <select value={etAssignedTo} onChange={(e) => setEtAssignedTo(e.target.value)} className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <option value={etAssignedTo || ""}>{etAssignedTo || "Riya Sharma"}</option>
+                    </select>
+                  </div>
+
+                  {/* Description (full width) */}
+                  <div className="md:col-span-3">
+                    <label className="block text-sm text-gray-600 mt-2">Description</label>
+                    <textarea value={etDescription} onChange={(e) => setEtDescription(e.target.value)} className="mt-2 w-full min-h-[80px] rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="--" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Other Details card */}
+              <div className="border rounded-lg p-4">
+                <div className="text-sm font-medium mb-3">Other Details</div>
+
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+                  {/* Label */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-gray-600">Label</label>
+                    <div className="mt-2 flex gap-2">
+                      <select value={etLabel} onChange={(e) => setEtLabel(e.target.value)} className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="">--</option>
+                      </select>
+                      <button onClick={onAddLabelClick} className="px-3 py-2 rounded border bg-gray-100 text-sm">Add</button>
+                    </div>
+                  </div>
+
+                  {/* Milestones */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-gray-600">Milestones</label>
+                    <select value={etMilestone} onChange={(e) => setEtMilestone(e.target.value)} className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                      <option value="">--</option>
+                    </select>
+                  </div>
+
+                  {/* Priority */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm text-gray-600">Priority</label>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <span className={`w-3 h-3 rounded-full ${etPriority === "Low" ? "bg-green-500" : etPriority === "Medium" ? "bg-yellow-400" : etPriority === "High" ? "bg-orange-500" : "bg-red-600"}`} />
+                        <select value={etPriority} onChange={(e) => setEtPriority(e.target.value as any)} className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="Low">Low</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">High</option>
+                          <option value="Urgent">Urgent</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Make Private */}
+                  <div className="md:col-span-2">
+                    <label className="inline-flex items-center gap-2">
+                      <input type="checkbox" checked={etMakePrivate} onChange={(e) => setEtMakePrivate(e.target.checked)} />
+                      <span className="text-sm">Make Private</span>
+                    </label>
+                  </div>
+
+                  {/* Time Estimate */}
+                  <div className="md:col-span-2">
+                    <label className="inline-flex items-center gap-2">
+                      <input type="checkbox" checked={etTimeEstimateChecked} onChange={(e) => setEtTimeEstimateChecked(e.target.checked)} />
+                      <span className="text-sm">Time Estimate</span>
+                    </label>
+                    {etTimeEstimateChecked && (
+                      <div className="mt-2">
+                        <input type="number" min={0} value={etTimeEstimateMins} onChange={(e) => setEtTimeEstimateMins(e.target.value === "" ? "" : Number(e.target.value))} className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        <span className="ml-2 text-sm text-gray-500">mins</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Task is dependent */}
+                  <div className="md:col-span-2">
+                    <label className="inline-flex items-center gap-2">
+                      <input type="checkbox" checked={etDependentChecked} onChange={(e) => setEtDependentChecked(e.target.checked)} />
+                      <span className="text-sm">Task is dependent on other task</span>
+                    </label>
+
+                    {etDependentChecked && (
+                      <div className="mt-2">
+                        <label className="block text-sm text-gray-600">Dependent Task <span className="text-red-500">*</span></label>
+                        <select value={etDependentTask} onChange={(e) => setEtDependentTask(e.target.value)} className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                          <option value="">Task Name</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add File drop area (full width) */}
+                  <div className="md:col-span-6 mt-2">
+                    <label className="block text-sm text-gray-600 mb-2">Add File</label>
+                    <div
+                      onClick={onChooseFileClick}
+                      className="w-full min-h-[80px] rounded-md border-dashed border-2 border-gray-200 flex items-center justify-center text-sm text-gray-500 cursor-pointer"
+                    >
+                      {etFile ? (
+                        <div className="text-sm">
+                          <div className="font-medium">{etFile.name}</div>
+                          <div className="text-xs text-gray-500">{(etFile.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                      ) : (
+                        <div>Choose a file</div>
+                      )}
+                    </div>
+                    <input type="file" onChange={onHiddenFilePicked} className="hidden" />
+                  </div>
+                </div>
+
+                {/* error message */}
+                {editTaskErrors && <div className="mt-3 text-sm text-red-600">{editTaskErrors}</div>}
+              </div>
+
+              {/* Footer actions */}
+              <div className="flex items-center justify-end gap-3">
+                <button onClick={onCancelEditTask} className="px-4 py-2 border rounded-md text-sm border-blue-600 text-blue-600 hover:bg-gray-50">Cancel</button>
+                <button onClick={onUpdateTask} className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700">Update</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ------------------ END EDIT TASK modal ------------------ */}
+
     </div>
   );
 }
