@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 
 import WeeklyTimesheetModal from "./components/WeeklyTimesheetModal";
+import FullCalendarView from "./components/FullCalendarView";
+
 
 const MAIN =
   process.env.NEXT_PUBLIC_MAIN ||
@@ -93,6 +95,7 @@ export default function TimesheetPage() {
 
   type ViewMode = "table" | "list" | "calendar" | "weekly";
   const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
   // ===== Log Time + Action =====
   const [showLogModal, setShowLogModal] = useState(false);
@@ -1057,14 +1060,14 @@ export default function TimesheetPage() {
                 </button>
 
 
-                {/* Calendar view (opens calendar) */}
-                <button
-                  onClick={() => setViewMode("calendar")}
-                  className={`px-3 py-2 hover:bg-gray-50 ${viewMode === "calendar" ? "ring-2 ring-indigo-300" : ""}`}
+               <button
+                  onClick={() => setShowCalendarModal(true)}
+                  className={`px-3 py-2 hover:bg-gray-50 ${showCalendarModal ? "ring-2 ring-indigo-300" : ""}`}
                   title="Open calendar view"
                 >
                   <Calendar className="w-4 h-4 text-gray-600" />
                 </button>
+
 
                 {/* User / profile icon */}
                 <button
@@ -1920,6 +1923,68 @@ export default function TimesheetPage() {
           onClose={() => setShowWeeklyModal(false)}
         />
       )}
+
+{/* Calendar full-screen modal */}
+{showCalendarModal && (
+  <div className="fixed inset-0 z-[10050] flex items-start justify-center pt-8 px-6">
+    {/* backdrop */}
+    <div
+      className="absolute inset-0 bg-black/40"
+      onClick={() => setShowCalendarModal(false)}
+    />
+
+    <div className="relative bg-white w-full max-w-[1180px] rounded-xl shadow-xl overflow-hidden">
+      <div className="flex items-center justify-between px-6 py-4 border-b">
+        <h3 className="text-xl font-semibold">Calendar</h3>
+        <div className="flex items-center gap-2">
+          <button
+            className="px-3 py-1 rounded hover:bg-gray-100"
+            onClick={() => setShowCalendarModal(false)}
+            aria-label="Close"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Example: show two identical calendars side-by-side like you requested */}
+        <div className="grid grid-cols-2 gap-4">
+          <FullCalendarView
+            events={timesheets}
+            onEventClick={(ev) => {
+              // open edit / view modal for that event
+              // if your openLogForm expects Timesheet, pass it directly:
+              openLogForm(ev as any);
+              setShowCalendarModal(false);
+            }}
+          />
+          {/* <FullCalendarView
+            events={timesheets}
+            onEventClick={(ev) => {
+              openLogForm(ev as any);
+              setShowCalendarModal(false);
+            }}
+          /> */}
+        </div>
+
+        {/* If you prefer a single large calendar, replace the grid with single <FullCalendarView /> */}
+      </div>
+
+      <div className="flex items-center justify-end gap-4 px-6 py-4 border-t">
+        <button
+          onClick={() => setShowCalendarModal(false)}
+          className="px-4 py-2 rounded border"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
     </div>
   );
 }
