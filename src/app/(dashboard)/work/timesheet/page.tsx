@@ -23,7 +23,10 @@ import {
   X,
   Eye,
   MoreVertical,
+  User,
 } from "lucide-react";
+
+import WeeklyTimesheetModal from "./components/WeeklyTimesheetModal";
 
 const MAIN =
   process.env.NEXT_PUBLIC_MAIN ||
@@ -113,6 +116,9 @@ export default function TimesheetPage() {
   const [selectedRow, setSelectedRow] = useState<Timesheet | null>(null);
 
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+
+  // ===== Weekly modal state =====
+  const [showWeeklyModal, setShowWeeklyModal] = useState(false);
 
   // ====== Projects for dropdown ======
   const [projectOptions, setProjectOptions] = useState<ProjectOption[]>([]);
@@ -326,7 +332,7 @@ export default function TimesheetPage() {
         } else {
           items = Array.isArray(data.items) ? data.items : [];
           setTotalPages(
-            data.totalPages ??
+            data.totalPages ?? 
               Math.max(
                 1,
                 Math.ceil(
@@ -783,7 +789,7 @@ export default function TimesheetPage() {
             {t.memo ?? ""}
           </div>
         </td>
-        <td className="py-4 px-4 border-r align-top">
+        <td className="py-4 px-4 w-48 border-r align-top">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img
@@ -1005,53 +1011,74 @@ export default function TimesheetPage() {
                 />
               </div>
 
+              {/* === Top-right icon group (updated order & styles to match image) === */}
               <div className="flex items-center bg-white border rounded-lg overflow-hidden">
+                {/* Search icon button */}
+                <button
+                  onClick={() => {
+                    // focus the search input (approximate behavior)
+                    const el = document.querySelector('input[placeholder="Search"]') as HTMLInputElement | null;
+                    if (el) el.focus();
+                  }}
+                  className="px-3 py-2 hover:bg-gray-50"
+                  title="Search"
+                >
+                  <Search className="w-4 h-4" />
+                </button>
+
+                {/* List view */}
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`px-3 py-2 hover:bg-gray-50 ${
-                    viewMode === "list"
-                      ? "bg-gray-100"
-                      : ""
-                  }`}
+                  className={`px-3 py-2 hover:bg-gray-50 ${viewMode === "list" ? "bg-gray-100" : ""}`}
                   title="List view"
                 >
                   <List className="w-4 h-4" />
                 </button>
+
+               {/* Weekly view (with "7" badge) */}
                 <button
-                  onClick={() => setViewMode("table")}
-                  className={`px-3 py-2 hover:bg-gray-50 ${
-                    viewMode === "table"
-                      ? "bg-violet-600 text-white"
-                      : ""
-                  }`}
-                  title="Table view"
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode("weekly")}
-                  className={`px-3 py-2 hover:bg-gray-50 ${
-                    viewMode === "weekly"
-                      ? "bg-gray-100"
-                      : ""
-                  }`}
+                  onClick={() => {
+                    setViewMode("weekly");
+                    setShowWeeklyModal(true);
+                  }}
+                  aria-pressed={viewMode === "weekly"}
                   title="Weekly calendar"
+                  className={`relative px-3 py-2 hover:bg-gray-50 ${viewMode === "weekly" ? "bg-violet-600 text-white" : ""}`}
                 >
                   <Calendar className="w-4 h-4" />
+                  {/* badge */}
+                  <span
+                    className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold leading-none
+                      ${viewMode === "weekly" ? "bg-white text-violet-600" : "bg-violet-600 text-white"}`}
+                    aria-hidden="true"
+                  >
+                    7
+                  </span>
+                </button>
+
+
+                {/* Calendar view (opens calendar) */}
+                <button
+                  onClick={() => setViewMode("calendar")}
+                  className={`px-3 py-2 hover:bg-gray-50 ${viewMode === "calendar" ? "ring-2 ring-indigo-300" : ""}`}
+                  title="Open calendar view"
+                >
+                  <Calendar className="w-4 h-4 text-gray-600" />
+                </button>
+
+                {/* User / profile icon */}
+                <button
+                  onClick={() => {
+                    // placeholder for user action — can open profile or dropdown
+                    // keeping behavior neutral to avoid changing other flows
+                    console.log("User icon clicked");
+                  }}
+                  className="px-3 py-2 hover:bg-gray-50"
+                  title="User"
+                >
+                  <User className="w-4 h-4 text-gray-600" />
                 </button>
               </div>
-
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={`w-10 h-10 rounded bg-white border flex items-center justify-center ${
-                  viewMode === "calendar"
-                    ? "ring-2 ring-indigo-300"
-                    : ""
-                }`}
-                title="Open calendar view"
-              >
-                <Calendar className="w-4 h-4 text-gray-600" />
-              </button>
             </div>
           </div>
 
@@ -1884,6 +1911,14 @@ export default function TimesheetPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Weekly full-screen modal */}
+      {showWeeklyModal && (
+        <WeeklyTimesheetModal
+          open={showWeeklyModal}
+          onClose={() => setShowWeeklyModal(false)}
+        />
       )}
     </div>
   );
