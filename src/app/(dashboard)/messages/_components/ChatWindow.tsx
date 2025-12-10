@@ -1,10 +1,17 @@
 
+
+// components/ChatWindow.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import useSWR from "swr";
 import ChatInput from "./ChatInput";
+
+// STOMP + SockJS imports (if you used STOMP version)
+// If you are using plain WebSocket version, omit these imports and related logic
+import SockJS from "sockjs-client";
+import { Client, Frame, IMessage } from "@stomp/stompjs";
 
 interface Message {
   id: number;
@@ -17,20 +24,20 @@ interface Message {
   status: string;
   createdAt: string;
   deletedForCurrentUser: boolean;
-  senderDetails: {
+  senderDetails?: {
     employeeId: string;
-    name: string;
-    profileUrl: string | null;
-    designation: string | null;
-    department: string | null;
-  };
-  receiverDetails: {
+    name?: string | null;
+    profileUrl?: string | null;
+    designation?: string | null;
+    department?: string | null;
+  } | null;
+  receiverDetails?: {
     employeeId: string;
-    name: string;
-    profileUrl: string | null;
-    designation: string | null;
-    department: string | null;
-  };
+    name?: string | null;
+    profileUrl?: string | null;
+    designation?: string | null;
+    department?: string | null;
+  } | null;
 }
 
 interface ChatWindowProps {
@@ -92,11 +99,12 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
   // receiver details: prefer explicit receiver info from messages, fallback to first message sender
   const receiverDetails =
     messages.length > 0
-      ? messages.find((m) => m.receiverDetails.employeeId === receiverId)?.receiverDetails ||
-        messages[0]?.senderDetails
+      ? messages.find((m) => m.receiverDetails?.employeeId === receiverId)?.receiverDetails ||
+        messages[0]?.senderDetails ||
+        null
       : null;
 
-  // Auto-scroll on new messages
+  // Auto-scroll on new messages (including when STOMP pushes new items)
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
@@ -109,17 +117,104 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
     }, 100);
   };
 
-  if (isLoading) return <p className="text-center text-muted-foreground">Loading chat...</p>;
-  if (error) return <p className="text-center text-destructive">{(error as Error).message}</p>;
+  // -------------------------
+  // STOMP over SockJS section (kept if you are using it)
+  // -------------------------
+  const stompClientRef = useRef<Client | null>(null);
 
-  // Helpers
-  const isImageFilename = (filename?: string | null) => {
-    if (!filename) return false;
-    return /\.(png|jpe?g|gif|webp|svg|bmp|tiff)$/i.test(filename);
-  };
+  useEffect(() => {
+    if (typeof window === "undefined" || !receiverId) return;
 
-  const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const wsUrl = `${BASE_URL.replace(/\/$/, "")}/ws-chat`;
+    const token = localStorage.getItem("accessToken") || "";
+
+    const client = new Client({
+      webSocketFactory: () => new SockJS(wsUrl),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 0,
+      heartbeatOutgoing: 20000,
+      connectHeaders: {
+        Authorization: token ? `Bearer ${token}` : "",
+        roomId: chatRoomId,
+        receiverId: receiverId,
+      },
+      onConnect: (frame: Frame) => {
+        try {
+          client.subscribe(`/topic/chat.${chatRoomId}`, (msg: IMessage) => {
+            try {
+              const body = msg.body;
+              if (!body) return;
+              const payload = JSON.parse(body);
+              if (payload && payload.type === "message" && payload.data) {
+                const incoming: Message = payload.data;
+                mutate((prev) => {
+                  const already = prev && prev.some((m) => m.id === incoming.id);
+                  return already ? prev : prev ? [...prev, incoming] : [incoming];
+                }, false);
+              } else if (payload && payload.id) {
+                const incoming: Message = payload;
+                mutate((prev) => (prev && prev.some((m) => m.id === incoming.id) ? prev : prev ? [...prev, incoming] : [incoming]), false);
+              }
+            } catch (e) {
+              console.error("Error parsing topic message", e);
+            }
+          });
+        } catch (e) {}
+
+        try {
+          client.subscribe(`/user/queue/messages`, (msg: IMessage) => {
+            try {
+              const payload = JSON.parse(msg.body);
+              if (!payload) return;
+              if (payload.type === "message" && payload.data) {
+                const incoming: Message = payload.data;
+                mutate((prev) => {
+                  const already = prev && prev.some((m) => m.id === incoming.id);
+                  return already ? prev : prev ? [...prev, incoming] : [incoming];
+                }, false);
+              } else if (payload.id) {
+                const incoming: Message = payload;
+                mutate((prev) => (prev && prev.some((m) => m.id === incoming.id) ? prev : prev ? [...prev, incoming] : [incoming]), false);
+              }
+            } catch (e) {
+              console.error("Error parsing user queue message", e);
+            }
+          });
+        } catch (e) {}
+
+        try {
+          client.subscribe(`/topic/chat.${chatRoomId}.deleted`, (msg: IMessage) => {
+            try {
+              const payload = JSON.parse(msg.body);
+              const messageId = payload?.messageId ?? payload?.id;
+              if (messageId != null) {
+                mutate((prev) => (prev ? prev.map((m) => (m.id === messageId ? { ...m, deletedForCurrentUser: true } : m)) : prev), false);
+              }
+            } catch (e) {
+              console.error("Error parsing deleted event", e);
+            }
+          });
+        } catch (e) {}
+      },
+      onStompError: (frame) => {
+        console.error("Broker reported error: " + frame.headers["message"]);
+        console.error("Additional details: " + frame.body);
+      },
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      try {
+        if (stompClientRef.current) {
+          stompClientRef.current.deactivate();
+          stompClientRef.current = null;
+        }
+      } catch (e) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receiverId, chatRoomId, mutate]);
 
   // Delete flow: mark deletedForCurrentUser true on success
   const deleteMessage = async (messageId: number) => {
@@ -225,6 +320,14 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
     );
   };
 
+  const isImageFilename = (filename?: string | null) => {
+    if (!filename) return false;
+    return /\.(png|jpe?g|gif|webp|svg|bmp|tiff)$/i.test(filename);
+  };
+
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-white">
       {/* Header: rounded card-like, avatar as rounded square, name + two small lines */}
@@ -232,8 +335,8 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
         <div className="flex items-center gap-4 px-6 py-4 bg-white border-b border-border">
           <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
             <Image
-              src={receiverDetails.profileUrl || "/placeholder.svg?height=64&width=64&query=User%20avatar"}
-              alt={receiverDetails.name}
+              src={receiverDetails?.profileUrl ?? "/placeholder.svg?height=64&width=64&query=User%20avatar"}
+              alt={receiverDetails?.name ?? "User"}
               width={56}
               height={56}
               className="object-cover w-full h-full"
@@ -242,9 +345,9 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-foreground leading-tight">{receiverDetails.name}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{receiverDetails.designation || "No designation"}</p>
-            <p className="text-sm text-muted-foreground">{receiverDetails.department || "No department"}</p>
+            <h2 className="text-lg font-semibold text-foreground leading-tight">{receiverDetails?.name ?? "Unknown"}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{receiverDetails?.designation || "No designation"}</p>
+            <p className="text-sm text-muted-foreground">{receiverDetails?.department || "No department"}</p>
           </div>
         </div>
       )}
@@ -260,8 +363,8 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
               <div key={msg.id} className={`flex items-start gap-3 ${isMine ? "justify-end" : "justify-start"}`}>
                 {!isMine && (
                   <Image
-                    src={msg.senderDetails.profileUrl || "/placeholder.svg?height=32&width=32&query=User%20avatar"}
-                    alt={msg.senderDetails.name}
+                    src={msg.senderDetails?.profileUrl ?? "/placeholder.svg?height=32&width=32&query=User%20avatar"}
+                    alt={msg.senderDetails?.name ?? "Unknown"}
                     width={32}
                     height={32}
                     className="rounded-full"
@@ -283,8 +386,8 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
             <div key={msg.id} className={`relative flex items-start gap-3 ${isMine ? "justify-end" : "justify-start"}`}>
               {!isMine && (
                 <Image
-                  src={msg.senderDetails.profileUrl || "/placeholder.svg?height=32&width=32&query=User%20avatar"}
-                  alt={msg.senderDetails.name}
+                  src={msg.senderDetails?.profileUrl ?? "/placeholder.svg?height=32&width=32&query=User%20avatar"}
+                  alt={msg.senderDetails?.name ?? "Unknown"}
                   width={32}
                   height={32}
                   className="rounded-full"
@@ -367,5 +470,3 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
     </div>
   );
 }
-
-
