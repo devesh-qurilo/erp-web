@@ -30,11 +30,21 @@ const ActionsSection: React.FC<ActionsSectionProps> = ({
 }) => {
     return (
         <div className="flex items-center justify-between mb-4">
-            <div>
+            {/* <div>
+                <Button className="bg-blue-600 text-white" onClick={openLogForm}>
+                    + Log Time
+                </Button>
+            </div> */}
+
+
+                    {viewMode === "weekly"  ?<h1 className="text-xl font-semibold">Weekly Timesheet</h1>:<div>
                 <Button className="bg-blue-600 text-white" onClick={openLogForm}>
                     + Log Time
                 </Button>
             </div>
+}
+
+
 
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 border rounded px-2 py-1 bg-white">
@@ -123,7 +133,7 @@ const ActionsSection: React.FC<ActionsSectionProps> = ({
                             }`}
                         title="User"
                     >
-                        S
+                        <User className="w-4 h-4 text-gray-600" />
                     </button>
                 </div>
             </div>

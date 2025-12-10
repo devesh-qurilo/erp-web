@@ -81,11 +81,9 @@ export default function TimesheetPage() {
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState<string>("All");
-  const [departmentFilter, setDepartmentFilter] = useState<string>("All");
 
   const [showFilters, setShowFilters] = useState(false);
   const [filterEmployee, setFilterEmployee] = useState<string>("all");
-  const [filterDepartment, setFilterDepartment] = useState<string>("all");
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
@@ -189,14 +187,6 @@ export default function TimesheetPage() {
     return `Task ${idStr}`;
   };
 
-  const departmentOptions = useMemo(() => {
-    const s = new Set<string>();
-    timesheets.forEach((t) =>
-      t.employees?.forEach((e) => e?.department && s.add(e.department))
-    );
-    return ["All", ...Array.from(s)];
-  }, [timesheets]);
-
   function formatDateTime(dateISO?: string, time?: string) {
     if (!dateISO) return "";
     try {
@@ -272,7 +262,6 @@ export default function TimesheetPage() {
           limit: String(itemsPerPage),
           search: searchQuery || "",
           employee: filterEmployee !== "all" ? filterEmployee : "",
-          department: filterDepartment !== "all" ? filterDepartment : "",
         });
 
         const url = `${MAIN}/timesheets?${params.toString()}`;
@@ -280,9 +269,9 @@ export default function TimesheetPage() {
           method: "GET",
           headers: resolvedToken
             ? {
-              Authorization: `Bearer ${resolvedToken}`,
-              Accept: "application/json",
-            }
+                Authorization: `Bearer ${resolvedToken}`,
+                Accept: "application/json",
+              }
             : { Accept: "application/json" },
           cache: "no-store",
         });
@@ -290,7 +279,7 @@ export default function TimesheetPage() {
         if (res.status === 401) {
           try {
             localStorage.removeItem("accessToken");
-          } catch { }
+          } catch {}
           setToken(null);
           setTimesheets([]);
           setTotalPages(1);
@@ -315,10 +304,10 @@ export default function TimesheetPage() {
           items = Array.isArray(data.items) ? data.items : [];
           setTotalPages(
             data.totalPages ??
-            Math.max(
-              1,
-              Math.ceil((data.total ?? items.length) / itemsPerPage)
-            )
+              Math.max(
+                1,
+                Math.ceil((data.total ?? items.length) / itemsPerPage)
+              )
           );
         }
         setTimesheets(items);
@@ -331,7 +320,7 @@ export default function TimesheetPage() {
         setLoading(false);
       }
     },
-    [currentPage, searchQuery, filterEmployee, filterDepartment, token]
+    [currentPage, searchQuery, filterEmployee, token]
   );
 
   const loadProjects = useCallback(
@@ -351,9 +340,9 @@ export default function TimesheetPage() {
           method: "GET",
           headers: resolvedToken
             ? {
-              Authorization: `Bearer ${resolvedToken}`,
-              Accept: "application/json",
-            }
+                Authorization: `Bearer ${resolvedToken}`,
+                Accept: "application/json",
+              }
             : { Accept: "application/json" },
           cache: "no-store",
         });
@@ -361,7 +350,7 @@ export default function TimesheetPage() {
         if (res.status === 401) {
           try {
             localStorage.removeItem("accessToken");
-          } catch { }
+          } catch {}
           setToken(null);
           setProjectOptions([]);
           setProjectsLoading(false);
@@ -445,9 +434,9 @@ export default function TimesheetPage() {
           method: "GET",
           headers: resolvedToken
             ? {
-              Authorization: `Bearer ${resolvedToken}`,
-              Accept: "application/json",
-            }
+                Authorization: `Bearer ${resolvedToken}`,
+                Accept: "application/json",
+              }
             : { Accept: "application/json" },
           cache: "no-store",
         });
@@ -514,15 +503,7 @@ export default function TimesheetPage() {
       loadTimesheets(null);
       loadProjects(null);
     }
-  }, [
-    loadTimesheets,
-    loadProjects,
-    token,
-    currentPage,
-    searchQuery,
-    filterEmployee,
-    filterDepartment,
-  ]);
+  }, [loadTimesheets, loadProjects, token, currentPage, searchQuery, filterEmployee]);
 
   useEffect(() => {
     setOpenMenuId(null);
@@ -718,12 +699,6 @@ export default function TimesheetPage() {
         const hasByEmpId = t.employeeId === employeeFilter;
         if (!hasByEmpObj && !hasByEmpId) return false;
       }
-      if (departmentFilter !== "All") {
-        const has = (t.employees ?? []).some(
-          (e) => e.department === departmentFilter
-        );
-        if (!has) return false;
-      }
       if (!q) return true;
       if (
         String(t.projectShortCode ?? "")
@@ -745,7 +720,7 @@ export default function TimesheetPage() {
       if (empMatch) return true;
       return false;
     });
-  }, [timesheets, searchQuery, employeeFilter, departmentFilter]);
+  }, [timesheets, searchQuery, employeeFilter]);
 
   // ====== Render helpers ======
 
@@ -913,31 +888,10 @@ export default function TimesheetPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
+                {/* SHOW THE FULL EMPLOYEE LIST */}
                 {employeeOptions.slice(1).map((e) => (
                   <SelectItem key={e} value={e}>
                     {getEmployeeLabel(e)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm text-gray-600 mb-2">
-              Department
-            </label>
-            <Select
-              value={filterDepartment}
-              onValueChange={(v) => setFilterDepartment(v)}
-            >
-              <SelectTrigger className="w-full rounded border px-3 py-2">
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                {departmentOptions.slice(1).map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {d}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -950,7 +904,6 @@ export default function TimesheetPage() {
             variant="outline"
             onClick={() => {
               setFilterEmployee("all");
-              setFilterDepartment("all");
               setShowFilters(false);
             }}
           >
@@ -1484,7 +1437,6 @@ export default function TimesheetPage() {
 
       {viewMode === "TimesheetSummary" && (
         <TimesheetSummaryList />)}
-
 
       {/* Calendar full-screen modal */}
       {showCalendarModal && (

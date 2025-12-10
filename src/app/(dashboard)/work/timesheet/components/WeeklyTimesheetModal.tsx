@@ -233,7 +233,7 @@ const WeeklyTimesheetModal: React.FC<WeeklyTimesheetModalProps> = ({
       />
 
       {/* HEADER (Kept same UI) */}
-      <header className="flex items-center justify-between mb-6">
+      {/* <header className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold">Weekly Timesheet</h1>
 
         <div className="flex items-center gap-4">
@@ -261,7 +261,7 @@ const WeeklyTimesheetModal: React.FC<WeeklyTimesheetModalProps> = ({
             <User className="w-4 h-4" />
           </div>
         </div>
-      </header>
+      </header> */}
 
       {/* WEEK SELECTOR */}
       <div className="flex items-center gap-4 mb-4">
