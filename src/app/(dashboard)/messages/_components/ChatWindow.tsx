@@ -234,7 +234,7 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
 
     try {
       const url = `${BASE_URL}/api/chat/message/${encodeURIComponent(String(messageId))}`; 
-      console.log("bc",url)
+      
       const res = await fetch(url, {
         method: "DELETE",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -276,10 +276,11 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
     if (image) {
       return (
         <a
-          href={attachment.fileUrl}
+          href={attachment.fileUrl } download={attachment.fileName}
           target="_blank"
           rel="noopener noreferrer"
-          className="block mt-2 rounded-md overflow-hidden border border-border"
+          className="block relative w-30  mt-2 rounded-md overflow-hidden border border-border"
+          
         >
           {/* next/image requires width/height; using fixed height and letting width auto via css */}
           <div className="relative w-full h-48">

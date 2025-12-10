@@ -166,7 +166,7 @@ export default function ChatInput({
       {file && (
         <div className="flex items-start gap-3">
           {isImageFilename(file.name) && previewUrl ? (
-            <div className="relative w-28 h-20 rounded-md overflow-hidden border">
+            <div className="relative w-30 h-20 rounded-md overflow-hidden border">
               {/* use next/image with object URL (unoptimized) */}
               <Image src={previewUrl} alt={file.name} fill style={{ objectFit: "cover" }} unoptimized />
             </div>
