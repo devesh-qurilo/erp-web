@@ -11,6 +11,13 @@ type Filters = {
   category?: string
 }
 
+// ---- API ----
+const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms"
+const PRIORITIES_ADMIN_ENDPOINT = `${API_BASE}/deals/admin/priorities`
+const PRIORITY_ASSIGN = (dealId: string | number) => `${API_BASE}/deals/${dealId}/priority/assign`
+const PRIORITY_UPDATE = (dealId: string | number) => `${API_BASE}/deals/${dealId}/priority`
+// ---------------
+
 export default function KanbanBoard({
   stages,
   deals,
@@ -35,6 +42,232 @@ export default function KanbanBoard({
     return true
   })
 
+  // Read token once (used for API calls)
+  const [token, setToken] = useState<string | null>(null)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setToken(localStorage.getItem("accessToken"))
+    }
+  }, [])
+
+  // Global palette fetched from API and shared to cards
+  const [globalPalette, setGlobalPalette] = useState<Array<{ id?: number; name: string; color: string }>>(() => [
+    // fallback while loading (unique)
+    { id: -1, name: "Medium", color: "#FBBF24" },
+    { id: -2, name: "High", color: "#F97316" },
+    { id: -3, name: "Low", color: "#15803D" },
+  ])
+  const [paletteLoading, setPaletteLoading] = useState<boolean>(true)
+
+  // helper to dedupe palette by name case-insensitive, keep earlier items unless replaced by same-name with id/color
+  const dedupePalette = (items: Array<{ id?: number; name: string; color: string }>) => {
+    const map = new Map<string, { id?: number; name: string; color: string }>()
+    for (const it of items) {
+      const key = it.name.trim().toLowerCase()
+      const existing = map.get(key)
+      if (!existing) {
+        map.set(key, it)
+      } else {
+        const chosen =
+          (!existing.id && it.id) || (it.id && existing.id && it.id !== existing.id)
+            ? { id: it.id ?? existing.id, name: it.name, color: it.color }
+            : { id: existing.id ?? it.id, name: existing.name, color: existing.color ?? it.color }
+        map.set(key, chosen)
+      }
+    }
+    return Array.from(map.values())
+  }
+
+  useEffect(() => {
+    let mounted = true
+
+    // wait until token is loaded (token === null => still reading)
+    if (token === null) {
+      return
+    }
+
+    const fetchPriorities = async () => {
+      setPaletteLoading(true)
+      try {
+        const headers: Record<string, string> = { "Content-Type": "application/json" }
+        if (token) headers["Authorization"] = `Bearer ${token}`
+
+        const res = await fetch(PRIORITIES_ADMIN_ENDPOINT, { headers })
+        if (!res.ok) {
+          throw new Error(`Failed to load priorities: ${res.status}`)
+        }
+        const json = await res.json()
+        if (!mounted) return
+        const mapped = Array.isArray(json)
+          ? json.map((p: any) => ({ id: p.id, name: String(p.status ?? p.status), color: p.color ?? "#2563EB" }))
+          : []
+        if (mapped.length > 0) {
+          setGlobalPalette((prev) => dedupePalette([...prev, ...mapped]))
+        }
+      } catch (err) {
+        console.error("Error loading priorities:", err)
+      } finally {
+        if (mounted) setPaletteLoading(false)
+      }
+    }
+    fetchPriorities()
+    return () => {
+      mounted = false
+    }
+  }, [token])
+
+  /**
+   * createGlobalPriority
+   * - POST /deals/admin/priorities { status, color, isGlobal: true }
+   * - returns created { id, status, color, ... }
+   */
+  const createGlobalPriority = async (name: string, color: string) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (token) headers["Authorization"] = `Bearer ${token}`
+    const res = await fetch(PRIORITIES_ADMIN_ENDPOINT, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ status: name, color, isGlobal: true }),
+    })
+    if (!res.ok) {
+      const text = await safeReadResponseText(res)
+      throw new Error(`Failed to create global priority: ${res.status} ${text}`)
+    }
+    const created = await res.json()
+    // API returns { id, status, color, ... }
+    return { id: created.id, name: created.status ?? name, color: created.color ?? color }
+  }
+
+  /**
+   * assignPriorityToDeal
+   * - POST /deals/{dealId}/priority/assign  body: { priorityId }
+   * - returns assigned object
+   *
+   * NOTE: send a well-formed JSON body { priorityId: number } (previously sent raw number/string).
+   */
+  const assignPriorityToDeal = async (dealId: string | number, priorityId: number) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (token) headers["Authorization"] = `Bearer ${token}`
+
+    const res = await fetch(PRIORITY_ASSIGN(dealId), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ priorityId }),
+    })
+
+    if (!res.ok) {
+      const text = await safeReadResponseText(res)
+      // throw an Error containing both status and server text to help debugging
+      throw new Error(`Failed to assign priority: ${res.status} ${text}`)
+    }
+    const created = await res.json()
+    // API likely returns something like { id, status, color, dealId, isGlobal }
+    return {
+      id: created.id,
+      name: created.status ?? String(created.status ?? priorityId),
+      color: created.color ?? "#2563EB",
+      dealId: created.dealId ?? dealId,
+    }
+  }
+
+  /**
+   * updatePriorityForDealFallback
+   * - PUT /deals/{dealId}/priority { priorityId }
+   * - returns updated object
+   *
+   * The server expects a body containing the priority id, e.g. { "priorityId": 4 }.
+   */
+  const updatePriorityForDealFallback = async (dealId: string | number, priorityId: number) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" }
+    if (token) headers["Authorization"] = `Bearer ${token}`
+
+    const res = await fetch(PRIORITY_UPDATE(dealId), {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ priorityId }),
+    })
+    if (!res.ok) {
+      const text = await safeReadResponseText(res)
+      throw new Error(`Failed fallback PUT update: ${res.status} ${text}`)
+    }
+    const created = await res.json()
+    return {
+      id: created.id,
+      name: created.status ?? String(created.status ?? priorityId),
+      color: created.color ?? "#2563EB",
+      dealId: created.dealId ?? dealId,
+    }
+  }
+
+  // safe response text reader (handles json/text)
+  async function safeReadResponseText(res: Response) {
+    try {
+      const ct = res.headers.get("content-type") || ""
+      if (ct.includes("application/json")) {
+        const j = await res.json()
+        return JSON.stringify(j)
+      } else {
+        const t = await res.text()
+        return t
+      }
+    } catch (e) {
+      return "<could not read response body>"
+    }
+  }
+
+  /**
+   * addPriorityAndAssignFlow:
+   * - If palette item has id -> assign by id (POST assign)
+   * - If palette item has no id -> create global priority then assign using returned id
+   * - On assign failure (500 etc) -> try fallback PUT /deals/{dealId}/priority with body { priorityId }
+   */
+  const addPriorityAndAssignFlow = async (name: string, color: string, dealId: string | number, existingId?: number) => {
+    // prefer direct assign if we have existingId
+    if (existingId) {
+      try {
+        const assigned = await assignPriorityToDeal(dealId, existingId)
+        setGlobalPalette((prev) => dedupePalette([...prev, { id: assigned.id, name: assigned.name, color: assigned.color }]))
+        return assigned
+      } catch (assignErr) {
+        console.error("Assign failed, attempting fallback. Assign error:", assignErr)
+        // fallback to update via PUT using the known priority id
+        try {
+          const fallback = await updatePriorityForDealFallback(dealId, existingId)
+          setGlobalPalette((prev) => dedupePalette([...prev, { id: fallback.id, name: fallback.name, color: fallback.color }]))
+          return fallback
+        } catch (fallbackErr) {
+          // bubble up the detailed error
+          console.error("Fallback PUT failed:", fallbackErr)
+          throw fallbackErr
+        }
+      }
+    }
+
+    // no existing id → create global, then assign
+    try {
+      const createdGlobal = await createGlobalPriority(name, color)
+      setGlobalPalette((prev) => dedupePalette([...prev, createdGlobal]))
+      try {
+        const assigned = await assignPriorityToDeal(dealId, createdGlobal.id as number)
+        setGlobalPalette((prev) => dedupePalette([...prev, { id: assigned.id, name: assigned.name, color: assigned.color }]))
+        return assigned
+      } catch (assignErr) {
+        console.error("Assign after create failed, attempting fallback. Assign error:", assignErr)
+        try {
+          const fallback = await updatePriorityForDealFallback(dealId, createdGlobal.id as number)
+          setGlobalPalette((prev) => dedupePalette([...prev, { id: fallback.id, name: fallback.name, color: fallback.color }]))
+          return fallback
+        } catch (fallbackErr) {
+          console.error("Fallback PUT failed after create:", fallbackErr)
+          throw fallbackErr
+        }
+      }
+    } catch (createErr) {
+      console.error("Create global priority failed:", createErr)
+      throw createErr
+    }
+  }
+
   return (
     <div className="relative w-full">
       <div className="flex gap-6 overflow-x-auto pb-4 px-1">
@@ -58,7 +291,16 @@ export default function KanbanBoard({
                     <p className="text-sm text-muted-foreground">No deals in this stage</p>
                   </div>
                 ) : (
-                  stageDeals.map((deal) => <DealCard key={deal.id} deal={deal} />)
+                  stageDeals.map((deal) => (
+                    <DealCard
+                      key={deal.id}
+                      deal={deal}
+                      palette={globalPalette}
+                      paletteLoading={paletteLoading}
+                      addPriorityAndAssignFlow={addPriorityAndAssignFlow}
+                      token={token}
+                    />
+                  ))
                 )}
               </div>
             </div>
@@ -82,8 +324,19 @@ function initials(name: string) {
 
 /* ------------------- DealCard ------------------- */
 
-function DealCard({ deal }: { deal: Deal }) {
-  // Accessors / fallbacks
+function DealCard({
+  deal,
+  palette,
+  paletteLoading,
+  addPriorityAndAssignFlow,
+  token,
+}: {
+  deal: Deal
+  palette: Array<{ id?: number; name: string; color: string }>
+  paletteLoading: boolean
+  addPriorityAndAssignFlow: (name: string, color: string, dealId: string | number, existingId?: number) => Promise<{ id?: number; name: string; color: string }>
+  token: string | null
+}) {
   const leadName =
     (deal as any).leadName ||
     (deal as any).contactName ||
@@ -117,7 +370,6 @@ function DealCard({ deal }: { deal: Deal }) {
     ? (deal as any).dealWatchers
     : []
 
-  // Priority parsing & local state
   const rawPriority = (deal as any).priority
   const parsePriorities = (raw: any) => {
     if (!raw) return [] as Array<{ name: string; color?: string }>
@@ -132,22 +384,14 @@ function DealCard({ deal }: { deal: Deal }) {
 
   const [priorities, setPriorities] = useState<Array<{ name: string; color?: string }>>(parsePriorities(rawPriority))
 
-  // dynamic palette per-card (so new priorities are added to popover list)
-  const [palette, setPalette] = useState<Array<{ name: string; color: string }>>(() => [
-    { name: "Medium", color: "#FBBF24" },
-    { name: "High", color: "#F97316" },
-    { name: "Low", color: "#15803D" },
-  ])
-
-  // popover / modal states + refs
   const [openPopover, setOpenPopover] = useState(false)
   const popRef = useRef<HTMLDivElement | null>(null)
 
   const [openModal, setOpenModal] = useState(false)
   const [modalPriorityName, setModalPriorityName] = useState("")
   const [modalPriorityColor, setModalPriorityColor] = useState("#000000")
+  const [saving, setSaving] = useState(false)
 
-  // close popover on outside click
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (!openPopover) return
@@ -159,43 +403,53 @@ function DealCard({ deal }: { deal: Deal }) {
     return () => document.removeEventListener("mousedown", onDoc)
   }, [openPopover])
 
-  // palette selection sets single priority
-  const togglePriority = (p: { name: string; color?: string }) => {
+  /**
+   * applyPalettePriority:
+   * - when user selects an existing palette item from the popover
+   * - if item has id -> assign by id (handled in addPriorityAndAssignFlow)
+   * - else create global -> assign
+   */
+  const applyPalettePriority = async (p: { id?: number; name: string; color: string }) => {
     setPriorities([{ name: p.name, color: p.color }])
+    try {
+      const assigned = await addPriorityAndAssignFlow(p.name, p.color, (deal as any).id, p.id)
+      setPriorities([{ name: assigned.name, color: assigned.color }])
+    } catch (err) {
+      console.error("Failed to persist selected priority:", err)
+      // don't revert optimistic UI; user will see console details
+    }
   }
 
-  // When user clicks add trigger in popover -> open modal
   const onOpenAddModal = () => {
     setModalPriorityName("")
     setModalPriorityColor("#000000")
     setOpenModal(true)
   }
 
-  // Note: PER YOUR REQUEST, clicking the colored circle now opens the POPOVER (list),
-  // not the modal. Modal only opens from the popover Add button.
+  // clicking colored circle shows the list (per your request)
   const onOpenPriorityList = () => {
     setOpenPopover(true)
   }
 
-  const onSaveModal = () => {
+  /**
+   * onSaveModal:
+   * - create global priority then assign to deal (so it persists)
+   * - fallback to PUT if assign fails
+   */
+  const onSaveModal = async () => {
     if (!modalPriorityName.trim()) return
-    const name = modalPriorityName.trim()
-    const color = modalPriorityColor || "#000000"
-
-    // add to palette if not exists (case-insensitive)
-    const exists = palette.some((x) => x.name.toLowerCase() === name.toLowerCase())
-    if (!exists) {
-      setPalette((prev) => [...prev, { name, color }])
-    } else {
-      // update color if changed
-      setPalette((prev) => prev.map((x) => (x.name.toLowerCase() === name.toLowerCase() ? { ...x, color } : x)))
+    setSaving(true)
+    try {
+      const assigned = await addPriorityAndAssignFlow(modalPriorityName.trim(), modalPriorityColor || "#000000", (deal as any).id)
+      setPriorities([{ name: assigned.name, color: assigned.color }])
+      setOpenModal(false)
+      setOpenPopover(false)
+    } catch (err) {
+      console.error("Could not save/assign priority", err)
+      // UI unchanged; logs will contain detailed server responses
+    } finally {
+      setSaving(false)
     }
-
-    // set as current priority
-    setPriorities([{ name, color }])
-
-    setOpenModal(false)
-    setOpenPopover(false)
   }
 
   const onCancelModal = () => {
@@ -205,7 +459,6 @@ function DealCard({ deal }: { deal: Deal }) {
   return (
     <div className="group rounded-lg border border-border bg-card hover:border-primary/50 hover:shadow-md transition-all duration-200 cursor-default">
       <div className="p-4 flex flex-col gap-3 relative">
-        {/* top-right priority */}
         <div className="absolute right-3 top-3">
           <div>
             {priorities.length === 0 ? (
@@ -224,7 +477,7 @@ function DealCard({ deal }: { deal: Deal }) {
             ) : (
               <button
                 type="button"
-                onClick={onOpenPriorityList} // show list (not modal)
+                onClick={onOpenPriorityList}
                 className="h-6 w-6 rounded-full flex items-center justify-center"
                 aria-label="Open priority list"
                 title={priorities.map((p) => p.name).join(", ")}
@@ -237,7 +490,6 @@ function DealCard({ deal }: { deal: Deal }) {
             )}
           </div>
 
-          {/* popover with dynamic palette + Add trigger */}
           {openPopover && (
             <div
               ref={popRef}
@@ -246,19 +498,23 @@ function DealCard({ deal }: { deal: Deal }) {
               aria-modal="false"
             >
               <div className="flex flex-col gap-2">
-                {palette.map((pp) => (
-                  <button
-                    key={pp.name}
-                    type="button"
-                    onClick={() => togglePriority({ name: pp.name, color: pp.color })}
-                    className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/20 text-left"
-                  >
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: pp.color }} />
-                    <span className="font-medium" style={{ color: pp.color }}>
-                      {pp.name}
-                    </span>
-                  </button>
-                ))}
+                {paletteLoading ? (
+                  <div className="text-xs text-muted-foreground">Loading...</div>
+                ) : (
+                  palette.map((pp) => (
+                    <button
+                      key={pp.id ?? pp.name}
+                      type="button"
+                      onClick={() => applyPalettePriority(pp)}
+                      className="flex items-center gap-3 px-2 py-2 rounded-md hover:bg-muted/20 text-left"
+                    >
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: pp.color }} />
+                      <span className="font-medium" style={{ color: pp.color }}>
+                        {pp.name}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
 
               <div className="border-t border-border/60 my-2" />
@@ -267,7 +523,7 @@ function DealCard({ deal }: { deal: Deal }) {
                 <div className="flex items-center gap-2 w-full">
                   <button
                     type="button"
-                    onClick={onOpenAddModal} // opens modal FROM the list
+                    onClick={onOpenAddModal}
                     className="h-8 w-8 rounded-full flex items-center justify-center bg-blue-600 text-white"
                     title="Add"
                   >
@@ -280,7 +536,6 @@ function DealCard({ deal }: { deal: Deal }) {
           )}
         </div>
 
-        {/* Lead name & Deal name */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-foreground truncate">{leadName}</div>
@@ -288,18 +543,17 @@ function DealCard({ deal }: { deal: Deal }) {
           </div>
         </div>
 
-        {/* tags pills */}
         {tags.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             {tags.slice(0, 3).map((t, i) => (
               <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground">
                 {t}
               </span>
-            ))}
+            ))
+            }
           </div>
         )}
 
-        {/* Contact + Next followup */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 text-sm">
             {contact ? (
@@ -330,7 +584,6 @@ function DealCard({ deal }: { deal: Deal }) {
           </div>
         </div>
 
-        {/* watchers + plus button */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center">
             <div className="flex -space-x-2">
@@ -370,7 +623,6 @@ function DealCard({ deal }: { deal: Deal }) {
             </div>
           </div>
 
-          {/* plus icon button (visual only) */}
           <div>
             <button
               type="button"
@@ -385,11 +637,9 @@ function DealCard({ deal }: { deal: Deal }) {
           </div>
         </div>
 
-        {/* details label kept as non-clickable per request (no navigation) */}
         <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium pt-2">Details removed</div>
       </div>
 
-      {/* ---------- Modal (Add / Edit Priority) ---------- */}
       {openModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Priority modal">
           <div className="absolute inset-0 bg-black/40" onClick={onCancelModal} />
@@ -400,12 +650,23 @@ function DealCard({ deal }: { deal: Deal }) {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Priority Status *</label>
-                <input type="text" value={modalPriorityName} onChange={(e) => setModalPriorityName(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border text-sm" />
+                <input
+                  type="text"
+                  value={modalPriorityName}
+                  onChange={(e) => setModalPriorityName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md border border-border text-sm"
+                />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Color Code *</label>
-                <input type="text" value={modalPriorityColor} onChange={(e) => setModalPriorityColor(e.target.value)} placeholder="eg #000000" className="w-full px-3 py-2 rounded-md border border-border text-sm" />
+                <input
+                  type="text"
+                  value={modalPriorityColor}
+                  onChange={(e) => setModalPriorityColor(e.target.value)}
+                  placeholder="eg #000000"
+                  className="w-full px-3 py-2 rounded-md border border-border text-sm"
+                />
               </div>
             </div>
 
@@ -413,8 +674,8 @@ function DealCard({ deal }: { deal: Deal }) {
               <button type="button" onClick={onCancelModal} className="px-4 py-2 rounded-md border border-border text-sm font-medium">
                 Cancel
               </button>
-              <button type="button" onClick={onSaveModal} className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium">
-                Save
+              <button type="button" onClick={onSaveModal} className="px-4 py-2 rounded-md bg-blue-600 text-white text-sm font-medium" disabled={saving}>
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </div>
@@ -423,6 +684,3 @@ function DealCard({ deal }: { deal: Deal }) {
     </div>
   )
 }
-
-
-
