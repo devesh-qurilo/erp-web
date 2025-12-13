@@ -166,7 +166,7 @@ export function AppSidebar() {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/work/task">
+                    <Link href="/work/tasks">
                       <ClipboardList className="size-5" />
                       <span>Task</span>
                     </Link>
