@@ -1114,7 +1114,7 @@ export default function DealDetailPage() {
           >
             ← Back to Deals
           </Link>
-          <h1 className="text-2xl font-semibold text-gray-900">Deal {deal.title || deal.id}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Deal fbvhh {deal.title || deal.id}</h1>
         </div>
 
         <button
