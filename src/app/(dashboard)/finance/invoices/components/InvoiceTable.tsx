@@ -117,9 +117,7 @@ export default function InvoiceTable({
                                                 <Eye className="h-4 w-4 mr-2" /> View
                                             </DropdownMenuItem>
 
-                                            {/* ============================
-           UNPAID INVOICE ACTIONS
-      ============================ */}
+                                            {/* ============================UNPAID INVOICE ACTIONS============================ */}
                                             {inv.status === "UNPAID" && (
                                                 <>
                                                     <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setModal(m => ({ ...m, edit: true })); }}>
@@ -148,17 +146,36 @@ export default function InvoiceTable({
                                                 </>
                                             )}
 
-                                            {/* ============================
-           PAID INVOICE ACTIONS
-      ============================ */}
+                                            {/* ============================PAID INVOICE ACTIONS============================ */}
                                             {inv.status === "PAID" && (
                                                 <>
-                                                    <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setModal(m => ({ ...m, receipt: true })); }}>
+                                                    {/* <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setModal(m => ({ ...m, receipt: true })); }}>
                                                         <FileText className="h-4 w-4 mr-2" /> Add Receipt
                                                     </DropdownMenuItem>
 
                                                     <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setModal(m => ({ ...m, receipt: true })); }}>
                                                         <FileText className="h-4 w-4 mr-2" /> View Receipt
+                                                    </DropdownMenuItem> */}
+
+
+                                                    {/* ADD RECEIPT */}
+                                                    <DropdownMenuItem
+                                                        onClick={() => {
+                                                            setActiveInvoice(inv);
+                                                            setModal(m => ({ ...m, receipt: true }));
+                                                        }}
+                                                    >
+                                                        <FileText className="h-4 w-4 mr-2" /> Add Receipt
+                                                    </DropdownMenuItem>
+
+                                                    {/* VIEW RECEIPT */}
+                                                    <DropdownMenuItem
+                                                        onClick={() => {
+                                                            setActiveInvoice(inv);
+                                                            setModal(m => ({ ...m, viewReceipt: true }));
+                                                        }}
+                                                    >
+                                                        <Eye className="h-4 w-4 mr-2" /> View Receipt
                                                     </DropdownMenuItem>
 
                                                     <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setModal(m => ({ ...m, upload: true })); }}>
@@ -171,9 +188,7 @@ export default function InvoiceTable({
                                                 </>
                                             )}
 
-                                            {/* ============================
-           CREDIT NOTE INVOICE ACTIONS
-      ============================ */}
+                                            {/* ============================CREDIT NOTE INVOICE ACTIONS============================ */}
                                             {inv.status === "CREDIT_NOTES" && (
                                                 <>
                                                     <DropdownMenuItem onClick={() => { setActiveInvoice(inv); setModal(m => ({ ...m, payment: true })); }}>

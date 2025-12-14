@@ -13,6 +13,7 @@ import InvoiceEditModal from "./components/InvoiceEditModal";
 import InvoiceUploadModal from "./components/InvoiceUploadModal";
 import InvoicePaymentModal from "./components/InvoicePaymentModal";
 import InvoiceReceiptModal from "./components/InvoiceReceiptModal";
+import InvoiceViewReceiptModal from "./components/InvoiceViewReceiptModal";
 
 export default function InvoiceList() {
   const [invoices, setInvoices] = useState([]);
@@ -30,12 +31,12 @@ export default function InvoiceList() {
 
   // modal states
   const [modal, setModal] = useState({
-    create: false,
     view: false,
     edit: false,
     upload: false,
     payment: false,
     receipt: false,
+    viewReceipt: false,
   });
 
   // which invoice is selected for actions
@@ -133,6 +134,12 @@ export default function InvoiceList() {
         onClose={() => setModal(m => ({ ...m, receipt: false }))}
         invoice={activeInvoice}
         refresh={fetchInvoices}
+      />
+
+      <InvoiceViewReceiptModal
+        open={modal.viewReceipt}
+        onClose={() => setModal(m => ({ ...m, viewReceipt: false }))}
+        invoice={activeInvoice}
       />
     </div>
   );
