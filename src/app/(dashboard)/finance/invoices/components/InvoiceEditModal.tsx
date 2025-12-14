@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import Modal from "./Modal";
 import Card from "./Card";
 
+
+ const BASE_URL = "https://6jnqmj85-80.inc1.devtunnels.ms";
+
 export default function InvoiceEditModal({
     open,
     onClose,
@@ -100,7 +103,7 @@ export default function InvoiceEditModal({
                 discount: Number(form.discount || 0),
             };
 
-            const res = await fetch(`/api/invoices/${invoice.invoiceNumber}`, {
+            const res = await fetch(`${BASE_URL}/api/invoices/${invoice.invoiceNumber}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
