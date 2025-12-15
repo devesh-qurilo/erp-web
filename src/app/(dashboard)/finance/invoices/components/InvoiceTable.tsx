@@ -214,7 +214,7 @@ export default function InvoiceTable({
                                     setModal(m => ({ ...m, create: true })); // SAME create modal open
                                 }}
                             >
-                                <Copy className="h-4 w-4 mr-2" /> Duplicate
+                                <Copy className="h-4 w-4 mr-2" /> Create Duplicate
                             </DropdownMenuItem>
 
 

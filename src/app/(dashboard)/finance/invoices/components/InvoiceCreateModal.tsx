@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import Modal from "./Modal";
 import Card from "./Card";
 
+
+const BASE_URL = "https://6jnqmj85-80.inc1.devtunnels.ms";
+
+
 export default function InvoiceCreateModal({
     open,
     onClose,
@@ -67,7 +71,7 @@ export default function InvoiceCreateModal({
                 discount: Number(form.discount || 0),
             };
 
-            const res = await fetch("/api/invoices", {
+            const res = await fetch(`${BASE_URL}/api/invoices`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -328,3 +332,8 @@ export default function InvoiceCreateModal({
         </Modal>
     );
 }
+
+
+
+
+
