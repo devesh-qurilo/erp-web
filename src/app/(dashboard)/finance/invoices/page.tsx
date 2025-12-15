@@ -14,7 +14,15 @@ import InvoiceUploadModal from "./components/InvoiceUploadModal";
 import InvoicePaymentModal from "./components/InvoicePaymentModal";
 import InvoiceReceiptModal from "./components/InvoiceReceiptModal";
 import InvoiceViewReceiptModal from "./components/InvoiceViewReceiptModal";
+import AddPaymentModal from "./components/AddPaymentModal";
+import ViewPaymentsModal from "./components/ViewPaymentsModal";
+import CreateCreditNoteDrawer from "./components/CreateCreditNoteDrawer";
+import ViewCreditNotesDrawer from "./components/ViewCreditNotesDrawer";
 
+
+
+
+const BASE_URL = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
 export default function InvoiceList() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +43,12 @@ export default function InvoiceList() {
     edit: false,
     upload: false,
     payment: false,
+    create: false,
     receipt: false,
-    viewReceipt: false,
+    viewReceipt: false,   // NEW
+    viewPayment: false,
+    viewCredit: false,
+    createCredit: false
   });
 
   // which invoice is selected for actions
@@ -45,13 +57,15 @@ export default function InvoiceList() {
   // fetch invoices
   const fetchInvoices = async () => {
     try {
-      const res = await fetch("/api/finance/invoices", {
+      const res = await fetch(`${BASE_URL}/api/invoices`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
         },
       });
 
       const data = await res.json();
+
       setInvoices(Array.isArray(data) ? data : data.invoices ?? []);
     } catch (e) {
       console.error("Invoice fetch failed", e);
@@ -59,13 +73,18 @@ export default function InvoiceList() {
       setLoading(false);
     }
   };
+  console.log("devesh", activeInvoice?.invoiceNumber, invoices)
 
   useEffect(() => {
     fetchInvoices();
   }, []);
 
+  // const handleOpenAdd = () => {
+  //   setShowAddModal(true);
+  // };
+
   return (
-    <div className="container mx-auto p-6">
+    <div className="container mx-auto py-6 px-4">
       {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
@@ -141,6 +160,33 @@ export default function InvoiceList() {
         onClose={() => setModal(m => ({ ...m, viewReceipt: false }))}
         invoice={activeInvoice}
       />
+
+
+      <AddPaymentModal
+        open={modal.payment}
+        onClose={() => setModal(m => ({ ...m, payment: false }))}
+        clientId={activeInvoice?.client?.clientId}
+        onSaved={fetchInvoices}
+      />
+      <ViewPaymentsModal
+        open={modal.viewPayment}
+        onClose={() => setModal(m => ({ ...m, viewPayment: false }))}
+        invoiceNumber={activeInvoice?.invoiceNumber}
+      />
+
+      <CreateCreditNoteDrawer
+        open={modal.createCredit}
+        onClose={() => setModal(m => ({ ...m, createCredit: false }))}
+        invoiceNumber={activeInvoice?.invoiceNumber}
+        onCreated={fetchInvoices}
+      />
+
+      <ViewCreditNotesDrawer
+        open={modal.viewCredit}
+        onClose={() => setModal(m => ({ ...m, viewCredit: false }))}
+        invoiceNumber={activeInvoice?.invoiceNumber}
+      />
+
     </div>
   );
 }

@@ -48,7 +48,7 @@ export default function InvoiceViewReceiptModal({
   ============================ */
   async function loadReceipts() {
     const invoiceId =
-      invoice?.invoiceId ||
+      // invoice?.invoiceId ||
       invoice?.invoiceNumber ||
       invoice?.invoiceNo;
 
