@@ -1,22 +1,15 @@
-// "use client";
-
-// export default function DiscussionSection({ projectId }: { projectId: number }) {
-//     return (
-//         <div>
-//             <h3 className="text-lg font-medium mb-4">Discussion</h3>
-//             <div className="border rounded-md p-4 text-gray-400 text-center">
-//                 Team discussion will appear here
-//             </div>
-//         </div>
-//     );
-// }
-
-
 
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Plus, Settings, Trash2, X } from "lucide-react";
+import {
+  Plus,
+  Settings,
+  Trash2,
+  X,
+  Upload,
+  MessageCircle,
+} from "lucide-react";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -29,28 +22,96 @@ type DiscussionCategory = {
   colorCode: string;
 };
 
-/* ================= COMPONENT ================= */
-export default function DiscussionSection({ projectId }: { projectId: number }) {
-  const [categories, setCategories] = useState<DiscussionCategory[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+type DiscussionRoom = {
+  id: number;
+  title: string;
+  messageCount: number | null;
+  createdAt: string;
+  updatedAt: string;
+  category: DiscussionCategory;
+  createdByUser?: {
+    name: string;
+    profileUrl?: string;
+  };
+  lastMessage?: {
+    messageType: "TEXT" | "FILE";
+    content?: string;
+    fileUrl?: string;
+    createdAt?: string;
+  } | null;
+};
 
-  const [form, setForm] = useState({
+export default function DiscussionSection({
+  projectId,
+}: {
+  projectId: number;
+}) {
+  /* ================= STATE ================= */
+  const [categories, setCategories] = useState<DiscussionCategory[]>([]);
+  const [discussions, setDiscussions] = useState<DiscussionRoom[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showDiscussionModal, setShowDiscussionModal] = useState(false);
+
+  const [categoryForm, setCategoryForm] = useState({
     categoryName: "",
     colorCode: "",
   });
 
+  const [discussionForm, setDiscussionForm] = useState({
+    categoryId: "",
+    title: "",
+    initialMessage: "",
+    file: null as File | null,
+  });
+
+  /* ================= HELPERS ================= */
+  const formatRepliedAt = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const date = d.toLocaleDateString("en-GB");
+    const time = d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `replied at ${date} | ${time}`;
+  };
+
   /* ================= LOAD CATEGORIES ================= */
   const loadCategories = async () => {
     try {
-      setLoading(true);
       const res = await fetch(
-        `${BASE_URL}/api/projects/discussion-categories`
+        `${BASE_URL}/api/projects/discussion-categories`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
       );
       const data = await res.json();
-      setCategories(data || []);
-    } catch (err) {
-      console.error("Failed to load categories", err);
+      setCategories(Array.isArray(data) ? data : []);
+    } catch {
+      setCategories([]);
+    }
+  };
+
+  /* ================= LOAD DISCUSSIONS ================= */
+  const loadDiscussions = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(
+        `${BASE_URL}/api/projects/${projectId}/discussion-rooms`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+      const data = await res.json();
+      setDiscussions(Array.isArray(data) ? data : []);
+    } catch {
+      setDiscussions([]);
     } finally {
       setLoading(false);
     }
@@ -58,32 +119,94 @@ export default function DiscussionSection({ projectId }: { projectId: number }) 
 
   useEffect(() => {
     loadCategories();
+    loadDiscussions();
   }, []);
 
   /* ================= CREATE CATEGORY ================= */
   const createCategory = async () => {
-    if (!form.categoryName || !form.colorCode) return;
+    if (!categoryForm.categoryName || !categoryForm.colorCode) return;
 
-    try {
-      const res = await fetch(
-        `${BASE_URL}/api/projects/discussion-categories`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          },
-          body: JSON.stringify(form),
-        }
-      );
+    const res = await fetch(
+      `${BASE_URL}/api/projects/discussion-categories`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(categoryForm),
+      }
+    );
 
-      const data = await res.json();
-      setCategories((prev) => [...prev, data]);
+    const data = await res.json();
+    setCategories((p) => [...p, data]);
+    setCategoryForm({ categoryName: "", colorCode: "" });
+    setShowCategoryModal(false);
+  };
 
-      setForm({ categoryName: "", colorCode: "" });
-      setShowCategoryModal(false);
-    } catch (err) {
-      console.error("Create category failed", err);
-    }
+  /* ================= DELETE CATEGORY ================= */
+  const deleteCategory = async (categoryId: number) => {
+    await fetch(
+      `${BASE_URL}/api/projects/discussion-categories/${categoryId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+    loadCategories();
+  };
+
+  /* ================= CREATE DISCUSSION ================= */
+  const createDiscussion = async () => {
+    if (
+      !discussionForm.categoryId ||
+      !discussionForm.title ||
+      !discussionForm.initialMessage
+    )
+      return;
+
+    const fd = new FormData();
+    fd.append("title", discussionForm.title);
+    fd.append("categoryId", discussionForm.categoryId);
+    fd.append("initialMessage", discussionForm.initialMessage);
+    if (discussionForm.file) fd.append("initialFile", discussionForm.file);
+
+    await fetch(
+      `${BASE_URL}/api/projects/${projectId}/discussion-rooms`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+        body: fd,
+      }
+    );
+
+    setDiscussionForm({
+      categoryId: "",
+      title: "",
+      initialMessage: "",
+      file: null,
+    });
+
+    setShowDiscussionModal(false);
+    loadDiscussions();
+  };
+
+  /* ================= DELETE DISCUSSION ================= */
+  const deleteDiscussion = async (roomId: number) => {
+    await fetch(
+      `${BASE_URL}/api/projects/${projectId}/discussion-rooms/${roomId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      }
+    );
+    loadDiscussions();
   };
 
   return (
@@ -93,7 +216,10 @@ export default function DiscussionSection({ projectId }: { projectId: number }) 
         <h3 className="text-lg font-medium">Discussion</h3>
 
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded text-sm">
+          <button
+            onClick={() => setShowDiscussionModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1.5 rounded text-sm"
+          >
             <Plus size={16} />
             New Discussion
           </button>
@@ -108,73 +234,165 @@ export default function DiscussionSection({ projectId }: { projectId: number }) 
         </div>
       </div>
 
-      {/* ================= CATEGORY FILTER ================= */}
-      <div className="mb-4">
-        <label className="text-sm text-gray-600 block mb-1">Category</label>
-        {/* <select className="border rounded px-3 py-2 text-sm w-48">
-          <option>All</option>
-          {categories.map((c) => (
-            <option key={c.id}>{c.categoryName}</option>
-          ))}
-        </select> */}
+      {/* ================= DISCUSSION LIST ================= */}
+      {discussions.map((d) => {
+        const repliedAt =
+          d.lastMessage?.createdAt || d.updatedAt || d.createdAt;
 
-
-
-
-<select className="border rounded px-3 py-2 text-sm w-48">
-  <option key="all" value="all">
-    All
-  </option>
-
-  {categories.map((c) => (
-    <option key={c.id} value={c.id}>
-      {c.categoryName}
-    </option>
-  ))}
-</select>
-
-
-      </div>
-
-      {/* ================= DISCUSSION LIST (STATIC UI) ================= */}
-      <div className="space-y-3">
-        {[1, 2].map((i) => (
+        return (
           <div
-            key={i}
-            className="border rounded-md px-4 py-3 flex items-center justify-between"
+            key={d.id}
+            className="border rounded-md p-4 mb-3 flex justify-between items-center"
           >
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-gray-200" />
+            <div className="flex gap-3 items-start">
+              <img
+                src={d.createdByUser?.profileUrl || "/avatar.png"}
+                className="h-10 w-10 rounded-full"
+              />
+
               <div>
-                <p className="font-medium text-sm">
-                  Title of the discussion
+                <p className="font-medium">{d.title}</p>
+                <p className="text-xs text-gray-400">
+                  {formatRepliedAt(repliedAt)}
                 </p>
-                <p className="text-xs text-gray-500">
-                  replied at 31/10/2025 | 12:02 PM
-                </p>
+
+                {d.lastMessage?.messageType === "FILE" && (
+                  <img
+                    src={d.lastMessage.fileUrl}
+                    className="h-16 mt-2 rounded"
+                  />
+                )}
+
+                {d.lastMessage?.messageType === "TEXT" && (
+                  <p className="text-sm text-gray-500">
+                    {d.lastMessage.content}
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-8">
-              <span className="text-sm text-gray-500">💬 3</span>
-
-              <span className="flex items-center gap-2 text-sm">
-                <span className="h-2 w-2 rounded-full bg-blue-500" />
-                General
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <span className="flex items-center gap-1">
+                <MessageCircle size={14} />
+                {d.messageCount ?? 0}
               </span>
 
-              <Trash2 size={16} className="text-red-500 cursor-pointer" />
+              <span className="flex items-center gap-1">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: d.category.colorCode }}
+                />
+                {d.category.categoryName}
+              </span>
+
+              <Trash2
+                size={16}
+                className="text-red-500 cursor-pointer"
+                onClick={() => deleteDiscussion(d.id)}
+              />
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
+
+      {discussions.length === 0 && (
+        <div className="border rounded-md p-4 text-gray-400 text-center">
+          Team discussion will appear here
+        </div>
+      )}
+
+      {/* ================= NEW DISCUSSION MODAL ================= */}
+      {showDiscussionModal && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-[700px] p-6">
+            <div className="flex justify-between mb-4">
+              <h4 className="font-medium text-lg">New Discussion</h4>
+              <X
+                className="cursor-pointer"
+                onClick={() => setShowDiscussionModal(false)}
+              />
+            </div>
+
+            <select
+              value={discussionForm.categoryId}
+              onChange={(e) =>
+                setDiscussionForm({
+                  ...discussionForm,
+                  categoryId: e.target.value,
+                })
+              }
+              className="border rounded px-3 py-2 w-full mb-3 text-sm"
+            >
+              <option value="">Select category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.categoryName}
+                </option>
+              ))}
+            </select>
+
+            <input
+              placeholder="Title"
+              value={discussionForm.title}
+              onChange={(e) =>
+                setDiscussionForm({
+                  ...discussionForm,
+                  title: e.target.value,
+                })
+              }
+              className="border rounded px-3 py-2 w-full mb-3 text-sm"
+            />
+
+            <textarea
+              placeholder="Reply"
+              value={discussionForm.initialMessage}
+              onChange={(e) =>
+                setDiscussionForm({
+                  ...discussionForm,
+                  initialMessage: e.target.value,
+                })
+              }
+              className="border rounded px-3 py-2 w-full mb-4 text-sm min-h-[100px]"
+            />
+
+            <label className="border border-dashed rounded flex flex-col items-center justify-center py-6 cursor-pointer text-gray-400 mb-4">
+              <Upload />
+              <span className="text-sm mt-2">Choose a file</span>
+              <input
+                type="file"
+                hidden
+                onChange={(e) =>
+                  setDiscussionForm({
+                    ...discussionForm,
+                    file: e.target.files?.[0] || null,
+                  })
+                }
+              />
+            </label>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDiscussionModal(false)}
+                className="border px-6 py-2 rounded text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createDiscussion}
+                className="bg-blue-600 text-white px-6 py-2 rounded text-sm"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= CATEGORY MODAL ================= */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-[600px] p-5">
-            {/* HEADER */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex justify-between mb-4">
               <h4 className="font-medium">Discussion Category</h4>
               <X
                 className="cursor-pointer"
@@ -182,73 +400,52 @@ export default function DiscussionSection({ projectId }: { projectId: number }) 
               />
             </div>
 
-            {/* TABLE */}
-            <div className="border rounded mb-4">
-              <div className="grid grid-cols-12 bg-blue-50 px-3 py-2 text-sm font-medium">
-                <div className="col-span-1">#</div>
-                <div className="col-span-8">Category Name</div>
-                <div className="col-span-3 text-right">Action</div>
-              </div>
-
-              {loading ? (
-                <p className="p-3 text-sm text-gray-500">Loading...</p>
-              ) : (
-                categories.map((c, idx) => (
-                  <div
-                    key={c.id}
-                    className="grid grid-cols-12 px-3 py-2 border-t text-sm"
-                  >
-                    <div className="col-span-1">{idx + 1}</div>
-                    <div className="col-span-8 flex items-center gap-2">
-                      <span
-                        className="h-2 w-2 rounded-full"
-                        style={{ background: c.colorCode }}
-                      />
-                      {c.categoryName}
-                    </div>
-                    <div className="col-span-3 text-right">
-                      <Trash2
-                        size={16}
-                        className="text-red-500 inline cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* FORM */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="text-sm block mb-1">
-                  Category Name *
-                </label>
-                <input
-                  value={form.categoryName}
-                  onChange={(e) =>
-                    setForm({ ...form, categoryName: e.target.value })
-                  }
-                  className="border rounded px-3 py-2 w-full text-sm"
+            {categories.map((c) => (
+              <div
+                key={c.id}
+                className="flex justify-between items-center border-b py-2 text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ background: c.colorCode }}
+                  />
+                  {c.categoryName}
+                </div>
+                <Trash2
+                  size={14}
+                  className="text-red-500 cursor-pointer"
+                  onClick={() => deleteCategory(c.id)}
                 />
               </div>
+            ))}
 
-              <div>
-                <label className="text-sm block mb-1">
-                  Color Code *
-                </label>
-                <input
-                  value={form.colorCode}
-                  onChange={(e) =>
-                    setForm({ ...form, colorCode: e.target.value })
-                  }
-                  placeholder="#3498db"
-                  className="border rounded px-3 py-2 w-full text-sm"
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <input
+                placeholder="Category Name"
+                value={categoryForm.categoryName}
+                onChange={(e) =>
+                  setCategoryForm({
+                    ...categoryForm,
+                    categoryName: e.target.value,
+                  })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
+              <input
+                placeholder="#3498db"
+                value={categoryForm.colorCode}
+                onChange={(e) =>
+                  setCategoryForm({
+                    ...categoryForm,
+                    colorCode: e.target.value,
+                  })
+                }
+                className="border rounded px-3 py-2 text-sm"
+              />
             </div>
 
-            {/* ACTIONS */}
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 mt-4">
               <button
                 onClick={() => setShowCategoryModal(false)}
                 className="border px-4 py-2 rounded text-sm"
