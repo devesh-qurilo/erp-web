@@ -43,9 +43,10 @@ import {
   X,
   Archive,
 } from "lucide-react";
+import ProjectCalendarMonth from "./ProjectCalendarMonth";
 
 const MAIN = process.env.NEXT_PUBLIC_MAIN || "https://6jnqmj85-80.inc1.devtunnels.ms";
-
+const projectsFromApi = `${MAIN}/api/projects`;
 const STATUS_OPTIONS = [
   "IN_PROGRESS",
   "NOT_STARTED",
@@ -1551,7 +1552,12 @@ export default function AllProjectsPage() {
                 // If you want the rich CalendarView re-insert here (I kept it out of the pasted block for brevity).
                 <div>
                   {/* If you want the full CalendarView, re-use the CalendarView implementation you had earlier. */}
-                  <p className="text-sm text-gray-500">Calendar view — open the calendar icon to see it.</p>
+                  {/* <p className="text-sm text-gray-500">Calendar view — open the calendar icon to see it.</p> */}
+
+<ProjectCalendarMonth />
+
+
+
                 </div>
               ) : viewMode === "list" ? (
                 // Compact list
