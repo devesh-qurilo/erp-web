@@ -1,4 +1,6 @@
 
+
+
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -13,6 +15,11 @@ import {
   Eye,
   Download,
 } from "lucide-react";
+
+/* =================== WEBSOCKET IMPORTS (ADDED) =================== */
+import SockJS from "sockjs-client";
+import { Client } from "@stomp/stompjs";
+/* ================================================================= */
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE ||
@@ -67,6 +74,10 @@ export default function DiscussionDetailPage({
   const [openFileMenuId, setOpenFileMenuId] = useState<number | null>(null);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  /* =================== WEBSOCKET REF (ADDED) =================== */
+  const stompClientRef = useRef<Client | null>(null);
+  /* ============================================================= */
 
   const currentEmployeeId =
     typeof window !== "undefined"
@@ -128,6 +139,7 @@ export default function DiscussionDetailPage({
     setMessages(data);
   };
 
+  /* =================== INITIAL LOAD =================== */
   useEffect(() => {
     loadDiscussionDetail();
     loadMessages();
@@ -137,7 +149,44 @@ export default function DiscussionDetailPage({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* ================= SEND REPLY ================= */
+  /* =================== WEBSOCKET CONNECTION (ADDED) =================== */
+  useEffect(() => {
+    const socket = new SockJS(`${BASE_URL}/ws-discussion`);
+
+    const client = new Client({
+      webSocketFactory: () => socket,
+      debug: () => {},
+      connectHeaders: {
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
+      onConnect: () => {
+        client.subscribe(
+          `/topic/discussion-rooms/${roomId}`,
+          (message) => {
+            const payload: MessageItem = JSON.parse(message.body);
+
+            setMessages((prev) => {
+              const exists = prev.some((m) => m.id === payload.id);
+              if (exists) return prev;
+              return [...prev, payload];
+            });
+          }
+        );
+      },
+    });
+
+    client.activate();
+    stompClientRef.current = client;
+
+    return () => {
+      client.deactivate();
+    };
+  }, [roomId]);
+  /* =================================================================== */
+
+
+
+/* ================= SEND REPLY ================= */
   const sendReply = async () => {
     if (!reply && !file) return;
 
@@ -162,6 +211,11 @@ export default function DiscussionDetailPage({
     loadMessages();
   };
 
+
+
+
+
+
   /* ================= UPDATE MESSAGE ================= */
   const updateMessage = async () => {
     if (!editMessage) return;
@@ -180,7 +234,6 @@ export default function DiscussionDetailPage({
 
     setEditMessage(null);
     setEditContent("");
-    loadMessages();
   };
 
   /* ================= DELETE ================= */
@@ -195,7 +248,6 @@ export default function DiscussionDetailPage({
         },
       }
     );
-    loadMessages();
   };
 
   /* ================= BEST / UNBEST ================= */
@@ -224,11 +276,11 @@ export default function DiscussionDetailPage({
         },
       }
     );
-
-    loadMessages();
   };
 
   if (!detail) return null;
+
+  /* ================= UI (UNCHANGED BELOW) ================= */
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col">
