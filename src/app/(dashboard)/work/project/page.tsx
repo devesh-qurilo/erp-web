@@ -537,13 +537,21 @@ export default function AllProjectsPage() {
     try {
       const fd = new FormData();
       fd.append("status", newStatus);
+
+      // console.log('c',projectId)
+     
       const res = await fetch(`${MAIN}/api/projects/${projectId}/status`, {
-        method: "PATCH",
+        method: "PUT",
         body: fd,
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
+        // headers: { Authorization: `Bearer ${token}` },
+ headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+
+
+        // cache: "no-store",
       });
-      if (!res.ok) throw new Error(`Status patch failed ${res.status}`);
+     // if (!res.ok) throw new Error(`Status patch failed ${res.status}`);
 
       let json: any = null;
       try { json = await res.json(); } catch { json = null; }
@@ -561,6 +569,12 @@ export default function AllProjectsPage() {
     }
   }
 
+
+
+
+
+
+
   async function patchProgress(projectId: number, percent: number) {
     if (!token) return alert("Not authenticated");
     const clamped = Math.max(0, Math.min(100, Math.round(percent)));
@@ -572,10 +586,11 @@ export default function AllProjectsPage() {
       const fd = new FormData();
       fd.append("percent", String(clamped));
       const res = await fetch(`${MAIN}/api/projects/${projectId}/progress`, {
-        method: "PATCH",
+        method: "PUT",
         body: fd,
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
+       headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
       });
 
       if (res.status === 401) {
@@ -617,6 +632,14 @@ export default function AllProjectsPage() {
     }
   }
 
+
+
+
+
+
+
+
+  
   const handlePin = async (projectId: number) => {
     if (!token) return alert("Not authenticated");
     const prev = projects;
@@ -1439,7 +1462,7 @@ export default function AllProjectsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="w-full">
-        <div className="max-w-[1200px] mx-auto p-6  overflow-y-auto overflow-x-hidden">
+        <div className="max-w-[1200px] mx-auto p-6  overflow-y-auto ">
           {/* TOP FILTER BAR */}
           <div className="bg-white rounded-lg border p-3 mb-4 flex items-center gap-4 overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-3">
@@ -1540,7 +1563,7 @@ export default function AllProjectsPage() {
           </div>
 
           {/* MAIN content area */}
-          <div className="bg-white rounded-lg border overflow-hidden">
+          <div className="bg-white rounded-lg border ">
             <div className="bg-blue-50 px-6 py-3 border-b flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Projects ({filteredProjects.length})</h2>
               <div className="text-sm text-gray-600">{showArchivedOnly ? "Viewing: Archived" : showPinnedOnly ? "Viewing: Pinned" : "All active"}</div>

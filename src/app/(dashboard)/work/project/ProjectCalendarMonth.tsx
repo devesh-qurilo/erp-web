@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -109,7 +108,7 @@ export default function ProjectCalendarMonth() {
 
   /* ================= RENDER ================= */
   return (
-    <div className="w-full bg-white rounded-xl shadow-sm border p-4">
+    <div className="w-full bg-white rounded-xl shadow-sm border p-4 ">
       {/* ===== Header ===== */}
       <div className="flex items-center justify-between mb-4">
         <button
