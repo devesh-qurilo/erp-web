@@ -1439,9 +1439,9 @@ export default function AllProjectsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="w-full">
-        <div className="max-w-[1200px] mx-auto p-6">
+        <div className="max-w-[1200px] mx-auto p-6  overflow-y-auto overflow-x-hidden">
           {/* TOP FILTER BAR */}
-          <div className="bg-white rounded-lg border p-3 mb-4 flex items-center gap-4">
+          <div className="bg-white rounded-lg border p-3 mb-4 flex items-center gap-4 overflow-y-auto overflow-x-hidden">
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">Duration</span>
               <Input placeholder="Start Date to End Date" value={durationFilter === "all" ? "" : durationFilter} onChange={(e) => { setDurationFilter(e.target.value); setCurrentPage(1); }} className="w-56" />
@@ -1550,15 +1550,13 @@ export default function AllProjectsPage() {
               {viewMode === "calendar" || calendarOpen ? (
                 // Using a simple calendar view component - you had a complex CalendarView earlier.
                 // If you want the rich CalendarView re-insert here (I kept it out of the pasted block for brevity).
-                <div>
-                  {/* If you want the full CalendarView, re-use the CalendarView implementation you had earlier. */}
-                  {/* <p className="text-sm text-gray-500">Calendar view — open the calendar icon to see it.</p> */}
+                // <div>
 
 <ProjectCalendarMonth />
 
 
 
-                </div>
+                // {/* </div> */}
               ) : viewMode === "list" ? (
                 // Compact list
                 <div>

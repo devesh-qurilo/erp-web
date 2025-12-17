@@ -164,6 +164,7 @@ export default function ProjectCalendarMonth() {
       </div>
 
       {/* ===== Calendar Grid ===== */}
+    <div className="mt-2 max-h-[70vh] overflow-y-auto overflow-x-hidden">
       <div className="grid grid-cols-7 gap-px bg-gray-200 mt-2">
         {calendarDays.map((day, index) => {
           const dayProjects = getProjectsForDay(day);
@@ -213,6 +214,7 @@ export default function ProjectCalendarMonth() {
           );
         })}
       </div>
+    </div>
     </div>
   );
 }
