@@ -73,8 +73,8 @@ interface Project {
   deadline?: string;
   noDeadline?: boolean;
   client?:
-    | { name?: string; profilePictureUrl?: string | null; company?: string | null; clientId?: string }
-    | null;
+  | { name?: string; profilePictureUrl?: string | null; company?: string | null; clientId?: string }
+  | null;
   currency?: string;
   budget?: number;
   progressPercent?: number | null;
@@ -123,7 +123,9 @@ export default function AllProjectsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [progressFilter, setProgressFilter] = useState<string>("all");
-  const [durationFilter, setDurationFilter] = useState<string>("all");
+  const [durationFrom, setDurationFrom] = useState<string | null>(null);
+  const [durationTo, setDurationTo] = useState<string | null>(null);
+
 
   // drawer filters
   const [showFilters, setShowFilters] = useState(false);
@@ -219,7 +221,7 @@ export default function AllProjectsPage() {
   const writeProgressOverrides = (map: Record<string, number>) => {
     try {
       localStorage.setItem(OVERRIDES_KEY, JSON.stringify(map));
-    } catch {}
+    } catch { }
   };
   const setProgressOverrideFor = (projectId: number, percent: number | null) => {
     const map = readProgressOverrides();
@@ -253,11 +255,11 @@ export default function AllProjectsPage() {
           search: searchQuery || "",
           status: statusFilter !== "all" ? statusFilter : "",
           progress: progressFilter !== "all" ? progressFilter : "",
-          duration: durationFilter !== "all" ? durationFilter : "",
           project: filterProject !== "all" ? filterProject : "",
           member: filterMember !== "all" ? filterMember : "",
           client: filterClient !== "all" ? filterClient : "",
         });
+
 
         const res = await fetch(`${MAIN}/api/projects?${params.toString()}`, {
           headers: { Authorization: `Bearer ${resolvedToken}` },
@@ -265,7 +267,7 @@ export default function AllProjectsPage() {
         });
 
         if (res.status === 401) {
-          try { localStorage.removeItem("accessToken"); } catch {}
+          try { localStorage.removeItem("accessToken"); } catch { }
           setToken(null);
           setProjects([]);
           setTotalPages(1);
@@ -306,7 +308,8 @@ export default function AllProjectsPage() {
         setLoading(false);
       }
     },
-    [currentPage, searchQuery, statusFilter, progressFilter, durationFilter, filterProject, filterMember, filterClient, token]
+    [currentPage, searchQuery, statusFilter, progressFilter, filterProject, filterMember, filterClient, token]
+
   );
 
   // CATEGORY helpers: load, add, delete
@@ -527,7 +530,7 @@ export default function AllProjectsPage() {
     }
     if (token) getProjects(token);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [getProjects, token, currentPage, searchQuery, statusFilter, progressFilter, durationFilter, filterProject, filterMember, filterClient]);
+  }, [getProjects, token, currentPage, searchQuery, statusFilter, progressFilter, filterProject, filterMember, filterClient]);
 
   // UPDATES (status/progress/pin/delete/archive)
   async function patchStatus(projectId: number, newStatus: StatusOption) {
@@ -537,21 +540,14 @@ export default function AllProjectsPage() {
     try {
       const fd = new FormData();
       fd.append("status", newStatus);
-
-      // console.log('c',projectId)
-     
       const res = await fetch(`${MAIN}/api/projects/${projectId}/status`, {
         method: "PUT",
         body: fd,
-        // headers: { Authorization: `Bearer ${token}` },
- headers: {
+headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
-
-
-        // cache: "no-store",
+        },       
       });
-     // if (!res.ok) throw new Error(`Status patch failed ${res.status}`);
+      // if (!res.ok) throw new Error(`Status patch failed ${res.status}`);
 
       let json: any = null;
       try { json = await res.json(); } catch { json = null; }
@@ -569,12 +565,6 @@ export default function AllProjectsPage() {
     }
   }
 
-
-
-
-
-
-
   async function patchProgress(projectId: number, percent: number) {
     if (!token) return alert("Not authenticated");
     const clamped = Math.max(0, Math.min(100, Math.round(percent)));
@@ -588,9 +578,9 @@ export default function AllProjectsPage() {
       const res = await fetch(`${MAIN}/api/projects/${projectId}/progress`, {
         method: "PUT",
         body: fd,
-       headers: {
+ headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
+        },        
       });
 
       if (res.status === 401) {
@@ -632,14 +622,6 @@ export default function AllProjectsPage() {
     }
   }
 
-
-
-
-
-
-
-
-  
   const handlePin = async (projectId: number) => {
     if (!token) return alert("Not authenticated");
     const prev = projects;
@@ -820,13 +802,13 @@ export default function AllProjectsPage() {
         try {
           const json = JSON.parse(text || "{}");
           if (json && json.message) message = json.message;
-        } catch {}
+        } catch { }
         alert(message);
         setSubmitting(false);
         return;
       }
 
-      try { await res.json(); } catch {}
+      try { await res.json(); } catch { }
       await getProjects(resolvedToken);
       setShowAddModal(false);
       resetAddForm();
@@ -1300,23 +1282,55 @@ export default function AllProjectsPage() {
     setCurrentPage(1);
   };
 
-  // ---- Compute filteredProjects based on quick toggles and search ----
-  const filteredProjects = projects
-    .filter((p) => {
-      // archived toggle
-      if (showArchivedOnly) return Boolean(p.archived);
-      if (!showArchivedOnly && p.archived) return false; // hide archived by default
+
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p) => {
+      /* -------- STATUS -------- */
+      if (statusFilter !== "all") {
+        if (!p.projectStatus) return false;
+        if (p.projectStatus !== statusFilter) return false;
+      }
+
+      /* -------- PROGRESS -------- */
+      if (progressFilter !== "all") {
+        if (typeof p.progressPercent !== "number") return false;
+
+        const v = p.progressPercent;
+        if (progressFilter === "0-33" && !(v >= 0 && v <= 33)) return false;
+        if (progressFilter === "34-66" && !(v >= 34 && v <= 66)) return false;
+        if (progressFilter === "67-100" && !(v >= 67 && v <= 100)) return false;
+      }
+
+      /* -------- DURATION (CALENDAR) -------- */
+      if (durationFrom || durationTo) {
+        const start = p.startDate ? new Date(p.startDate) : null;
+        const end = p.deadline ? new Date(p.deadline) : null;
+
+        if (!start || !end) return false;
+
+        if (durationFrom) {
+          const from = new Date(durationFrom);
+          if (start < from) return false;
+        }
+
+        if (durationTo) {
+          const to = new Date(durationTo);
+          if (end > to) return false;
+        }
+      }
+
       return true;
-    })
-    .filter((p) => {
-      if (showPinnedOnly) return Boolean(p.pinned);
-      return true;
-    })
-    .filter((p) => {
-      if (!searchQuery) return true;
-      const q = searchQuery.toLowerCase();
-      return String(p.name || "").toLowerCase().includes(q) || String(p.shortCode || p.code || p.projectCode || "").toLowerCase().includes(q) || String(p.client?.name || "").toLowerCase().includes(q);
     });
+  }, [
+    projects,
+    statusFilter,
+    progressFilter,
+    durationFrom,
+    durationTo,
+  ]);
+
+
 
   if (loading) return <p className="p-8 text-center">Loading projects...</p>;
 
@@ -1336,7 +1350,7 @@ export default function AllProjectsPage() {
             <div className="flex -space-x-2">
               {(p.assignedEmployees || []).slice(0, 3).map((emp) => (
                 <div key={emp.employeeId} className="w-8 h-8 rounded-full border-2 border-white overflow-hidden bg-gray-100" title={emp.name}>
-                  {emp.profileUrl ? <img src={emp.profileUrl} alt={emp.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-white bg-gray-400">{(emp.name||"U").charAt(0)}</div>}
+                  {emp.profileUrl ? <img src={emp.profileUrl} alt={emp.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xs text-white bg-gray-400">{(emp.name || "U").charAt(0)}</div>}
                 </div>
               ))}
               {(p.assignedEmployees || []).length > 3 && (<div className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 text-xs text-gray-700 flex items-center justify-center">+{(p.assignedEmployees || []).length - 3}</div>)}
@@ -1462,13 +1476,36 @@ export default function AllProjectsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="w-full">
-        <div className="max-w-[1200px] mx-auto p-6  overflow-y-auto ">
+        <div className="max-w-[1200px] mx-auto p-6  overflow-y-auto overflow-x-hidden">
           {/* TOP FILTER BAR */}
           <div className="bg-white rounded-lg border p-3 mb-4 flex items-center gap-4 overflow-y-auto overflow-x-hidden">
+            {/* Duration Filter */}
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">Duration</span>
-              <Input placeholder="Start Date to End Date" value={durationFilter === "all" ? "" : durationFilter} onChange={(e) => { setDurationFilter(e.target.value); setCurrentPage(1); }} className="w-56" />
+
+              <Input
+                type="date"
+                value={durationFrom ?? ""}
+                onChange={(e) => {
+                  setDurationFrom(e.target.value || null);
+                  setCurrentPage(1);
+                }}
+                className="w-40"
+              />
+
+              <span className="text-gray-400 text-sm">to</span>
+
+              <Input
+                type="date"
+                value={durationTo ?? ""}
+                onChange={(e) => {
+                  setDurationTo(e.target.value || null);
+                  setCurrentPage(1);
+                }}
+                className="w-40"
+              />
             </div>
+
 
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">Status</span>
@@ -1498,9 +1535,9 @@ export default function AllProjectsPage() {
               </Select>
             </div>
 
-            <div className="ml-auto flex items-center gap-4">
+            {/* <div className="ml-auto flex items-center gap-4">
               <button onClick={openFilters} className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"><Filter className="w-5 h-5" /> Filters</button>
-            </div>
+            </div> */}
           </div>
 
           {/* ROW: Add Project + Search + Top-right icons */}
@@ -1563,7 +1600,7 @@ export default function AllProjectsPage() {
           </div>
 
           {/* MAIN content area */}
-          <div className="bg-white rounded-lg border ">
+          <div className="bg-white rounded-lg border overflow-hidden">
             <div className="bg-blue-50 px-6 py-3 border-b flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Projects ({filteredProjects.length})</h2>
               <div className="text-sm text-gray-600">{showArchivedOnly ? "Viewing: Archived" : showPinnedOnly ? "Viewing: Pinned" : "All active"}</div>
@@ -1575,7 +1612,7 @@ export default function AllProjectsPage() {
                 // If you want the rich CalendarView re-insert here (I kept it out of the pasted block for brevity).
                 // <div>
 
-<ProjectCalendarMonth />
+                <ProjectCalendarMonth />
 
 
 
