@@ -174,7 +174,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       } else {
         setStorage(data.accessToken);
-        router.push("/employee");
+        router.push("/employees/employee");
       }
     } catch (err) {
       setError(
