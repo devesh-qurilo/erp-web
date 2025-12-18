@@ -64,7 +64,7 @@
 //   const [error, setError] = useState<string | null>(null);
 //   const [query, setQuery] = useState("");
 
-  
+
 
 
 //   // Add Payment modal state + form fields
@@ -750,7 +750,7 @@
 // src/components/ClientPaymentsTable.tsx
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, use } from "react";
 import Image from "next/image";
 import { MoreHorizontal, X, Trash2 } from "lucide-react";
 
@@ -813,13 +813,14 @@ export default function ClientPaymentsTable({
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  
 
-// Action dropdown + View/Edit modal state
-const [openActionId, setOpenActionId] = useState<number | string | null>(null);
-const [showDetailsModal, setShowDetailsModal] = useState(false);
-const [activePayment, setActivePayment] = useState<Payment | null>(null);
-const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
+
+  // Action dropdown + View/Edit modal state
+  const [openActionId, setOpenActionId] = useState<number | string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [nan,setNan] =useState(false);
+  const [activePayment, setActivePayment] = useState<Payment | null>(null);
+  const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
 
 
 
@@ -868,8 +869,8 @@ const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
       method: "GET",
       signal: controller.signal,
       headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-        },
+        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+      },
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -900,8 +901,8 @@ const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
             typeof p.amount === "number"
               ? p.amount
               : p.amount
-              ? Number(p.amount)
-              : undefined,
+                ? Number(p.amount)
+                : undefined,
           currency: p.currency ?? undefined,
           paidOn: p.paymentDate ?? undefined,
           paymentGateway: p.paymentGateway?.name ?? undefined,
@@ -975,7 +976,7 @@ const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
     if (onAdd) {
       try {
         onAdd();
-      } catch {}
+      } catch { }
     }
     // prefill client if we have clientId
     setClientField(clientId ? String(clientId) : clientField);
@@ -1220,45 +1221,45 @@ const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
                         )}
                       </div>
 
-                  <div className="w-10 text-center relative">
-  <button
-    onClick={() =>
-      setOpenActionId(openActionId === p.id ? null : p.id)
-    }
-    className="p-2 rounded hover:bg-gray-100 inline-flex items-center justify-center"
-    title="Actions"
-  >
-    <MoreHorizontal size={16} />
-  </button>
+                      <div className="w-10 text-center relative">
+                        <button
+                          onClick={() =>
+                            setOpenActionId(openActionId === p.id ? null : p.id)
+                          }
+                          className="p-2 rounded hover:bg-gray-100 inline-flex items-center justify-center"
+                          title="Actions"
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
 
-  {openActionId === p.id && (
-    <div className="absolute right-0 top-9 bg-white border rounded-md shadow-lg w-32 z-20">
-      <button
-        onClick={() => {
-          setActivePayment(p);
-          setDetailsMode("view");
-          setShowDetailsModal(true);
-          setOpenActionId(null);
-        }}
-        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-      >
-        View
-      </button>
+                        {openActionId === p.id && (
+                          <div className="absolute right-0 top-9 bg-white border rounded-md shadow-lg w-32 z-20">
+                            <button
+                              onClick={() => {
+                                setActivePayment(p);
+                                setDetailsMode("view");
+                                setShowDetailsModal(true);
+                                setOpenActionId(null);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                              View
+                            </button>
 
-      <button
-        onClick={() => {
-          setActivePayment(p);
-          setDetailsMode("edit"); // future use
-          setShowDetailsModal(true);
-          setOpenActionId(null);
-        }}
-        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-      >
-        Edit
-      </button>
-    </div>
-  )}
-</div>
+                            <button
+                              onClick={() => {
+                                setActivePayment(p);
+                                setDetailsMode("edit"); // future use
+                                setNan(true);
+                                setOpenActionId(null);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
 
                     </div>
@@ -1435,6 +1436,178 @@ const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
         </div>
       )}
 
+
+
+
+
+ {nan && (
+        <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-8 px-4 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/40"
+            onClick={() => setNan(false)}
+          />
+          <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-y-auto z-10">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold">Edit Payment Details</h3>
+              <button
+                onClick={() =>  setNan(false)}
+                className="p-2 rounded hover:bg-gray-100"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="rounded-lg border p-4">
+                <h4 className="font-medium mb-3">Payment Details</h4>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm text-gray-600">Project *</label>
+                    <input
+                      className="w-full border rounded px-3 py-2"
+                      value={projectField}
+                      onChange={(e) => setProjectField(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Client *</label>
+                    <input
+                      className="w-full border rounded px-3 py-2"
+                      value={clientField}
+                      onChange={(e) => setClientField(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Invoice *</label>
+                    <input
+                      className="w-full border rounded px-3 py-2"
+                      value={invoiceField}
+                      onChange={(e) => setInvoiceField(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Amount *</label>
+                    <input
+                      className="w-full border rounded px-3 py-2"
+                      value={amountField}
+                      onChange={(e) => setAmountField(e.target.value)}
+                      placeholder="---"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Currency *</label>
+                    <select
+                      value={currencyField}
+                      onChange={(e) => setCurrencyField(e.target.value)}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="USD">USD $</option>
+                      <option value="INR">INR ₹</option>
+                      <option value="EUR">EUR €</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm text-gray-600">Transaction Id</label>
+                    <input
+                      className="w-full border rounded px-3 py-2"
+                      value={transactionIdField}
+                      onChange={(e) => setTransactionIdField(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="text-sm text-gray-600">Payment Gateway</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={paymentGatewayField}
+                        onChange={(e) => setPaymentGatewayField(e.target.value)}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        {gateways.length > 0 ? (
+                          gateways.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)
+                        ) : (
+                          <>
+                            <option>Net Banking</option>
+                            <option>Credit Card</option>
+                            <option>PayPal</option>
+                          </>
+                        )}
+                      </select>
+                      <button
+                        className="px-3 py-2 bg-gray-100 rounded"
+                        type="button"
+                        onClick={handleOpenGatewayModal}
+                        title="Add payment gateway"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="text-sm text-gray-600 block mb-2">Receipt</label>
+                  <div
+                    onClick={handleFileClick}
+                    className="border-2 border-dashed rounded-lg h-28 flex items-center justify-center cursor-pointer text-gray-500"
+                  >
+                    <div className="text-center">
+                      <div className="mb-1">Choose a file</div>
+                      <div className="text-xs text-gray-400">
+                        {receiptFile ? receiptFile.name : "Drag & drop or click"}
+                      </div>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="text-sm text-gray-600 block mb-2">Remark</label>
+                  <textarea
+                    rows={4}
+                    value={remarkField}
+                    onChange={(e) => setRemarkField(e.target.value)}
+                    className="w-full p-3 border rounded"
+                    placeholder="Enter a summary of payment"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  className="px-4 py-2 border rounded"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                  onClick={handleSavePayment}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+
+
       {/* Payment Gateway Modal (uses GET/POST/DELETE) */}
       {showGatewayModal && (
         <div className="fixed inset-0 z-[11000] flex items-start justify-center pt-12 px-4 overflow-y-auto">
@@ -1522,52 +1695,50 @@ const [detailsMode, setDetailsMode] = useState<"view" | "edit">("view");
 
 
 
-{/* Payment Details Modal (View / Edit) */}
-{showDetailsModal && activePayment && (
-  <div className="fixed inset-0 z-[12000] flex justify-center items-start pt-10">
-    <div
-      className="fixed inset-0 bg-black/40"
-      onClick={() => setShowDetailsModal(false)}
-    />
+      {/* Payment Details Modal (View / Edit) */}
+      {showDetailsModal && activePayment && (
+        <div className="fixed inset-0 z-[12000] flex justify-center items-start pt-10">
+          <div
+            className="fixed inset-0 bg-black/40"
+            onClick={() => setShowDetailsModal(false)}
+          />
 
-    <div className="relative bg-white w-full max-w-3xl rounded-xl shadow-xl p-6 z-10">
-      <div className="flex justify-between mb-4">
-        <h3 className="text-lg font-semibold">Payment Details</h3>
-        <button onClick={() => setShowDetailsModal(false)}>
-          <X />
-        </button>
-      </div>
+          <div className="relative bg-white w-full max-w-3xl rounded-xl shadow-xl p-6 z-10">
+            <div className="flex justify-between mb-4">
+              <h3 className="text-lg font-semibold">Payment Details</h3>
+              <button onClick={() => setShowDetailsModal(false)}>
+                <X />
+              </button>
+            </div>
 
-      <div className="grid grid-cols-2 gap-y-4 text-sm">
-        <div>Amount</div>
-        <div>{formatAmount(activePayment.amount, activePayment.currency)}</div>
+            <div className="grid grid-cols-2 gap-y-4 text-sm">
+              <div>Amount</div>
+              <div>{formatAmount(activePayment.amount, activePayment.currency)}</div>
 
-        <div>Payment On</div>
-        <div>{formatDate(activePayment.paidOn)}</div>
+              <div>Payment On</div>
+              <div>{formatDate(activePayment.paidOn)}</div>
 
-        <div>Invoice</div>
-        <div>{activePayment.invoice ?? "--"}</div>
+              <div>Invoice</div>
+              <div>{activePayment.invoice ?? "--"}</div>
 
-        <div>Project</div>
-        <div>{activePayment.project ?? "--"}</div>
+              <div>Project</div>
+              <div>{activePayment.project ?? "--"}</div>
 
-        <div>Gateway</div>
-        <div>{activePayment.paymentGateway ?? "--"}</div>
+              <div>Gateway</div>
+              <div>{activePayment.paymentGateway ?? "--"}</div>
 
-        <div>Status</div>
-        <div>{activePayment.status ?? "--"}</div>
+              <div>Status</div>
+              <div>{activePayment.status ?? "--"}</div>
 
-        <div>Receipt</div>
-        <div>{activePayment.receiptFileUrl ?? "--"}</div>
+              <div>Receipt</div>
+              <div>{activePayment.receiptFileUrl ?? "--"}</div>
 
-        <div>Remark</div>
-        <div>--</div>
-      </div>
-    </div>
-  </div>
-)}
-
-
+              <div>Remark</div>
+              <div>--</div>
+            </div>
+          </div>
+        </div>
+      )}
 
 
     </div>
