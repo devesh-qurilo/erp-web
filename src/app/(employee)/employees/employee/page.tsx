@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import EmployeeLeaveQuotaTable from "./_components/EmployeeLeaveQuotaTable";
 
 type Employee = {
   employeeId: string;
@@ -204,7 +205,7 @@ export default function Dashboard() {
          
         }
         if (tkRes.ok) {
-console.log("devessh--->")
+
 
           const tk = await tkRes.json();
           setTasksCnt({
@@ -212,20 +213,22 @@ console.log("devessh--->")
             overdue: tk.overdueCount ?? 0,
           });
         }
-        if (dRes.ok) {
-          const d = await dRes.json();
-          setDealsCnt({
-            totalDeals: d.totalDeals ?? 0,
-            convertedDeals: d.convertedDeals ?? 0,
-          });
-        }
-        if (fRes.ok) {
-          const f = await fRes.json();
-          setFollowUpCnt({
-            pending: f.pendingCount ?? 0,
-            upcoming: f.upcomingCount ?? 0,
-          });
-        }
+        // if (dRes.ok) {
+        //   const d = await dRes.json();
+        //   setDealsCnt({
+        //     totalDeals: d.totalDeals ?? 0,
+        //     convertedDeals: d.convertedDeals ?? 0,
+        //   });
+        // }
+        // if (fRes.ok) {
+        //   const f = await fRes.json();
+        //   setFollowUpCnt({
+        //     pending: f.pendingCount ?? 0,
+        //     upcoming: f.upcomingCount ?? 0,
+        //   });
+        // }
+
+
         if (tsRes.ok) {
           const ts = await tsRes.json();
           const mins =
@@ -714,25 +717,7 @@ console.log("devessh--->")
           />
         </div>
 
-        <div className="rounded-lg ">
-           <Summary
-            title="Follow Ups"
-            a={pad(followUpCnt.pending)}
-            aLabel="Pending"
-            b={pad(followUpCnt.upcoming)}
-            bLabel="Upcoming"
-          />
-        </div>
-
-        <div className="rounded-lg ">
-           <Summary
-            title="Deals"
-            a={pad(dealsCnt.totalDeals)}
-            aLabel="Total Deals"
-            b={pad(dealsCnt.convertedDeals)}
-            bLabel="Converted Deals"
-          />
-        </div>
+        
       </div>
 
       {/* Week Timelogs card */}
@@ -760,9 +745,56 @@ console.log("devessh--->")
         <div className="mt-4">
           <Progress value={timelog.progress} className="h-3 rounded-full" />
           <div className="text-xs text-muted-foreground mt-2">Duration: {timelog.duration}</div>
-        </div>
+        </div>   
       </div>
+
+<div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+        <div className="rounded-lg border p-6 h-40 w-full bg-white shadow-sm">
+          <div className="font-medium mb-3">Birthdays</div>
+          {birthdays.length ? (
+            <div className="overflow-auto space-y-2">
+              {birthdays.map((b: any) => (
+                <div key={b.employeeId} className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted overflow-hidden">
+                    {b.profileUrl ? (
+                      <img
+                        src={b.profileUrl}
+                        alt="img"
+                        className="h-full w-10 h-10 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                        —
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">
+                      {b.name || b.employeeName}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {b.department}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-muted-foreground mt-6">
+              — No Record Found —
+            </div>
+          )}
+        </div>
+
+        
+      </div>
+
+
     </div>
+
+
+
+    
   </div>
 </div>
 
@@ -817,105 +849,21 @@ console.log("devessh--->")
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="rounded-lg border p-6 h-40 bg-white shadow-sm">
-          <div className="font-medium mb-3">Birthdays</div>
-          {birthdays.length ? (
-            <div className="overflow-auto space-y-2">
-              {birthdays.map((b: any) => (
-                <div key={b.employeeId} className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted overflow-hidden">
-                    {b.profileUrl ? (
-                      <img
-                        src={b.profileUrl}
-                        alt="img"
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                        —
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">
-                      {b.name || b.employeeName}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {b.department}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-muted-foreground mt-6">
-              — No Record Found —
-            </div>
-          )}
-        </div>
 
-        <div className="rounded-lg border p-6 h-40 bg-white shadow-sm">
-          <div className="font-medium mb-3">On Leave Today</div>
-          {leaves.length ? (
-            <div className="overflow-auto space-y-2">
-              {leaves.map((l: any) => (
-                <div key={l.employeeId} className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                      {l.employeeName.charAt(0)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{l.employeeName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {l.leaveType}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-muted-foreground mt-6">
-              — No Record Found —
-            </div>
-          )}
-        </div>
 
-        <div className="rounded-lg border p-6 h-40 bg-white shadow-sm">
-          <div className="font-medium mb-3">On Work From Home Today</div>
-          {wfhs.length ? (
-            <div className="overflow-auto space-y-2">
-              {wfhs.map((w: any) => (
-                <div key={w.employeeId} className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted overflow-hidden">
-                    {w.profilePictureUrl ? (
-                      <img
-                        src={w.profilePictureUrl}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                        {w.employeeName.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{w.employeeName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {w.departmentName}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-muted-foreground mt-6">
-              — No Record Found —
-            </div>
-          )}
-        </div>
-      </div>
+
+
+
+
+
+
+
+
+
+<EmployeeLeaveQuotaTable />
+
+
+
 
       {/* Clock In Modal */}
       {showClockModal && (
