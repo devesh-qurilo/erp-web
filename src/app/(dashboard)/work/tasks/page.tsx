@@ -14,6 +14,7 @@ import { KanbanBoard } from "./components/KanbanBoard";
 import { StagesModal } from "./components/StagesModal";
 import ViewTaskModal from "./components/ViewTaskModal/ViewTaskModal";
 import EditTaskDrawer from "./components/EditTaskDrawer";
+import { DuplicateTaskModal } from "./components/DuplicateTaskModal";
 
 /**
  * ---- Shared Types (baaki components inko import karke use kar sakte hain) ----
@@ -117,6 +118,11 @@ const TasksPage: React.FC = () => {
     const [viewTaskId, setViewTaskId] = useState<number | null>(null);
     const [showViewModal, setShowViewModal] = useState(false);
 
+
+ const [duplicateOpen, setDuplicateOpen] = useState(false);
+    const [duplicateTask, setDuplicateTask] = useState<Task | null>(null);
+
+
     const [editOpen, setEditOpen] = useState(false);
     const [editTaskId, setEditTaskId] = useState<number | null>(null);
 
@@ -125,6 +131,14 @@ const TasksPage: React.FC = () => {
         setViewTaskId(task.id);
         setShowViewModal(true);
     };
+
+
+    const handleDuplicateTask = (task: Task) => {
+        setDuplicateTask(task);
+        setDuplicateOpen(true);
+    };
+
+
 
     // --------- API Calls ---------
 
@@ -274,21 +288,7 @@ const TasksPage: React.FC = () => {
         }
     };
 
-    const handleDuplicateTask = async (taskId: number) => {
-        const token = localStorage.getItem("accessToken");
-
-        const res = await fetch(`${MAIN_API}/api/projects/tasks/${taskId}/duplicate`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (res.ok) {
-            fetchAllTasks();
-            fetchMyTasks();
-        } else {
-            alert("Failed to duplicate");
-        }
-    };
+    
 
 
     const handlePinToggle = async (taskId: number) => {
@@ -391,7 +391,7 @@ const TasksPage: React.FC = () => {
                                     setEditOpen(true);
                                 }}
                                 onDelete={(task) => handleDeleteTask(task.id)}
-                                onDuplicate={(task) => handleDuplicateTask(task.id)}
+ onDuplicate={handleDuplicateTask}
                                 onTogglePin={(task) => handlePinToggle(task.id)}
                             />
                         ) : viewMode === "kanban" ? (
@@ -436,6 +436,23 @@ const TasksPage: React.FC = () => {
                     fetchMyTasks();
                 }}
             />
+
+
+{duplicateTask && (
+  <DuplicateTaskModal
+    open={duplicateOpen}
+    onOpenChange={setDuplicateOpen}
+    task={duplicateTask}
+    onCreated={() => {
+      setDuplicateOpen(false);
+      setDuplicateTask(null);
+      fetchAllTasks();
+      fetchMyTasks();
+    }}
+  />
+)}
+
+
         </div>
     );
 };
