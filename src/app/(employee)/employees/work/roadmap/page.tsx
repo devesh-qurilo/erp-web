@@ -261,7 +261,7 @@ export default function AllProjectsPage() {
         });
 
 
-        const res = await fetch(`${MAIN}/api/projects?${params.toString()}`, {
+        const res = await fetch(`${MAIN}/projects?page=0&size=50`, {
           headers: { Authorization: `Bearer ${resolvedToken}` },
           cache: "no-store",
         });

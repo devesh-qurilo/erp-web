@@ -1069,7 +1069,7 @@ import TasksTable from "../components/TasksTable";
 import ProjectMembersTable from "../components/ProjectMembersTable";
 import TimesheetsTableNew from "../components/TimesheetsTableNew";
 import MilestonesTable from "../components/MilestonesTable";
-import { getStorage } from "../../../../../lib/storage/storege"; // adjust path if needed
+// import { getStorage } from "../../../../../lib/storage/storege"; // adjust path if needed
 import axios from "axios";
 
 interface Project {
@@ -1165,7 +1165,7 @@ function TaskStatistics({ projectId }: { projectId: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const token = getStorage();
+  const token = localStorage.getItem("accessToken") || "";
 
   useEffect(() => {
     let mounted = true;
