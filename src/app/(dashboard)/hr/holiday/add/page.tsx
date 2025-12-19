@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { useState } from "react";
 
 interface NewHoliday {
@@ -34,18 +35,18 @@ export default function AddHolidayPage() {
   // Submit holidays
   const handleSubmit = async () => {
     try {
-      setSubmitting(true);
-      setMessage("");
+      // setSubmitting(true);
+      // setMessage("");
 
       const token = localStorage.getItem("accessToken")
-      if (!token) {
-        setMessage("❌ No token found in localStorage");
-        setSubmitting(false);
-        return;
-      }
+      // if (!token) {
+      //   setMessage("❌ No token found in localStorage");
+      //   setSubmitting(false);
+      //   return;
+      // }
+      console.log("dekh bhaiiii", JSON.stringify({ holidays: newHolidays }))
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/holidays/bulk`, {
 
-      const res = await fetch("/api/hr/holidays/bulk", {
-        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -57,7 +58,7 @@ export default function AddHolidayPage() {
         throw new Error("Failed to create holidays");
       }
 
-      await res.json();
+      await res.data;
       setMessage("✅ Holidays created successfully!");
       setNewHolidays([{ date: "", occasion: "" }]);
     } catch (err: any) {

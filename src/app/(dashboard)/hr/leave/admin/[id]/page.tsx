@@ -25,6 +25,8 @@ interface Leave {
   updatedAt: string;
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_MAIN;
+
 export default function LeaveDetail() {
   const params = useParams();
   const id = params.id as string;
@@ -42,7 +44,7 @@ export default function LeaveDetail() {
           return;
         }
 
-        const res = await fetch(`/api/hr/leave/${id}`, {
+        const res = await fetch(`${BASE_URL}/employee/api/leaves/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
