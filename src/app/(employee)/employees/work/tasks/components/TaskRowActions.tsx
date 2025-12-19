@@ -64,22 +64,22 @@ export const TaskRowActions: React.FC<TaskRowActionsProps> = ({
                 </DropdownMenuItem>
 
                 {/* Edit */}
-                <DropdownMenuItem
+                {/* <DropdownMenuItem
                     className="flex cursor-pointer items-center gap-2 text-slate-700"
                     onClick={() => onEdit?.(task)}
                 >
                     <Pencil size={16} />
                     Edit
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
 
                 {/* Duplicate */}
-                <DropdownMenuItem
+                {/* <DropdownMenuItem
                     className="flex cursor-pointer items-center gap-2 text-slate-700"
                     onClick={() => onDuplicate?.(task)}
                 >
                     <Copy size={16} />
                     Duplicate
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
 
                 <DropdownMenuSeparator />
 
@@ -95,13 +95,13 @@ export const TaskRowActions: React.FC<TaskRowActionsProps> = ({
                 <DropdownMenuSeparator />
 
                 {/* Delete */}
-                <DropdownMenuItem
+                {/* <DropdownMenuItem
                     className="flex cursor-pointer items-center gap-2 text-red-600"
                     onClick={() => onDelete?.(task)}
                 >
                     <Trash2 size={16} className="text-red-600" />
                     Delete
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
             </DropdownMenuContent>
         </DropdownMenu>
     );

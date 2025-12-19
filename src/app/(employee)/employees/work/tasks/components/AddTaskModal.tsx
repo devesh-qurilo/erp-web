@@ -187,7 +187,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
             if (file) fd.append("taskFile", file);
 
-            const res = await fetch(`${MAIN}/api/projects/tasks`, {
+            const res = await fetch(`${MAIN}/projects/tasks`, {
                 method: "POST",
                 body: fd,
                 // TODO: yaha pe agar token chahiye ho to header add karna
@@ -249,7 +249,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
                                 <SelectValue placeholder="Select project" />
                             </SelectTrigger>
                             <SelectContent>
-                                {projects.map((p) => (
+                                {projects?.map((p) => (
                                     <SelectItem value={String(p.id)} key={p.id}>
                                         {p.shortCode} - {p.name}
                                     </SelectItem>

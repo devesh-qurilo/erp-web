@@ -153,7 +153,7 @@ const TasksPage: React.FC = () => {
             setError(null);
             const token = typeof window !== "undefined" ? window.localStorage.getItem("accessToken") : null
 
-            const res = await fetch(`${MAIN_API}/api/projects/tasks/getAll`, {
+            const res = await fetch(`${MAIN_API}/me/tasks`, {
                 // TODO: yaha pe agar token chahiye ho to header add karna
                 headers: { Authorization: `Bearer ${token}` },
                 // credentials: "include",
@@ -314,7 +314,7 @@ const TasksPage: React.FC = () => {
         <div className="flex min-h-screen flex-col bg-slate-50">
             {/* Top header */}
             <header className="flex items-center justify-between px-8 py-6">
-                <h1 className="text-2xl font-semibold text-slate-900">My Task</h1>
+                <h1 className="text-2xl font-semibold text-slate-900">My Task </h1>
 
                 {/* yaha future me notification icon, profile avatar etc aa sakta hai */}
                 <div className="flex items-center gap-4 text-sm text-slate-500">

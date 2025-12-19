@@ -44,7 +44,7 @@ export function AppSidebar() {
               <SidebarMenuButton asChild>
                 <Link href="/employee/dashboard">
                   <LayoutDashboard className="size-5" />
-                  <span>Dashboard</span>
+                  <span>Dashboard fbhvj</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

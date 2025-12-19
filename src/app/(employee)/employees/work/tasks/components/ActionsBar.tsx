@@ -230,42 +230,7 @@ export const ActionsBar: React.FC<ActionsBarProps> = ({
                 </Button>
 
                 {/* KANBAN MODE → show All Task Stages */}
-                {viewMode === "kanban" ? (
-                    <Button
-                        variant="outline"
-                        className="h-10 rounded-xl border-slate-300 bg-white px-4 text-sm font-medium shadow-sm"
-                        onClick={() => onOpenStages?.()}
-                    >
-                        All Task Stages
-                    </Button>
-                ) : (
-                    <>
-                        {/* Normal Mode → All Tasks & My Tasks */}
-                        <Button
-                            variant="outline"
-                            className={cn(
-                                "h-10 rounded-xl border-slate-300 bg-white px-4 text-sm font-medium shadow-sm",
-                                taskSource === "all" &&
-                                "border-indigo-500 bg-indigo-50 text-indigo-600"
-                            )}
-                            onClick={() => onTaskSourceChange("all")}
-                        >
-                            All Tasks
-                        </Button>
-
-                        <Button
-                            variant="outline"
-                            className={cn(
-                                "h-10 rounded-xl border-slate-300 bg-white px-4 text-sm font-medium shadow-sm",
-                                taskSource === "me" &&
-                                "border-indigo-500 bg-indigo-50 text-indigo-600"
-                            )}
-                            onClick={() => onTaskSourceChange("me")}
-                        >
-                            My Tasks
-                        </Button>
-                    </>
-                )}
+               
             </div>
 
 
