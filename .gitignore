@@ -43,7 +43,7 @@ next-env.d.ts
 /src/app/(employee)/employees/deals
 /src/app/(employee)/employees/finance
 /src/app/(employee)/employees/hr
-/src/app/(employee)/employees/leads
+# /src/app/(employee)/employees/leads
 /src/app/(employee)/employees/messages
 /src/app/(employee)/employees/notifications
 /src/app/(employee)/employees/profile

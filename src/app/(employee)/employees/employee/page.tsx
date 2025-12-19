@@ -633,7 +633,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-sm text-muted-foreground">
                       No Img
-                    </div>
+                    </div> 
                   )}
                 </div>
 
@@ -704,20 +704,14 @@ export default function Dashboard() {
               </div>
 
               <div className="rounded-lg ">
-
-
                 <Summary
                   title="Tasks"
                   a={pad(tasksCnt.pending)}
                   aLabel="Pending"
                   b={pad(tasksCnt.overdue)}
                   bLabel="Overdue"
-
-
                 />
               </div>
-
-
             </div>
 
             {/* Week Timelogs card */}
@@ -784,20 +778,10 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-
-
             </div>
-
-
           </div>
-
-
-
-
         </div>
       </div>
-
-
       <div>
         <Card className="border-0 shadow-sm">
           <CardContent>
@@ -847,17 +831,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-
-
-
-
-
-
-
-
-
-
 
       <EmployeeLeaveQuotaTable />
 
