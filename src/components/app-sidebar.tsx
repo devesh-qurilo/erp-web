@@ -210,23 +210,8 @@ export function AppSidebar() {
 
             {openGroups.hr ? (
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/hr/leave/admin">
-                      <CalendarX className="size-5" />
-                      <span>Leave</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
 
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/hr/awards">
-                      <Award className="size-5" />
-                      <span>Awards</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
@@ -239,20 +224,13 @@ export function AppSidebar() {
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/hr/designation">
-                      <Briefcase className="size-5" />
-                      <span>Designation</span>
+                    <Link href="/hr/leave/admin">
+                      <CalendarX className="size-5" />
+                      <span>Leave</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link href="/hr/department">
-                      <Briefcase className="size-5" />
-                      <span>Departments</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
@@ -262,6 +240,37 @@ export function AppSidebar() {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/hr/designation">
+                      <Briefcase className="size-5" />
+                      <span>Designation</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/hr/department">
+                      <Briefcase className="size-5" />
+                      <span>Departments</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/hr/awards">
+                      <Award className="size-5" />
+                      <span>Awards</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+
+
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
@@ -370,7 +379,7 @@ export function AppSidebar() {
 
         <SidebarFooter className="bg-[#15173a] text-white">
           <div className="p-4 text-xs text-white text-sidebar-foreground/60 text-center border-t border-sidebar-border">
-            © 2025 Qurilo 
+            © 2025 Qurilo
           </div>
         </SidebarFooter>
       </Sidebar>
