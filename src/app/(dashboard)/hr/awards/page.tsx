@@ -70,7 +70,7 @@ export default function AwardsPage() {
         const token = localStorage.getItem("accessToken");
         if (!token) throw new Error("Access token not found");
 
-        const res = await fetch("/api/hr/awards", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/awards`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -119,7 +119,7 @@ export default function AwardsPage() {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("Access token not found");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/api/hr/awards/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/awards/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

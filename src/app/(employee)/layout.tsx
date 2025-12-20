@@ -2,6 +2,7 @@ import type React from "react"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { CommonNavbar } from "@/components/Navbar"
+import { EAppSidebar } from "@/components/emp-sidebar"
 
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -9,7 +10,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         {/* Sidebar */}
-        <AppSidebar />
+        <EAppSidebar />
 
         {/* Main content area */}
         <SidebarInset>

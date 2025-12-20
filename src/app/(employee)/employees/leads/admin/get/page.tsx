@@ -1278,12 +1278,12 @@ export default function LeadsAdminPage() {
   };
 
   const handleChangeToClient = (id: number) => {
-    router.push(`/clients/changeToClient?leadId=${id}`);
+    // router.push(`/clients/changeToClient?leadId=${id}`);
   };
 
   const handleView = (id: number) => {
     // navigate to view page or open view modal — here we navigate
-    router.push(`/leads/admin/get/${id}`);
+    router.push(`/employees/leads/admin/get/${id}`);
   };
 
   const handleConvert = async (id: number) => {

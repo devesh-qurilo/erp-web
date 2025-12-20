@@ -1423,14 +1423,14 @@ headers: {
         <TableCell className="py-4 px-4 align-top text-right">
           <DropdownMenu>
             {/* <DropdownMenuTrigger asChild> */}
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => window.location.assign(`/work/roadmap/${p.id}`)}><Eye className="h-4 w-4 mr-2" /> </Button>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => window.location.assign(`/employees/work/roadmap/${p.id}`)}><Eye className="h-4 w-4 mr-2" /> </Button>
 
               {/* <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
               <MoreVertical className="h-4 w-4" /></Button> */}
             {/* </DropdownMenuTrigger> */}
 
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => window.location.assign(`/work/roadmap/${p.id}`)}><Eye className="h-4 w-4 mr-2" /> View</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.assign(`/employees/work/roadmap/${p.id}`)}><Eye className="h-4 w-4 mr-2" /> View</DropdownMenuItem>
 
               {/* <DropdownMenuItem onClick={() => { setUpdateProjectId(p.id); setShowUpdateModal(true); }}>
                 <Edit2 className="h-4 w-4 mr-2" /> Edit
@@ -1580,7 +1580,7 @@ headers: {
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="text-sm">{p.progressPercent ?? 0}%</div>
-                            <Button variant="ghost" size="sm" onClick={() => window.location.assign(`/work/roadmap/${p.id}`)}>View</Button>
+                            <Button variant="ghost" size="sm" onClick={() => window.location.assign(`/employees/work/roadmap/${p.id}`)}>View</Button>
                           </div>
                         </div>
                       ))}
