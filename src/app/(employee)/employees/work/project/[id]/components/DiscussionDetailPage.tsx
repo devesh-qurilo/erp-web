@@ -431,7 +431,7 @@ console.log("dc",socket)
                             </button>
                           )}
 
-                          <button
+                          {/* <button
                             onClick={() => toggleBestReply(m)}
                             className="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 w-full"
                           >
@@ -439,7 +439,7 @@ console.log("dc",socket)
                             {m.isBestReply
                               ? "Unmark Best Reply"
                               : "Mark as Best Reply"}
-                          </button>
+                          </button> */}
 
                           <button
                             onClick={() => deleteMessage(m.id)}

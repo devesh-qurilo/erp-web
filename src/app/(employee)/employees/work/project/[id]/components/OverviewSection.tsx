@@ -427,17 +427,17 @@ export default function ProjectDetailsPage() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="bg-white rounded-xl border border-gray-200 p-4">
+                            {/* <div className="bg-white rounded-xl border border-gray-200 p-4">
                                 <p className="text-sm text-gray-500">Project Budget</p>
                                 <div className="text-2xl font-semibold text-blue-600 mt-2">{project.currency}{project.budget.toFixed(2)}</div>
-                            </div>
+                            </div> */}
 
                             <div className="bg-white rounded-xl border border-gray-200 p-4">
                                 <p className="text-sm text-gray-500">Hours Logged</p>
                                 <div className="text-2xl font-semibold text-blue-600 mt-2">{totalHours}hrs 0 min</div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-3">
+                            {/* <div className="grid grid-cols-3 gap-3">
                                 <div className="bg-white rounded-xl border border-gray-200 p-3 text-center">
                                     <p className="text-sm text-gray-500">Earnings</p>
                                     <div className="text-lg font-semibold text-blue-600 mt-1">{project.currency}0.00</div>
@@ -450,7 +450,7 @@ export default function ProjectDetailsPage() {
                                     <p className="text-sm text-gray-500">Profit</p>
                                     <div className="text-lg font-semibold text-blue-600 mt-1">{project.currency}0.00</div>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 

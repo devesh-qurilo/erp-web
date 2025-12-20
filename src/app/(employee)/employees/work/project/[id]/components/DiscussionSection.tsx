@@ -1170,13 +1170,13 @@ export default function DiscussionSection({
             New Discussion
           </button>
 
-          <button
+          {/* <button
             onClick={() => setShowCategoryModal(true)}
             className="flex items-center gap-2 border border-blue-500 text-blue-600 px-3 py-1.5 rounded text-sm"
           >
             <Settings size={16} />
             Discussion Category
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -1232,14 +1232,14 @@ export default function DiscussionSection({
                 {d.category.categoryName}
               </span>
 
-              <Trash2
+              {/* <Trash2
                 size={16}
                 className="text-red-500 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteDiscussion(d.id);
                 }}
-              />
+              /> */}
             </div>
           </div>
         );
@@ -1362,11 +1362,11 @@ export default function DiscussionSection({
                   />
                   {c.categoryName}
                 </div>
-                <Trash2
+                {/* <Trash2
                   size={14}
                   className="text-red-500 cursor-pointer"
                   onClick={() => deleteCategory(c.id)}
-                />
+                /> */}
               </div>
             ))}
 
