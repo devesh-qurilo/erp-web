@@ -214,12 +214,12 @@ export default function ProjectMembersTableFetch({
 
       {/* Top Controls */}
       <div className="flex justify-between mb-4">
-        <button
+        {/* <button
           onClick={() => setShowAddModal(true)}
           className="bg-blue-600 text-white px-4 py-2 rounded"
         >
           + Add Project Members
-        </button>
+        </button> */}
 
         <div className="flex gap-3">
           <input
@@ -247,10 +247,10 @@ export default function ProjectMembersTableFetch({
       {!loading && (
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="bg-blue-50">
+            <tr className="bg-blue-50 text-left ">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">User Role</th>
-              <th className="px-4 py-3">Action</th>
+              {/* <th className="px-4 py-3">Action</th> */}
             </tr>
           </thead>
 
@@ -280,11 +280,11 @@ export default function ProjectMembersTableFetch({
                 {/* Role */}
                 <td className="px-4 py-4">
                   {/* <div className="flex items-center gap-2 text-sm"> */}
-                  <input
+                  {/* <input
                     type="radio"
                     checked={project?.projectAdminId === m.employeeId}
                     onChange={() => handleMakeAdmin(m.employeeId)}
-                  />
+                  /> */}
                   <span className="ml-1">Project Admin</span>
 
                   {project?.projectAdminId === m.employeeId && (
@@ -299,7 +299,7 @@ export default function ProjectMembersTableFetch({
                 </td>
 
                 {/* Remove */}
-                <td className="px-4 py-4">
+                {/* <td className="px-4 py-4">
                   <button
                     onClick={() => handleRemove(m.employeeId)}
                     disabled={actionLoadingId === m.employeeId}
@@ -307,7 +307,7 @@ export default function ProjectMembersTableFetch({
                   >
                     {actionLoadingId === m.employeeId ? "Removing…" : "Delete"}
                   </button>
-                </td>
+                </td> */}
               </tr>
             ))}
 
@@ -323,7 +323,7 @@ export default function ProjectMembersTableFetch({
       )}
 
       {/* ADD MODAL */}
-      {showAddModal && (
+      {/* {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Add Project Members</h3>
@@ -356,7 +356,7 @@ export default function ProjectMembersTableFetch({
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

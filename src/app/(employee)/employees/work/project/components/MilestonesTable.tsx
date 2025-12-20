@@ -411,9 +411,9 @@ export default function MilestonesTable({
       {/* top controls: button on left, filters/actions on right */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <button onClick={openCreate} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+          {/* <button onClick={openCreate} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
             + Create Milestone
-          </button>
+          </button> */}
         </div>
 
         <div className="flex items-center gap-3">
@@ -435,7 +435,7 @@ export default function MilestonesTable({
             <div className="col-span-2 font-medium">Milestone Cost</div>
             <div className="col-span-2 font-medium">Task Count</div>
             <div className="col-span-2 font-medium">Status</div>
-            <div className="col-span-2 font-medium text-right">Action</div>
+            {/* <div className="col-span-2 font-medium text-right">Action</div> */}
           </div>
         </div>
 
@@ -505,7 +505,7 @@ export default function MilestonesTable({
                 </div>
 
                 {/* ACTIONS as three-dot dropdown */}
-                <div className="col-span-2 text-right relative">
+                {/* <div className="col-span-2 text-right relative">
                   <button
                     onClick={() => setActionOpenFor(actionOpenFor === m.id ? null : (m.id ?? null))}
                     className="px-3 py-1 rounded text-sm border hover:bg-gray-50"
@@ -547,7 +547,7 @@ export default function MilestonesTable({
                       </button>
                     </div>
                   )}
-                </div>
+                </div> */}
               </div>
             ))}
           </div>
@@ -561,277 +561,16 @@ export default function MilestonesTable({
       </div>
 
       {/* Create modal */}
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsCreateOpen(false)} />
-          <div className="relative bg-white w-full max-w-3xl rounded-lg shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold">Create Milestone</h3>
-              <button onClick={() => setIsCreateOpen(false)} className="p-2 rounded hover:bg-gray-100">
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* Layout roughly matching your screenshot */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-700 mb-2">Milestone Title *</label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="Project Closure"
-                  />
-                </div>
-
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-700 mb-2">Milestone Cost</label>
-                  <input
-                    type="number"
-                    value={form.milestoneCost}
-                    onChange={(e) => setForm((s) => ({ ...s, milestoneCost: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    placeholder="0.00"
-                    min={0}
-                  />
-                </div>
-
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-700 mb-2">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  >
-                    <option value="INCOMPLETE">INCOMPLETE</option>
-                    <option value="COMPLETED">COMPLETED</option>
-                  </select>
-                </div>
-
-                {/* Milestone Summary full width */}
-                <div className="md:col-span-3">
-                  <label className="block text-sm text-gray-700 mb-2">Milestone Summary *</label>
-                  <textarea
-                    value={form.summary}
-                    onChange={(e) => setForm((s) => ({ ...s, summary: e.target.value }))}
-                    className="w-full border rounded px-3 py-2 min-h-[100px]"
-                    placeholder="Conduct a project review to evaluate overall success and lessons learned..."
-                  />
-                </div>
-
-                {/* Dates */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={form.endDate}
-                    onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              {saveError && <div className="mt-4 text-sm text-red-600">{saveError}</div>}
-
-              <div className="flex items-center justify-center gap-6 mt-6 pb-6">
-                <button onClick={() => setIsCreateOpen(false)} className="px-6 py-2 rounded-md border text-blue-600" disabled={saving}>
-                  Cancel
-                </button>
-                <button onClick={createMilestone} className="px-6 py-2 rounded-md bg-blue-600 text-white" disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+    
 
       {/* View modal */}
-      {isViewOpen && selected && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsViewOpen(false)} />
-          <div className="relative bg-white w-full max-w-2xl rounded-lg shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold">Milestone Details</h3>
-              <button onClick={() => setIsViewOpen(false)} className="p-2 rounded hover:bg-gray-100">
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="space-y-3 text-sm">
-                <div>
-                  <strong>Title:</strong> {selected.title}
-                </div>
-                <div>
-                  <strong>Milestone Cost:</strong> {formatCurrency(selected.milestoneCost)}
-                </div>
-                <div>
-                  <strong>Task Count:</strong> {selected.taskCount ?? 0}
-                </div>
-                <div>
-                  <strong>Status:</strong> {String(selected.status ?? "INCOMPLETE").toUpperCase()}
-                </div>
-                <div>
-                  <strong>Summary:</strong>
-                  <div className="mt-1 p-2 bg-gray-50 rounded text-sm">{selected.summary ?? "-"}</div>
-                </div>
-                <div>
-                  <strong>Start Date:</strong> {selected.startDate ? new Date(selected.startDate).toLocaleDateString() : "-"}
-                </div>
-                <div>
-                  <strong>End Date:</strong> {selected.endDate ? new Date(selected.endDate).toLocaleDateString() : "-"}
-                </div>
-                <div>
-                  <strong>Created At:</strong> {selected.createdAt ? new Date(selected.createdAt).toLocaleString() : "-"}
-                </div>
-                <div>
-                  <strong>Raw:</strong>{" "}
-                  <pre className="text-xs bg-gray-50 p-2 rounded">{JSON.stringify(selected, null, 2)}</pre>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-6 mt-6 pb-6">
-                <button onClick={() => setIsViewOpen(false)} className="px-6 py-2 rounded-md border text-blue-600">
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Edit modal */}
-      {isEditOpen && selected && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsEditOpen(false)} />
-          <div className="relative bg-white w-full max-w-3xl rounded-lg shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold">Edit Milestone</h3>
-              <button onClick={() => setIsEditOpen(false)} className="p-2 rounded hover:bg-gray-100">
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-700 mb-2">Milestone Title *</label>
-                  <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-700 mb-2">Milestone Cost</label>
-                  <input
-                    type="number"
-                    value={form.milestoneCost}
-                    onChange={(e) => setForm((s) => ({ ...s, milestoneCost: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                    min={0}
-                  />
-                </div>
-
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-700 mb-2">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={(e) => setForm((s) => ({ ...s, status: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  >
-                    <option value="INCOMPLETE">INCOMPLETE</option>
-                    <option value="COMPLETED">COMPLETED</option>
-                  </select>
-                </div>
-
-                {/* Summary */}
-                <div className="md:col-span-3">
-                  <label className="block text-sm text-gray-700 mb-2">Milestone Summary *</label>
-                  <textarea
-                    value={form.summary}
-                    onChange={(e) => setForm((s) => ({ ...s, summary: e.target.value }))}
-                    className="w-full border rounded px-3 py-2 min-h-[100px]"
-                  />
-                </div>
-
-                {/* Dates */}
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">Start Date</label>
-                  <input
-                    type="date"
-                    value={form.startDate}
-                    onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-700 mb-2">End Date</label>
-                  <input
-                    type="date"
-                    value={form.endDate}
-                    onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              {saveError && <div className="mt-4 text-sm text-red-600">{saveError}</div>}
-
-              <div className="flex items-center justify-center gap-6 mt-6 pb-6">
-                <button onClick={() => setIsEditOpen(false)} className="px-6 py-2 rounded-md border text-blue-600" disabled={saving}>
-                  Cancel
-                </button>
-                <button onClick={updateMilestone} className="px-6 py-2 rounded-md bg-blue-600 text-white" disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
       {/* Delete confirm modal */}
-      {isDeleteConfirmOpen && selected && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsDeleteConfirmOpen(false)} />
-          <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Delete Milestone</h3>
-              <p className="text-sm text-gray-700">
-                Are you sure you want to delete milestone <strong>{selected.title}</strong> ? This action cannot be undone.
-              </p>
-
-              {saveError && <div className="mt-4 text-sm text-red-600">{saveError}</div>}
-
-              <div className="flex items-center justify-end gap-4 mt-6">
-                <button className="px-4 py-2 rounded border" onClick={() => setIsDeleteConfirmOpen(false)} disabled={saving}>
-                  Cancel
-                </button>
-                <button className="px-4 py-2 rounded bg-red-600 text-white" onClick={deleteMilestone} disabled={saving}>
-                  {saving ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+     
     </div>
   );
 }

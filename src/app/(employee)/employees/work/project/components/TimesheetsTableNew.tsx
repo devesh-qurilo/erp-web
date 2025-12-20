@@ -374,9 +374,9 @@ export default function TimesheetsTableNew({
 
       <div className="flex items-center justify-between mb-4">
         <div>
-          <button onClick={() => openModal()} className="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">
+          {/* <button onClick={() => openModal()} className="bg-blue-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-blue-700">
             + Log Time
-          </button>
+          </button> */}
         </div>
 
         <div className="flex items-center gap-3">
@@ -404,7 +404,7 @@ export default function TimesheetsTableNew({
                   <th className="px-4 py-3">Start Time</th>
                   <th className="px-4 py-3">End Time</th>
                   <th className="px-4 py-3">Total Hours</th>
-                  <th className="px-4 py-3">Action</th>
+                  {/* <th className="px-4 py-3">Action</th> */}
                 </tr>
               </thead>
 
@@ -446,41 +446,10 @@ export default function TimesheetsTableNew({
                         <td className="px-4 py-4 align-top">
                           <div className="relative inline-block text-left">
                             {/* Three-dot button */}
-                            <button
-                              onClick={() => setActionOpenFor(actionOpenFor === row.id ? null : row.id)}
-                              className="px-2 py-1 border rounded text-sm"
-                              aria-haspopup="true"
-                              aria-expanded={actionOpenFor === row.id}
-                              title="More"
-                            >
-                              ⋮
-                            </button>
+                          
 
                             {/* Dropdown */}
-                            {actionOpenFor === row.id && (
-                              <div className="absolute right-0 mt-2 z-30 w-40 bg-white border rounded-md shadow-lg text-sm">
-                                <button
-                                  onClick={() => openView(row)}
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
-                                >
-                                  View
-                                </button>
-
-                                <button
-                                  onClick={() => { openModal(row); setActionOpenFor(null); }}
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-50"
-                                >
-                                  Edit
-                                </button>
-
-                                <button
-                                  onClick={() => openDelete(row)}
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            )}
+                           
                           </div>
                         </td>
                       </tr>
@@ -494,208 +463,13 @@ export default function TimesheetsTableNew({
       )}
 
       {/* Log Time Modal (create/edit) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsModalOpen(false)} />
-
-          <div className="relative bg-white w-full max-w-4xl rounded-xl shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold">{editingId ? "Edit TimeLog" : "Log Time"}</h3>
-              <button className="p-2 rounded hover:bg-gray-100" onClick={() => setIsModalOpen(false)} aria-label="Close">
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="bg-white rounded-md border p-6">
-                <h4 className="text-md font-medium mb-4">TimeLog Details</h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">Project *</label>
-                    <input value={form.projectId} onChange={(e) => setForm((s) => ({ ...s, projectId: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="Project ID" type="text" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">Task *</label>
-                    <input value={form.taskId} onChange={(e) => setForm((s) => ({ ...s, taskId: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="Task ID" type="text" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">Employee *</label>
-                    <select value={form.employeeId} onChange={(e) => setForm((s) => ({ ...s, employeeId: e.target.value }))} className="w-full border rounded px-3 py-2">
-                      <option value="">--</option>
-                      {employeeList.map((e) => (
-                        <option key={e.employeeId} value={e.employeeId}>
-                          {e.name ? `${e.name} (${e.employeeId})` : e.employeeId}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">Start Date *</label>
-                    <input type="date" value={form.startDate} onChange={(e) => setForm((s) => ({ ...s, startDate: e.target.value }))} className="w-full border rounded px-3 py-2" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">Start Time *</label>
-                    <input type="time" value={form.startTime} onChange={(e) => setForm((s) => ({ ...s, startTime: e.target.value }))} className="w-full border rounded px-3 py-2" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">End Date *</label>
-                    <input type="date" value={form.endDate} onChange={(e) => setForm((s) => ({ ...s, endDate: e.target.value }))} className="w-full border rounded px-3 py-2" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">End Time *</label>
-                    <input type="time" value={form.endTime} onChange={(e) => setForm((s) => ({ ...s, endTime: e.target.value }))} className="w-full border rounded px-3 py-2" />
-                  </div>
-                </div>
-
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                  <div>
-                    <label className="block text-sm text-gray-700 mb-2">Memo *</label>
-                    <input type="text" value={form.memo} onChange={(e) => setForm((s) => ({ ...s, memo: e.target.value }))} className="w-full border rounded px-3 py-2" placeholder="Memo" />
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-sm text-gray-500">Total Hours</div>
-                    <div className="text-2xl font-semibold text-blue-600">{modalTotalHours}h</div>
-                  </div>
-                </div>
-
-                {saveError && <div className="mt-4 text-sm text-red-600">{saveError}</div>}
-              </div>
-
-              {/* Buttons */}
-              <div className="flex items-center justify-center gap-6 mt-8 pb-6">
-                <button onClick={() => setIsModalOpen(false)} className="px-6 py-2 rounded-md border text-blue-600" disabled={saving}>Cancel</button>
-
-                <button onClick={saveEntry} className="px-6 py-2 rounded-md bg-blue-600 text-white shadow" disabled={saving}>
-                  {saving ? "Saving..." : editingId ? "Update" : "Save"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
       {/* View Modal - redesigned to match provided screenshot */}
-      {isViewOpen && selectedRow && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-8 px-6">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsViewOpen(false)} />
-
-          <div className="relative bg-white w-full max-w-6xl rounded-xl shadow-xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b">
-              <h3 className="text-xl font-semibold">Timesheet</h3>
-              <button className="p-2 rounded hover:bg-gray-100" onClick={() => setIsViewOpen(false)} aria-label="Close">
-                <XMarkIcon className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              {/* grid: left big card + right small history card */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* LEFT: Big Card */}
-                <div className="lg:col-span-2 relative bg-white rounded-xl border p-6">
-                  {/* three-dot icon top-right inside card */}
-                  <div className="absolute top-4 right-4 text-gray-500">⋮</div>
-
-                  <h4 className="text-lg font-medium mb-4">TimeLog Details</h4>
-
-                  <div className="grid grid-cols-3 gap-y-4 gap-x-6 items-center text-sm">
-                    <div className="text-gray-500">Start Time</div>
-                    <div className="col-span-2">{fmtDateTime(selectedRow.startDate, selectedRow.startTime)}</div>
-
-                    <div className="text-gray-500">End Time</div>
-                    <div className="col-span-2">{fmtDateTime(selectedRow.endDate, selectedRow.endTime)}</div>
-
-                    <div className="text-gray-500">Total Hours</div>
-                    <div className="col-span-2">{typeof selectedRow.durationHours === "number" ? `${selectedRow.durationHours}h` : "-"}</div>
-
-                    <div className="text-gray-500">Memo</div>
-                    <div className="col-span-2">{selectedRow.memo ?? "-"}</div>
-
-                    <div className="text-gray-500">Project</div>
-                    <div className="col-span-2">Project {selectedRow.projectId ?? "-"}</div>
-
-                    <div className="text-gray-500">Task</div>
-                    <div className="col-span-2">Task {selectedRow.taskId ?? "-"}</div>
-
-                    <div className="text-gray-500">Employee</div>
-                    <div className="col-span-2 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                        {selectedRow.employees && selectedRow.employees[0]?.profileUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={selectedRow.employees![0]!.profileUrl!} alt={selectedRow.employees![0]!.name ?? ""} className="w-full h-full object-cover" />
-                        ) : (
-                          <UserIcon className="w-6 h-6 text-gray-400 p-1" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">{selectedRow.employees && selectedRow.employees[0]?.name ? selectedRow.employees[0]!.name : selectedRow.employeeId}</div>
-                        <div className="text-xs text-gray-500">{selectedRow.employees && selectedRow.employees[0]?.designation ? selectedRow.employees[0]!.designation : ""}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* RIGHT: History Card */}
-                <div className="bg-white rounded-xl border p-5">
-                  <h5 className="font-medium mb-3">History</h5>
-
-                  <div className="space-y-4 text-sm text-gray-700">
-                    <div className="flex justify-between">
-                      <div className="text-gray-500">Start Time</div>
-                      <div>{fmtDateTime(selectedRow.startDate, selectedRow.startTime)}</div>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <div className="text-gray-500">Task</div>
-                      <div>Task {selectedRow.taskId ?? "-"}</div>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <div className="text-gray-500">End Time</div>
-                      <div>{fmtDateTime(selectedRow.endDate, selectedRow.endTime)}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* footer buttons */}
-              <div className="flex items-center justify-center gap-6 mt-8 pb-6">
-                <button onClick={() => setIsViewOpen(false)} className="px-6 py-2 rounded-md border text-blue-600">Close</button>
-                <button onClick={() => { openModal(selectedRow); setIsViewOpen(false); }} className="px-6 py-2 rounded-md bg-blue-600 text-white">Edit</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
       {/* Delete confirm modal */}
-      {isDeleteConfirmOpen && selectedRow && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsDeleteConfirmOpen(false)} />
-          <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl overflow-hidden">
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Delete TimeLog</h3>
-              <p className="text-sm text-gray-700">Are you sure you want to delete timesheet <strong>RTA-{String(selectedRow.id).padStart(2, "0")}</strong>? This action cannot be undone.</p>
-
-              {saveError && <div className="mt-4 text-sm text-red-600">{saveError}</div>}
-
-              <div className="flex items-center justify-end gap-4 mt-6">
-                <button className="px-4 py-2 rounded border" onClick={() => setIsDeleteConfirmOpen(false)} disabled={saving}>Cancel</button>
-                <button className="px-4 py-2 rounded bg-red-600 text-white" onClick={deleteTimesheet} disabled={saving}>{saving ? "Deleting..." : "Delete"}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+     
     </div>
   );
 }
