@@ -1285,7 +1285,7 @@ export default function LeavesList() {
                         onReject={() => {
                           const reason = prompt("Enter rejection reason");
                           if (reason) rejectLeave(leave.id, reason);
-                        }}
+                        }}  
                         onDelete={() => confirm("Delete this leave?")}
                       />
                     </td>

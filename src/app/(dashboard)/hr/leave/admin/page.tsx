@@ -757,6 +757,10 @@ export default function LeavesList() {
     setLeaves(await res.json());
   };
 
+
+      console.log("sdc",leaves)
+
+
   /* ================= FETCH QUOTA ================= */
   const fetchQuota = async () => {
     const empId = localStorage.getItem("employeeId");
@@ -1038,7 +1042,7 @@ export default function LeavesList() {
                     <td className="px-6 py-4">{leave.leaveType}</td>
                     <td className="px-6 py-4">{leave.durationType}</td>
                     <td className="px-6 py-4">{getDisplayDates(leave)}</td>
-                    <td className="px-6 py-4 max-w-xs truncate">{leave.reason}</td>
+                    <td className="px-6 py-4 max-w-xs truncate">{leave.paid}</td>
                     <td className="px-6 py-4">
                       <span className={getStatusClass(leave.status)}>
                         {leave.status}
