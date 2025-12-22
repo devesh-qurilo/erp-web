@@ -26,7 +26,9 @@ import {
   CalendarDays,
   Award,
   MessageSquare,
+  Notebook,
 } from "lucide-react";
+import AttendanceCalendar from "@/app/(dashboard)/hr/attendence/components/AttendanceCalendar";
 
 export function EAppSidebar() {
   // track which groups are open; keys correspond to group labels
@@ -185,9 +187,9 @@ export function EAppSidebar() {
 
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <Link href="/employees/hr/awards">
-                      <Award className="size-5" />
-                      <span>Awards</span>
+                    <Link href="/employees/hr/attendence">
+                      <Notebook className="size-5" />
+                      <span>Attendance</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
