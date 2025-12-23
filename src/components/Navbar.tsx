@@ -27,6 +27,19 @@ const NAV_ITEMS: Record<string, string> = {
   "/settings/profile-settings": "profile-settings",
   "/messages": "Message",
   "/settings": "Settings",
+  "/employees/leads/admin/get": "Leads",
+  "/employees/employee": "Dashboard",
+  "/employees/work/tasks": "Tasks",
+  "/employees/work/project": "Projects",
+  "/employees/work/timesheet": "Timesheets",
+  "/employees/work/roadmap": "Roadmap",
+  "/employees/hr/attendence": "Attendance",
+  "/employees/hr/leave/admin": "Leave",
+  "/employees/hr/holiday": "Holiday",
+  "/employees/hr/appreciation": "Appreciations",
+  
+  "/employees/messages": "Messages",
+  "/employees/settings/profile-settings": "Profile Settings",
 }
 
 export const CommonNavbar: React.FC = () => {
