@@ -39,13 +39,7 @@ export default function AddHolidayPage() {
       // setMessage("");
 
       const token = localStorage.getItem("accessToken")
-      // if (!token) {
-      //   setMessage("❌ No token found in localStorage");
-      //   setSubmitting(false);
-      //   return;
-      // }
-      console.log("dekh bhaiiii", JSON.stringify({ holidays: newHolidays }))
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/holidays/bulk`, {
+   const res = await axios.post(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/holidays/bulk`, {
 
         headers: {
           Authorization: `Bearer ${token}`,

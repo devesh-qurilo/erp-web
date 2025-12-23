@@ -40,7 +40,7 @@ export default function StatusDropdown({ task }) {
 
             const url = `${MAIN}/api/projects/tasks/${task.id}/status?statusId=${stageId}`;
 
-            console.log("PATCHING:", url);
+         //   console.log("PATCHING:", url);
 
             const res = await fetch(url, {
                 method: "PATCH",
@@ -57,7 +57,7 @@ export default function StatusDropdown({ task }) {
             }
 
             const updated = await res.json();
-            console.log("Updated:", updated);
+        //    console.log("Updated:", updated);
 
             const newStage = stages.find((s) => String(s.id) === stageId);
             setCurrent(newStage);

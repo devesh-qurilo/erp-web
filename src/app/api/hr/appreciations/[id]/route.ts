@@ -56,10 +56,7 @@ export async function PUT(request: NextRequest, context: any) {
     // read formData from client
     const formData = await request.formData();
 
-    // Debug print to confirm
-    console.log("PUT FORM DATA:");
-    formData.forEach((v, k) => console.log(k, v));
-
+  
     // forward request to external API
     const externalResponse = await fetch(
       `${API_URL}/employee/admin/appreciations/${id}`,

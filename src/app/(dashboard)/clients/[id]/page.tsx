@@ -648,7 +648,7 @@ export default function ClientDetailPage() {
   
    const clientId=client?.clientId
    const clientNumericId = client?.id
-   console.log(clientNumericId)
+   
 
   const resetAddForm = () => {
     setShortCode("");
@@ -1200,14 +1200,14 @@ useEffect(() => {
             clientId={client.clientId}
             onAdd={() => {
               /* open add payment modal if you have one */
-              console.log("Open add payment");
+              //console.log("Open add payment");
             }}
             onSearch={(q) => {
-              console.log("search payments:", q);
+              //console.log("search payments:", q);
             }}
             onAction={(p) => {
               // You can open a payment details modal here if you want
-              console.log("payment row action", p);
+              //console.log("payment row action", p);
             }}
           />
         </div>
@@ -1219,16 +1219,16 @@ useEffect(() => {
   authToken={token}
   onView={(note) => {
     // open view modal or navigate
-    console.log("view", note);
+    //console.log("view", note);
   }}
   onEdit={(note) => {
     // navigate to edit page or open form component
     // e.g. router.push(`/clients/${clientId}/notes/${note.id}/edit`);
-    console.log("edit", note);
+    //console.log("edit", note);
   }}
   onDelete={(note) => {
     // optional: already optimistic remove happens inside component
-    console.log("deleted", note);
+    //console.log("deleted", note);
   }}
 />
 

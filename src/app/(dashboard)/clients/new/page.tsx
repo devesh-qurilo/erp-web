@@ -134,7 +134,7 @@ export default function AddClientDetails() {
 
   // debug helper
   const debugLog = (label: string, obj: any) => {
-    try { console.log(label, obj) } catch {}
+    // try { console.log(label, obj) } catch {}
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

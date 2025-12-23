@@ -406,7 +406,7 @@ export default function EmployeeViewPage() {
     { revalidateOnFocus: false }
   )
 
-  console.log("gggggggggg", employee)
+ 
 
   if (isLoading) return <div className="p-6">Loading employee…</div>
   if (error) return <div className="p-6 text-red-600">Failed to load employee</div>

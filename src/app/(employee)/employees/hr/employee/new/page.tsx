@@ -317,8 +317,7 @@ export default function AddEmployeePage() {
             const fd = new FormData();
             fd.append('employee', JSON.stringify(employeePayload));
             if (file) fd.append('file', file);
-            console.log("deveshjhdsh", fd)
-
+      
             const res = await fetch(`${BASE_URL}/employee`, {
                 method: 'POST',
                 headers: {

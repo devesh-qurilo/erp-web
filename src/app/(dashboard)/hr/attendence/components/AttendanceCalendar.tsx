@@ -25,7 +25,7 @@ interface Attendance {
 const fetcher = async (url: string) => {
     const token = localStorage.getItem("accessToken")
     if (!token) throw new Error("No token")
-    console.log("urlllll", url)
+    //console.log("urlllll", url)
 
     const res = await fetch(`${BASE_URL}/employee/attendance/GetAllAttendance`, {
         headers: { Authorization: `Bearer ${token}` },

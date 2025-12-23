@@ -70,7 +70,7 @@ export const CommonNavbar: React.FC = () => {
     });
     setEmployee(await res.json());
   };
-console.log(employee);
+
 
   useEffect(() => {
     fetchEmployee();

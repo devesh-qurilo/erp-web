@@ -44,7 +44,7 @@ export default function AddHolidayPage() {
       //   setSubmitting(false);
       //   return;
       // }
-      console.log("dekh bhaiiii", JSON.stringify({ holidays: newHolidays }))
+      //("dekh bhaiiii", JSON.stringify({ holidays: newHolidays }))
       const res = await axios.post(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/holidays/bulk`, {
 
         headers: {

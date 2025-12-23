@@ -201,7 +201,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
             onCreated();
             onOpenChange(false);
         } catch (e) {
-            console.log(e);
+          //  console.log(e);
             alert("Failed to create task");
         } finally {
             setLoading(false);

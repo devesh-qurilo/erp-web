@@ -41,7 +41,6 @@ export default function NewNotePage() {
       }
 
       const data = await res.json();
-      console.log("Created note:", data);
 
       // Redirect to notes list after creation
       router.push(`/clients/${id}/notes`);

@@ -73,7 +73,7 @@ export default function InvoiceList() {
       setLoading(false);
     }
   };
-  console.log("devesh", activeInvoice?.invoiceNumber, invoices)
+  //console.log("devesh", activeInvoice?.invoiceNumber, invoices)
 
   useEffect(() => {
     fetchInvoices();

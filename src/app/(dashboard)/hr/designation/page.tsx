@@ -140,7 +140,7 @@ export default function DesignationsPage() {
   const handleDelete = async (id: number) => {
     const token = localStorage.getItem("accessToken");
     // if (!token) return;
-    console.log("delete mmm", id)
+    //console.log("delete mmm", id)
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_MAIN}/admin/designations/${id}`,
       {

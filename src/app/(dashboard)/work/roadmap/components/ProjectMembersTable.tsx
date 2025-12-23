@@ -76,7 +76,7 @@ export default function ProjectMembersTableFetch({
 
       const url = `/api/projects/${projectId}`;
       const full = `${MAIN}/api/projects/${projectId}`;
-      console.log("GET:", full);
+   //   console.log("GET:", full);
 
       const data = await api.get(full);
 
@@ -109,7 +109,7 @@ export default function ProjectMembersTableFetch({
       setError(null);
 
       const url = `${MAIN}/api/projects/${projectId}/assign`;
-      console.log("kikikiki", employeeIds);
+   //   console.log("kikikiki", employeeIds);
       await api.post(url, { employeeIds });
 
       setShowAddModal(false);

@@ -113,7 +113,6 @@ const WeeklyTimesheetModal: React.FC<WeeklyTimesheetModalProps> = ({
         }))
       );
     } catch (err) {
-      console.log("Task fetch failed:", err);
     } finally {
       setLoadingTasks(false);
     }

@@ -258,7 +258,7 @@ export default function ClientPaymentsTable({
       receiptFileName: receiptFile?.name ?? null,
     };
 
-    console.log("Save payment (client-side):", payload);
+    //console.log("Save payment (client-side):", payload);
     // close modal
     setShowAddModal(false);
   };

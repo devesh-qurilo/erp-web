@@ -151,7 +151,6 @@ export default function DiscussionDetailPage({
   useEffect(() => {
     const socket = new SockJS(`${BASE_URL}/ws-discussion`);
 
-console.log("dc",socket)
 
     const client = new Client({
       webSocketFactory: () => socket,

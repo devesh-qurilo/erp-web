@@ -265,7 +265,7 @@ export default function TimesheetSummaryList() {
                                                                 title="More actions"
                                                                 className="p-1 rounded hover:bg-gray-100"
                                                                 onClick={() => {
-                                                                    console.log("Actions for timesheet", tl.id);
+                                                                //    console.log("Actions for timesheet", tl.id);
                                                                 }}
                                                             >
                                                                 <svg

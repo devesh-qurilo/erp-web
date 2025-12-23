@@ -257,9 +257,7 @@ export default  function PaymentsSection({
       receiptFileName: receiptFile?.name ?? null,
     };
 
-    console.log("Save payment (client-side):", payload);
-    // close modal
-    setShowAddModal(false);
+   setShowAddModal(false);
   };
 
   // ---------- Payment Gateway API integration ----------

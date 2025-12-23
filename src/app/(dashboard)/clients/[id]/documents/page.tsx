@@ -69,7 +69,7 @@ export default function ClientDocumentsPage() {
         throw new Error(errData.error || "Failed to delete document");
       }
   
-      console.log("Document deleted successfully");
+      //console.log("Document deleted successfully");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Something went wrong"
       alert(message);

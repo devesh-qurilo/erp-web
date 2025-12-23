@@ -120,7 +120,7 @@ const ActionsSection: React.FC<ActionsSectionProps> = ({
                     {/* <button
                         onClick={() => {
                             // future: user menu
-                            console.log("User icon clicked");
+                           // console.log("User icon clicked");
                         }}
                         className="px-3 py-2 hover:bg-gray-50"
                         title="User"

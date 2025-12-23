@@ -14,7 +14,7 @@ export async function PUT(
     const accessToken = authHeader.split(" ")[1];
     const body = await request.json();
 
-    console.log("🟡 PUT /api/deals/create/[id]", id, body);
+  //  console.log("🟡 PUT /api/deals/create/[id]", id, body);
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/deals/${id}`, {
       method: "PUT",
@@ -26,11 +26,9 @@ export async function PUT(
       body: JSON.stringify(body),
     });
 
-    console.log("🟠 Remote API response:", res.status, res.statusText);
-
+  
     const text = await res.text();
-    console.log("🔵 Remote API raw body:", text);
-
+    
     if (!res.ok) {
       return NextResponse.json(
         { error: `Upstream failed: ${res.status} ${res.statusText}`, details: text },

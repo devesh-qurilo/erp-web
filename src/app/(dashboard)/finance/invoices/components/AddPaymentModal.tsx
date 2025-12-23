@@ -1,163 +1,3 @@
-// "use client";
-
-// import { useState, useRef } from "react";
-// import { X } from "lucide-react";
-
-// export default function AddPaymentModal({
-//     open,
-//     onClose,
-//     clientId,
-//     onSaved,
-// }: {
-//     open: boolean;
-//     onClose: () => void;
-//     clientId?: string | number | null;
-//     onSaved?: () => void;
-// }) {
-//     const [project, setProject] = useState("pre filled");
-//     const [client, setClient] = useState(clientId ? String(clientId) : "pre filled");
-//     const [invoice, setInvoice] = useState("pre filled");
-//     const [amount, setAmount] = useState("");
-//     const [currency, setCurrency] = useState("USD");
-//     const [transactionId, setTransactionId] = useState("");
-//     const [paymentGateway, setPaymentGateway] = useState("Net Banking");
-//     const [remark, setRemark] = useState("");
-//     const [receiptFile, setReceiptFile] = useState<File | null>(null);
-
-//     const fileRef = useRef<HTMLInputElement | null>(null);
-
-//     if (!open) return null;
-
-//     const handleSubmit = () => {
-//         console.log("Payment Saved:", {
-//             project,
-//             client,
-//             invoice,
-//             amount,
-//             currency,
-//             transactionId,
-//             paymentGateway,
-//             remark,
-//             receiptFileName: receiptFile?.name ?? null,
-//         });
-
-//         if (onSaved) onSaved();
-//         onClose();
-//     };
-
-//     return (
-//         <div className="fixed inset-0 z-[10000] flex items-start justify-center pt-8 px-4 overflow-y-auto">
-//             <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-
-//             <div className="relative w-full max-w-4xl bg-white rounded-xl shadow-2xl overflow-y-auto z-10">
-
-//                 {/* Header */}
-//                 <div className="flex items-center justify-between p-4 border-b">
-//                     <h3 className="text-lg font-semibold">Add Payment Details</h3>
-//                     <button onClick={onClose} className="p-2 rounded hover:bg-gray-100">
-//                         <X className="w-5 h-5" />
-//                     </button>
-//                 </div>
-
-//                 {/* Content */}
-//                 <div className="p-6 space-y-6">
-//                     <div className="rounded-lg border p-4">
-//                         <h4 className="font-medium mb-3">Payment Details</h4>
-
-//                         <div className="grid grid-cols-3 gap-4">
-//                             <inputField label="Project *" value={project} onChange={setProject} />
-//                             <inputField label="Client *" value={client} onChange={setClient} />
-//                             <inputField label="Invoice *" value={invoice} onChange={setInvoice} />
-
-//                             <inputField label="Amount *" value={amount} onChange={setAmount} />
-
-//                             <div>
-//                                 <label className="text-sm text-gray-600">Currency *</label>
-//                                 <select
-//                                     className="w-full border rounded px-3 py-2"
-//                                     value={currency}
-//                                     onChange={(e) => setCurrency(e.target.value)}
-//                                 >
-//                                     <option value="USD">USD $</option>
-//                                     <option value="USD">USD ₹</option>
-//                                     <option value="EUR">EUR €</option>
-//                                 </select>
-//                             </div>
-
-//                             <inputField label="Transaction ID" value={transactionId} onChange={setTransactionId} />
-
-//                             <div className="col-span-3">
-//                                 <label className="text-sm text-gray-600">Payment Gateway *</label>
-//                                 <input
-//                                     value={paymentGateway}
-//                                     onChange={(e) => setPaymentGateway(e.target.value)}
-//                                     className="w-full border rounded px-3 py-2"
-//                                 />
-//                             </div>
-//                         </div>
-
-//                         {/* Receipt Upload */}
-//                         <div className="mt-4">
-//                             <label className="text-sm text-gray-600 block mb-2">Receipt</label>
-
-//                             <div
-//                                 className="border-2 border-dashed rounded-lg h-28 flex items-center justify-center cursor-pointer text-gray-500"
-//                                 onClick={() => fileRef.current?.click()}
-//                             >
-//                                 <div className="text-center">
-//                                     <div className="mb-1">Choose a file</div>
-//                                     <div className="text-xs text-gray-400">
-//                                         {receiptFile ? receiptFile.name : "Drag & drop or click"}
-//                                     </div>
-//                                 </div>
-//                             </div>
-
-//                             <input
-//                                 ref={fileRef}
-//                                 type="file"
-//                                 className="hidden"
-//                                 onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-//                             />
-//                         </div>
-
-//                         {/* Remark */}
-//                         <div className="mt-4">
-//                             <label className="text-sm text-gray-600 block mb-2">Remark</label>
-//                             <textarea
-//                                 rows={4}
-//                                 value={remark}
-//                                 onChange={(e) => setRemark(e.target.value)}
-//                                 className="w-full border rounded p-3"
-//                                 placeholder="Enter summary of payment"
-//                             />
-//                         </div>
-//                     </div>
-
-//                     {/* Footer Buttons */}
-//                     <div className="flex items-center justify-end gap-3">
-//                         <button onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
-//                         <button onClick={handleSubmit} className="px-4 py-2 bg-blue-600 text-white rounded">
-//                             Save
-//                         </button>
-//                     </div>
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// }
-
-// function inputField({ label, value, onChange }) {
-//     return (
-//         <div>
-//             <label className="text-sm text-gray-600">{label}</label>
-//             <input
-//                 className="w-full border rounded px-3 py-2"
-//                 value={value}
-//                 onChange={(e) => onChange(e.target.value)}
-//             />
-//         </div>
-//     );
-// }
 
 
 "use client";
@@ -218,7 +58,7 @@ export default function AddPaymentModal({
                 setGateways(data.map((g: any) => ({ id: g.id, name: g.name })));
             }
         } catch (e) {
-            console.log("Failed fetching gateways");
+            //console.log("Failed fetching gateways");
         }
     };
 
@@ -246,16 +86,16 @@ export default function AddPaymentModal({
     };
 
     const savePayment = () => {
-        console.log("PAYMENT SAVED:", {
-            project,
-            client,
-            invoice,
-            amount,
-            currency,
-            transactionId,
-            paymentGateway,
-            remark,
-            receiptName: receiptFile?.name,
+        //console.log("PAYMENT SAVED:", {
+            // project,
+            // client,
+            // invoice,
+            // amount,
+            // currency,
+            // transactionId,
+            // paymentGateway,
+            // remark,
+            // receiptName: receiptFile?.name,
         });
 
         onSaved?.();

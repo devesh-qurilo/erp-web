@@ -60,7 +60,6 @@ export async function POST(req: NextRequest) {
 
     // Extract token from headers
     const authHeader = req.headers.get("authorization");
-    console.log("Authorization header:", authHeader); // DEBUG
     const accessToken = authHeader?.replace("Bearer ", "");
 
     if (!accessToken) {

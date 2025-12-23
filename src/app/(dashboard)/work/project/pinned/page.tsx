@@ -122,11 +122,11 @@ export default function PinnedProjectsPage() {
   }
 
   const handleView = (projectId: number) => {
-    console.log("View project:", projectId)
+  //  console.log("View project:", projectId)
   }
 
   const handleEdit = (projectId: number) => {
-    console.log("Edit project:", projectId)
+ //   console.log("Edit project:", projectId)
   }
 
   const handlePin = async (projectId: number) => {
@@ -152,7 +152,7 @@ export default function PinnedProjectsPage() {
 
       // On success, refetch to update the list
       await getProjects(token!)
-      console.log("Unpinned project:", projectId)
+     // console.log("Unpinned project:", projectId)
     } catch (err) {
       // Rollback: Restore the project
       setProjects(projects)
@@ -161,12 +161,12 @@ export default function PinnedProjectsPage() {
   }
 
   const handleArchive = (projectId: number) => {
-    console.log("Archive project:", projectId)
+  //  console.log("Archive project:", projectId)
     setProjects(projects.map((p) => (p.id === projectId ? { ...p, isArchived: !p.isArchived } : p)))
   }
 
   const handleDelete = (projectId: number) => {
-    console.log("Delete project:", projectId)
+  //  console.log("Delete project:", projectId)
     setProjects(projects.filter((p) => p.id !== projectId))
   }
 

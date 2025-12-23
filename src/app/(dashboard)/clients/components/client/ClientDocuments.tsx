@@ -75,7 +75,7 @@ export default function ClientDocuments({
       setLoading(true);
       setError(null);
       try {
-        console.log("devesh", clientId.id)
+        //console.log("devesh", clientId.id)
         const client = clientId.id;
         const res = await fetch(`${BASE_URL}/clients/${client}/documents`, buildFetchOptions({ method: "GET" }));
 

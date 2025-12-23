@@ -226,7 +226,7 @@ export default function InvoicesTable({
             if (Array.isArray(obj.items)) { setInvoices(obj.items); setLoading(false); return; }
           }
           setRawResponse(parsed.raw ?? null);
-          console.log("guuuuuuuu",rawResponse)
+          //console.log("guuuuuuuu",rawResponse)
           setInvoices([]);
           setError("Server returned unexpected payload. See rawResponse for details.");
           setLoading(false);

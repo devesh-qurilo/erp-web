@@ -134,7 +134,7 @@ export default function InvoiceTable({
         // if (!invoice?.invoiceNumber) return;
 
 
-        console.log("devesh delete ", invoice.invoiceNumber)
+        //console.log("devesh delete ", invoice.invoiceNumber)
         // const ok = confirm(
         //     `Are you sure you want to delete invoice ${invoice.invoiceNumber}?`
         // );

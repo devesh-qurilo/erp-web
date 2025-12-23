@@ -592,7 +592,7 @@ export default function DealsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
-                              console.log("Delete clicked for", deal.id)
+                              //console.log("Delete clicked for", deal.id)
                             }}
                           >
                             Delete

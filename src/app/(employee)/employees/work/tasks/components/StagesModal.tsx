@@ -82,7 +82,7 @@ export const StagesModal: React.FC<StagesModalProps> = ({
             const url = editId
                 ? `${API}/status/${editId}`
                 : `${API}/status`;
-            console.log("goolu", body)
+          
             const res = await fetch(url, {
                 method,
                 // TODO: yaha pe agar token chahiye ho to header add karna

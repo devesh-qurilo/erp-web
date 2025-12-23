@@ -646,8 +646,7 @@ export default function EmployeePage() {
     // if (!confirm('Are you sure you want to delete this employee?')) return;
 
     try {
-      console.log("gggggggkkkk")
-      const token = localStorage.getItem('accessToken');
+   const token = localStorage.getItem('accessToken');
       await fetch(`${BASE_URL}/employee/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -778,7 +777,7 @@ export default function EmployeePage() {
 
                       <button
                         onClick={() => {
-                          console.log("ggggggg")
+                 
                           setOpenMenuId(null);
                           deleteEmployee(e.employeeId);
                         }}

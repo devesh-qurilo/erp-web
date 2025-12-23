@@ -26,11 +26,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Debug logs
-    console.log("Response Status:", response.status);
-    console.log("Response Headers:", response.headers.get("content-type"));
+  //  console.log("Response Status:", response.status);
+//console.log("Response Headers:", response.headers.get("content-type"));
 
     const rawBody = await response.text();
-    console.log("Raw Body:", rawBody);
+ //   console.log("Raw Body:", rawBody);
 
     let data: any = {};
     const contentType = response.headers.get("content-type");

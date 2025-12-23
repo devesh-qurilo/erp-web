@@ -36,7 +36,7 @@ export default function EditAppreciation({
     e.preventDefault();
     const form = new FormData(e.target);
 
-    console.log("kkkkk", form);
+    //console.log("kkkkk", form);
 
     const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/employee/admin/appreciations/${id}`, {
       method: "PUT",
