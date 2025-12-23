@@ -96,7 +96,7 @@ export default function AddPaymentModal({
             // paymentGateway,
             // remark,
             // receiptName: receiptFile?.name,
-        });
+    //    });//
 
         onSaved?.();
         onClose();
