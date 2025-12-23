@@ -639,7 +639,7 @@ export default function ProfileForm() {
               <label className="text-sm font-medium text-slate-700">Language</label>
               <select value={profile.language ?? ""} onChange={(e) => handleInput("language", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
                 <option value="">--</option>
-                <option value="Hindi">Hindi</option>
+                <option value="French">French</option>
                 <option value="English">English</option>
                 <option value="Other">Other</option>
               </select>
