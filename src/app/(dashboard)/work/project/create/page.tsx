@@ -182,7 +182,7 @@ export default function CreateProjectPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">Currency</label>
-                  <Input name="currency" placeholder="USD / INR" />
+                  <Input name="currency" placeholder="USD / USD" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-2">Project Budget</label>

@@ -136,7 +136,7 @@ export default function InvoiceCreateModal({
                                 onChange={(e) => setForm(f => ({ ...f, currency: e.target.value }))}
                             >
                                 {/* <option>USD</option>
-                                <option>INR</option>
+                                <option>USD</option>
                                 <option>EUR</option> */}
 
                             <option value="USD">USD - US Dollar</option>
@@ -203,7 +203,7 @@ export default function InvoiceCreateModal({
 
                             <div className="flex">
                                 <div className="px-3 py-2 bg-gray-100 border rounded-l">
-                                    {form.currency === "INR" ? "₹" : "$"}
+                                    {form.currency === "USD" ? "₹" : "$"}
                                 </div>
                                 <input
                                     readOnly

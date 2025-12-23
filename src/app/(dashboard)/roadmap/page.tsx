@@ -273,7 +273,7 @@
 //           />
 
 //           {/* Drawer */}
-//           <div className="relative w-80 bg-white shadow-lg h-full p-6 animate-slideInRight">
+//           <div className="relative w-80 bg-white shadow-lg h-full p-6 animate-slideUSDight">
 //             <div className="flex justify-between items-center mb-6">
 //               <h2 className="text-lg font-semibold">Filters</h2>
 //               <button onClick={() => setShowFilters(false)}>
@@ -399,7 +399,7 @@
 
 //       {/* Animation */}
 //       <style jsx global>{`
-//         @keyframes slideInRight {
+//         @keyframes slideUSDight {
 //           from {
 //             transform: translateX(100%);
 //           }
@@ -407,8 +407,8 @@
 //             transform: translateX(0);
 //           }
 //         }
-//         .animate-slideInRight {
-//           animation: slideInRight 0.3s ease-out forwards;
+//         .animate-slideUSDight {
+//           animation: slideUSDight 0.3s ease-out forwards;
 //         }
 //       `}</style>
 
@@ -610,7 +610,7 @@
 //           />
 
 //           {/* Drawer */}
-//           <div className="relative w-80 bg-white shadow-lg h-full p-6 animate-slideInRight">
+//           <div className="relative w-80 bg-white shadow-lg h-full p-6 animate-slideUSDight">
 //             <div className="flex justify-between items-center mb-6">
 //               <h2 className="text-lg font-semibold">Filters</h2>
 //               <button onClick={() => setShowFilters(false)}>
@@ -708,7 +708,7 @@
 
 //       {/* Animation */}
 //       <style jsx global>{`
-//         @keyframes slideInRight {
+//         @keyframes slideUSDight {
 //           from {
 //             transform: translateX(100%);
 //           }
@@ -716,8 +716,8 @@
 //             transform: translateX(0);
 //           }
 //         }
-//         .animate-slideInRight {
-//           animation: slideInRight 0.3s ease-out forwards;
+//         .animate-slideUSDight {
+//           animation: slideUSDight 0.3s ease-out forwards;
 //         }
 //       `}</style>
 //     </div>

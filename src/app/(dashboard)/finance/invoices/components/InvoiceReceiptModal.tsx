@@ -131,7 +131,7 @@ export default function InvoiceReceiptModal({ open, onClose, invoice }) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USD">USD $</SelectItem>
-                  <SelectItem value="INR">INR ₹</SelectItem>
+                  <SelectItem value="USD">USD ₹</SelectItem>
                 </SelectContent>
               </Select>
             </div>

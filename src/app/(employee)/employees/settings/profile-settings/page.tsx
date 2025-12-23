@@ -85,7 +85,7 @@
 //     birthday: "",
 //     bloodGroup: "",
 //     language: "",
-//     country: "India",
+//     country: "usa",
 //     mobile: "",
 //     address: "",
 //     about: "",
@@ -145,7 +145,7 @@
 //           birthday: data.birthday ?? "",
 //           bloodGroup: data.bloodGroup ?? "",
 //           language: data.language ?? "",
-//           country: data.country ?? "India",
+//           country: data.country ?? "usa",
 //           mobile: data.mobile ?? "",
 //           address: data.address ?? "",
 //           about: data.about ?? "",
@@ -645,8 +645,8 @@
 
 //             <div>
 //               <label className="text-sm font-medium text-slate-700">Country</label>
-//               <select value={profile.country ?? "India"} onChange={(e) => handleInput("country", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
-//                 <option>India</option>
+//               <select value={profile.country ?? "usa"} onChange={(e) => handleInput("country", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+//                 <option>usa</option>
 //                 <option>United States</option>
 //                 <option>United Kingdom</option>
 //                 <option>Australia</option>
@@ -657,7 +657,7 @@
 //             <div className="col-span-1 md:col-span-1 lg:col-span-1">
 //               <label className="text-sm font-medium text-slate-700">Mobile</label>
 //               <div className="flex mt-1">
-//                 <div className="inline-flex items-center px-3 border rounded-l-md bg-gray-50 text-slate-600">+91</div>
+//                 <div className="inline-flex items-center px-3 border rounded-l-md bg-gray-50 text-slate-600">+370</div>
 //                 <input value={profile.mobile ?? ""} onChange={(e) => handleInput("mobile", e.target.value)} className="border rounded-r-md h-11 px-3 w-full" placeholder="--" />
 //               </div>
 //             </div>
@@ -1331,7 +1331,7 @@ export default function ProfileForm() {
     birthday: "",
     bloodGroup: "",
     language: "",
-    country: "India",
+    country: "usa",
     mobile: "",
     address: "",
     about: "",
@@ -1391,7 +1391,7 @@ export default function ProfileForm() {
           birthday: data.birthday ?? "",
           bloodGroup: data.bloodGroup ?? "",
           language: data.language ?? "",
-          country: data.country ?? "India",
+          country: data.country ?? "usa",
           mobile: data.mobile ?? "",
           address: data.address ?? "",
           about: data.about ?? "",
@@ -1891,8 +1891,8 @@ export default function ProfileForm() {
 
             <div>
               <label className="text-sm font-medium text-slate-700">Country</label>
-              <select value={profile.country ?? "India"} onChange={(e) => handleInput("country", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
-                <option>India</option>
+              <select value={profile.country ?? "usa"} onChange={(e) => handleInput("country", e.target.value)} className="mt-1 block w-full border rounded-md h-11 px-3">
+                <option>usa</option>
                 <option>United States</option>
                 <option>United Kingdom</option>
                 <option>Australia</option>
@@ -1903,7 +1903,7 @@ export default function ProfileForm() {
             <div className="col-span-1 md:col-span-1 lg:col-span-1">
               <label className="text-sm font-medium text-slate-700">Mobile</label>
               <div className="flex mt-1">
-                <div className="inline-flex items-center px-3 border rounded-l-md bg-gray-50 text-slate-600">+91</div>
+                <div className="inline-flex items-center px-3 border rounded-l-md bg-gray-50 text-slate-600">+370</div>
                 <input value={profile.mobile ?? ""} onChange={(e) => handleInput("mobile", e.target.value)} className="border rounded-r-md h-11 px-3 w-full" placeholder="--" />
               </div>
             </div>

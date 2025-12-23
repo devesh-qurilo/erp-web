@@ -124,7 +124,7 @@
 }
 
 
-@keyframes slideInRight {
+@keyframes slideUSDight {
   from {
     transform: translateX(100%);
   }
@@ -134,5 +134,5 @@
 }
 
 .animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out forwards;
+  animation: slideUSDight 0.3s ease-out forwards;
 }

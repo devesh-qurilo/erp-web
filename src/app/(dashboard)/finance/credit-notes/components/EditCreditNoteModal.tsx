@@ -119,7 +119,7 @@ export default function EditCreditNoteModal({
     { value: "USD", label: "USD - US Dollar" },
     { value: "EUR", label: "EUR - Euro" },
     { value: "GBP", label: "GBP - British Pound" },
-    { value: "INR", label: "INR - Indian Rupee" },
+    { value: "USD", label: "USD - usan Rupee" },
     { value: "AED", label: "AED - UAE Dirham" },
     { value: "AUD", label: "AUD - Australian Dollar" },
   ];

@@ -110,7 +110,7 @@ export const ProfileSection: React.FC<{ client: any; projects?: any[] }> = ({ cl
               <Row label="GST/VAT No." value={"—"} />
               <Row label="Address" value={"—"} />
               <Row label="State" value={client.company?.state ?? "—"} />
-              <Row label="Country" value={client.country ?? "India"} />
+              <Row label="Country" value={client.country ?? "usa"} />
               <Row label="Postal Code" value={"—"} />
               <Row label="Language" value={"English"} />
             </div>

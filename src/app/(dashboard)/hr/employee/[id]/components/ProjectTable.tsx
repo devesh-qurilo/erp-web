@@ -1177,7 +1177,7 @@ export default function AllProjectsPage({ employeeId, }: { employeeId: string })
                                                 <SelectTrigger className="w-full"><SelectValue placeholder="USD" /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="USD">USD $</SelectItem>
-                                                    <SelectItem value="INR">INR ₹</SelectItem>
+                                                    <SelectItem value="USD">USD ₹</SelectItem>
                                                     <SelectItem value="EUR">EUR €</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -1751,7 +1751,7 @@ export default function AllProjectsPage({ employeeId, }: { employeeId: string })
                                             <SelectTrigger className="w-full"><SelectValue placeholder="USD" /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="USD">USD $</SelectItem>
-                                                <SelectItem value="INR">INR ₹</SelectItem>
+                                                <SelectItem value="USD">USD ₹</SelectItem>
                                                 <SelectItem value="EUR">EUR €</SelectItem>
                                             </SelectContent>
                                         </Select>

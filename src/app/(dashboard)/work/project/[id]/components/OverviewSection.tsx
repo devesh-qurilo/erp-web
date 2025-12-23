@@ -113,10 +113,10 @@ const nameColorFallback = (name: string) => {
  * Create a pie slice path (SVG) from angles in degrees
  */
 const polarToCartesian = (cx: number, cy: number, r: number, angleInDegrees: number) => {
-    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+    const angleUSDadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
     return {
-        x: cx + r * Math.cos(angleInRadians),
-        y: cy + r * Math.sin(angleInRadians),
+        x: cx + r * Math.cos(angleUSDadians),
+        y: cy + r * Math.sin(angleUSDadians),
     };
 };
 

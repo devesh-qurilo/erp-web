@@ -105,15 +105,15 @@ export default function InvoiceViewReceiptModal({
       (POSTMAN JAISE PDF)
   ============================ */
   // function downloadPDF(r: any) {
-  //   const createdIdInr = r?.createdIdInr || r?.id;
+  //   const createdIdUSD = r?.createdIdUSD || r?.id;
 
-  //   if (!createdIdInr) {
+  //   if (!createdIdUSD) {
   //     alert("PDF ID not found");
   //     return;
   //   }
 
   //   window.open(
-  //     `${BASE_URL}/api/invoice/${createdIdInr}/pdf?disposition=attachment`,
+  //     `${BASE_URL}/api/invoice/${createdIdUSD}/pdf?disposition=attachment`,
   //     "_blank"
   //   );
   // }
@@ -125,16 +125,16 @@ export default function InvoiceViewReceiptModal({
     (NO REDIRECT, NO NEW PAGE)
 ============================ */
 async function downloadPDF(r: any) {
-  const createdIdInr = r?.createdIdInr || r?.id;
+  const createdIdUSD = r?.createdIdUSD || r?.id;
 
-  if (!createdIdInr) {
+  if (!createdIdUSD) {
     alert("PDF ID not found");
     return;
   }
 
   try {
     const res = await fetch(
-      `${BASE_URL}/api/invoice/${createdIdInr}/pdf?disposition=attachment`,
+      `${BASE_URL}/api/invoice/${createdIdUSD}/pdf?disposition=attachment`,
       {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -152,7 +152,7 @@ async function downloadPDF(r: any) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${createdIdInr}.pdf`; // filename
+    a.download = `${createdIdUSD}.pdf`; // filename
     document.body.appendChild(a);
     a.click();
 

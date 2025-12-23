@@ -234,7 +234,7 @@ export default function AddEmployeePage() {
         departmentId: '',
         reportingToId: '',
         role: 'ROLE_EMPLOYEE',
-        country: 'India',
+        country: 'usa',
         mobile: '',
         address: '',
         about: '',

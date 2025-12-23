@@ -79,7 +79,7 @@
 //                                     onChange={(e) => setCurrency(e.target.value)}
 //                                 >
 //                                     <option value="USD">USD $</option>
-//                                     <option value="INR">INR ₹</option>
+//                                     <option value="USD">USD ₹</option>
 //                                     <option value="EUR">EUR €</option>
 //                                 </select>
 //                             </div>
@@ -304,7 +304,7 @@ export default function AddPaymentModal({
                                         onChange={(e) => setCurrency(e.target.value)}
                                     >
                                         <option value="USD">USD $</option>
-                                        <option value="INR">INR ₹</option>
+                                        <option value="USD">USD ₹</option>
                                         <option value="EUR">EUR €</option>
                                     </select>
                                 </div>

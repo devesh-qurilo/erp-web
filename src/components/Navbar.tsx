@@ -42,20 +42,44 @@ const NAV_ITEMS: Record<string, string> = {
   "/employees/settings/profile-settings": "Profile Settings",
 }
 
+
+
+interface EmployeeProfile {
+ 
+  profilePictureUrl?: string;
+ 
+}
+
 export const CommonNavbar: React.FC = () => {
   const pathname = usePathname()
   const router = useRouter()
   const pageTitle = NAV_ITEMS[pathname] || "Page"
+  const [employee, setEmployee] = useState<EmployeeProfile | null>(null);
+  const BASE_URL = process.env.NEXT_PUBLIC_MAIN || ""
 
   const [openMenu, setOpenMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+   const fetchEmployee = async () => {
+    const empId = localStorage.getItem("employeeId");
+    const token = localStorage.getItem("accessToken");
+    if (!empId || !token) return;
+
+    const res = await fetch(`${BASE_URL}/employee/${empId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setEmployee(await res.json());
+  };
+console.log(employee);
   const handleLogout = async () => {
     // show confirmation popup first
     const confirmed = window.confirm("Are you sure you want to logout?")
     if (!confirmed) {
       return
     }
+
+
+
 
     // Optional: call your logout API here, clear tokens, etc.
     // Example placeholder:
@@ -84,12 +108,12 @@ export const CommonNavbar: React.FC = () => {
         {/* Left block */}
         <div className="flex items-center">
           <div className="flex items-center justify-center bg-[#15173a] h-14 w-64 px-4">
-            <span className="text-white text-2xl font-bold tracking-tight">skavo</span>
-  {/* <img
-              src={"/app/skavo.png"}
+            {/* <span className="text-white text-2xl font-bold tracking-tight">skavo</span> */}
+  <img
+               src={employee?.profilePictureUrl || "/avatar.png"}
               alt="avatar"
               className="h-full w-full object-cover"
-            /> */}
+            />
 
           </div>
 

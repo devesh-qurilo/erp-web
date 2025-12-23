@@ -566,7 +566,7 @@ export default  function PaymentsSection({
                       className="w-full border rounded px-3 py-2"
                     >
                       <option value="USD">USD $</option>
-                      <option value="INR">INR ₹</option>
+                      <option value="USD">USD ₹</option>
                       <option value="EUR">EUR €</option>
                     </select>
                   </div>

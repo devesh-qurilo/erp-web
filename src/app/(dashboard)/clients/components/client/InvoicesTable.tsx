@@ -1539,7 +1539,7 @@ export default function InvoicesTable({
                     <label className="text-sm text-gray-600 block mb-1">Currency</label>
                     <select className="w-full border rounded px-3 py-2" value={createForm.currency} onChange={(e) => setCreateForm((p: any) => ({ ...p, currency: e.target.value }))}>
                       <option value="USD">USD $</option>
-                      <option value="INR">INR ₹</option>
+                      <option value="USD">USD ₹</option>
                       <option value="EUR">EUR €</option>
                     </select>
                   </div>
@@ -1587,7 +1587,7 @@ export default function InvoicesTable({
                   <div className="flex-1">
                     <label className="text-sm text-gray-600 block mb-1">Amount</label>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-2 bg-gray-100 rounded">{createForm.currency === "INR" ? "₹" : "$"}</span>
+                      <span className="px-2 py-2 bg-gray-100 rounded">{createForm.currency === "USD" ? "₹" : "$"}</span>
                       <input type="number" className="w-full border rounded px-3 py-2" value={createForm.amount} onChange={(e) => setCreateForm((p: any) => ({ ...p, amount: Number(e.target.value) }))} />
                     </div>
                   </div>
@@ -1678,7 +1678,7 @@ export default function InvoicesTable({
                     <label className="text-sm text-gray-600 block mb-1">Currency *</label>
                     <select className="w-full border rounded px-3 py-2" value={receiptForm.currency} onChange={(e) => setReceiptForm((p: any) => ({ ...p, currency: e.target.value }))}>
                       <option value="USD">USD $</option>
-                      <option value="INR">INR ₹</option>
+                      <option value="USD">USD ₹</option>
                       <option value="EUR">EUR €</option>
                     </select>
                   </div>
@@ -1791,7 +1791,7 @@ export default function InvoicesTable({
                   <div>
                     <label className="text-sm text-gray-600 block mb-1">Price Without Tax *</label>
                     <div className="flex items-center">
-                      <span className="px-2 py-2 bg-gray-100 rounded-l border"> {receiptForm.currency === "INR" ? "₹" : "$"} </span>
+                      <span className="px-2 py-2 bg-gray-100 rounded-l border"> {receiptForm.currency === "USD" ? "₹" : "$"} </span>
                       <input type="number" className="w-full border rounded-r px-3 py-2" value={receiptForm.priceWithOutTax} onChange={(e) => setReceiptForm((p: any) => ({ ...p, priceWithOutTax: Number(e.target.value) }))} />
                     </div>
                   </div>
@@ -1842,7 +1842,7 @@ export default function InvoicesTable({
                   <label className="text-sm text-gray-600 block mb-1">Currency</label>
                   <select className="w-full border rounded px-3 py-2" value={editForm.currency} onChange={(e) => setEditForm((p: any) => ({ ...p, currency: e.target.value }))}>
                     <option value="USD">USD</option>
-                    <option value="INR">INR</option>
+                    <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
                   </select>
                 </div>
