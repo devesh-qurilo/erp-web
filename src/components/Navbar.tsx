@@ -8,17 +8,23 @@ import { Input } from "@/components/ui/input"
 
 const NAV_ITEMS: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/leads": "Leads",
-  "/deals": "Deals",
-  "/client": "Client",
+  "/leads/admin/get": "Leads",
+  "/deals/get": "Deals",
+  "/clients": "Client",
   "/work/project": "Project",
   "/work/tasks": "Task",
   "/work/timesheet": "Timesheet",
   "/work/roadmap": "Project Roadmap",
-  "/hr/attendance": "Attendance",
-  "/hr/leave": "Leave",
+  "/hr/attendence": "Attendance",
+  "/hr/employee": "Employee",
+  "/hr/leave/admin": "Leave",
   "/hr/holiday": "Holiday",
+  "/hr/designation": "Designation",
   "/hr/appreciation": "Appreciation",
+  "/finance/invoices": "Invoices",
+  "/finance/credit-notes": "Creadit Notes",
+  "/settings/company-settings": "company-settings",
+  "/settings/profile-settings": "profile-settings",
   "/messages": "Message",
   "/settings": "Settings",
 }
@@ -66,6 +72,12 @@ export const CommonNavbar: React.FC = () => {
         <div className="flex items-center">
           <div className="flex items-center justify-center bg-[#15173a] h-14 w-64 px-4">
             <span className="text-white text-2xl font-bold tracking-tight">skavo</span>
+  {/* <img
+              src={"/app/skavo.png"}
+              alt="avatar"
+              className="h-full w-full object-cover"
+            /> */}
+
           </div>
 
           <div className="pl-6">

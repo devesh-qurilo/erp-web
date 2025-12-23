@@ -1176,10 +1176,18 @@ headers: {
                       <Select value={ucCurrency} onValueChange={(v) => setUcCurrency(v)}>
                         <SelectTrigger className="w-full"><SelectValue placeholder="USD" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="USD">USD $</SelectItem>
-                          <SelectItem value="INR">INR ₹</SelectItem>
-                          <SelectItem value="EUR">EUR €</SelectItem>
-                        </SelectContent>
+  <SelectItem value="EUR">EUR € (Euro)</SelectItem>
+  <SelectItem value="GBP">GBP £ (British Pound)</SelectItem>
+  <SelectItem value="CHF">CHF ₣ (Swiss Franc)</SelectItem>
+  <SelectItem value="SEK">SEK kr (Swedish Krona)</SelectItem>
+  <SelectItem value="NOK">NOK kr (Norwegian Krone)</SelectItem>
+  <SelectItem value="DKK">DKK kr (Danish Krone)</SelectItem>
+  <SelectItem value="PLN">PLN zł (Polish Złoty)</SelectItem>
+  <SelectItem value="CZK">CZK Kč (Czech Koruna)</SelectItem>
+  <SelectItem value="HUF">HUF Ft (Hungarian Forint)</SelectItem>
+  <SelectItem value="RON">RON lei (Romanian Leu)</SelectItem>
+</SelectContent>
+
                       </Select>
                     </div>
 

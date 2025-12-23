@@ -75,7 +75,13 @@ export default function AddClientDetails() {
       }
     })
     return () => found.forEach(({ el, original }) => ((el as HTMLElement).style.display = original ?? ""))
-  }, [])
+  }, []) 
+
+
+
+
+
+  
 
   const getAuthHeader = () => ({ Authorization: `Bearer ${localStorage.getItem("accessToken") || ""}` })
 
