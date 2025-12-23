@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { X, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
 
-const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms";
+const API_BASE = "https://erp.skavosystem.com";
 
 export default function EditClientDetails() {
   const router = useRouter();

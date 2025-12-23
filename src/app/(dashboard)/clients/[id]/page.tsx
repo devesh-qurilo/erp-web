@@ -50,7 +50,7 @@ import ClientPaymentsTable from "../components/client/ClientPaymentsTable";
 import ClientDocuments from "../components/client/ClientDocuments";
 import ClientNotesTable from "../components/client/ClientNotesTable";
 
-const API_BASE = "https://6jnqmj85-80.inc1.devtunnels.ms"
+const API_BASE = `${process.env.NEXT_PUBLIC_MAIN}`;
 
 // safe text parser (handles stringified JSON responses)
 const safeParseText = (text: string) => {

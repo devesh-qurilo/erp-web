@@ -21,9 +21,7 @@ import SockJS from "sockjs-client";
 import { Client } from "@stomp/stompjs";
 /* ================================================================= */
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  "https://6jnqmj85-80.inc1.devtunnels.ms";
+const BASE_URL = `${process.env.NEXT_PUBLIC_MAIN}`;
 
 /* ================= TYPES ================= */
 type MessageItem = {
