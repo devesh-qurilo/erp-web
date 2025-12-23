@@ -326,7 +326,7 @@ export default function AddClientDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-medium text-slate-700 mb-1 block">Mobile Number *</label>
-                    <input value={mobile} onChange={(e) => { setMobile(e.target.value); if (errors.mobile) setErrors({ ...errors, mobile: "" }) }} className={inputClass(Boolean(errors.mobile))} placeholder="9999999999" />
+                    <input value={mobile} onChange={(e) => { setMobile(e.target.value); if (errors.mobile) setErrors({ ...errors, mobile: "" }) }} className={inputClass(Boolean(errors.mobile))} placeholder="370370" />
                     {errors.mobile && <p className="text-xs text-red-600 mt-1">{errors.mobile}</p>}
                   </div>
 
