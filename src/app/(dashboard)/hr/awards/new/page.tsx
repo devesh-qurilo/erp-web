@@ -34,7 +34,7 @@ export default function AwardPage() {
       formData.append("summary", summary)
       formData.append("iconFile", iconFile)
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/award`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_MAIN}/employee/api/awards`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -142,18 +142,7 @@ export default function AwardPage() {
               )}
             </Button>
 
-            {/* Response Output */}
-            {response && (
-              <div className="mt-6 p-4 rounded-md border bg-muted/30 text-sm">
-                <h3 className="font-semibold mb-1 flex items-center gap-2">
-                  <FileImage className="w-4 h-4" />
-                  Response:
-                </h3>
-                <pre className="overflow-x-auto text-xs bg-transparent">
-                  {JSON.stringify(response, null, 2)}
-                </pre>
-              </div>
-            )}
+
           </div>
         </CardContent>
       </Card>
