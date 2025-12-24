@@ -64,48 +64,7 @@ export default function NewLeaveDrawer({ open, onClose, onSuccess }: Props) {
     }, [open]);
 
 
-    /* ================= SUBMIT ================= */
-    // const handleSubmit = async () => {
-    //     if (!form.employeeIds.length || !form.leaveType || !form.singleDate || !form.reason) {
-    //         alert("Please fill all required fields");
-    //         return;
-    //     }
 
-    //     setLoading(true);
-    //     const token = localStorage.getItem("accessToken");
-
-    //     const fd = new FormData();
-
-    //     fd.append(
-    //         "leaveData",
-    //         JSON.stringify({
-    //             employeeIds: form.employeeIds,
-    //             leaveType: form.leaveType,
-    //             durationType: form.durationType,
-    //             singleDate: form.singleDate,
-    //             reason: form.reason,
-    //             status: form.status,
-    //         })
-    //     );
-
-    //     files.forEach((f) => fd.append("documents", f));
-
-    //     const res = await fetch(`${BASE_URL}/employee/api/leaves/admin/apply`, {
-    //         method: "POST",
-    //         headers: { Authorization: `Bearer ${token}` },
-    //         body: fd,
-    //     });
-
-    //     if (!res.ok) {
-    //         alert("Failed to apply leave");
-    //         setLoading(false);
-    //         return;
-    //     }
-
-    //     onSuccess();
-    //     onClose();
-    //     setLoading(false);
-    // };
     const handleSubmit = async () => {
         if (!form.employeeIds.length || !form.leaveType || !form.reason) {
             alert("Please fill all required fields");

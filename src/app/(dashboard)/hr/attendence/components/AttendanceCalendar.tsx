@@ -1,12 +1,14 @@
 
 "use client"
 
-import useSWR from "swr"
-import { useState, useMemo } from "react"
+import useSWR, { mutate } from "swr"
+
+import { useState, useMemo, useEffect } from "react"
 import MarkAttendanceModal from "./MarkAttendanceModal"
 import AttendanceDetailModal from "./AttendanceDetailModal"
 import { Button } from "@/components/ui/button"
 import { List, User } from "lucide-react"
+
 
 const BASE_URL = process.env.NEXT_PUBLIC_MAIN
 
@@ -20,6 +22,9 @@ interface Attendance {
     late: boolean
     halfDay: boolean
 }
+
+const ATTENDANCE_KEY = `${BASE_URL}/employee/attendance/GetAllAttendance`
+
 
 // ---------------- FETCHER ----------------
 const fetcher = async (url: string) => {
@@ -55,10 +60,14 @@ export default function AttendanceCalendar() {
 
     // ---------------- API ----------------
     const { data, isLoading } = useSWR<Attendance[]>(
-        `${BASE_URL}/employee/attendance/GetAllAttendance`,
+        ATTENDANCE_KEY,
         fetcher,
         { revalidateOnFocus: false }
     )
+
+    useEffect(() => {
+        fetcher
+    }, [open])
 
     // ---------------- GROUP BY EMPLOYEE ----------------
     const groupedAttendance = useMemo(() => {
@@ -126,22 +135,6 @@ export default function AttendanceCalendar() {
                     </select>
                 </div>
 
-                {/* <div className="flex gap-2">
-                    <Button
-                        size="icon"
-                        aria-label="List View"
-                    >
-                        <List className="h-4 w-4" />
-                    </Button>
-
-                    <Button
-                        size="icon"
-                        aria-label="Hierarchy View"
-                    >
-                        <User className="h-4 w-4" />
-                    </Button>
-
-                </div> */}
 
             </div>
 
@@ -234,7 +227,14 @@ export default function AttendanceCalendar() {
             </div>
 
             {/* ================= MODALS ================= */}
-            <MarkAttendanceModal open={open} onClose={() => setOpen(false)} />
+            <MarkAttendanceModal
+                open={open}
+                onClose={() => {
+                    setOpen(false)
+                    mutate(ATTENDANCE_KEY) // 🔥 refresh table
+                }}
+            />
+
 
             <AttendanceDetailModal
                 open={openDetail}
