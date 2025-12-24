@@ -31,6 +31,8 @@ export default function NewLeaveDrawer({ open, onClose, onSuccess }: Props) {
         leaveType: "",
         durationType: "FULL_DAY",
         singleDate: "",
+        startDate: "",
+        endDate: "",
         reason: "",
         status: "PENDING",
     });
@@ -61,36 +63,102 @@ export default function NewLeaveDrawer({ open, onClose, onSuccess }: Props) {
 
 
     /* ================= SUBMIT ================= */
+    // const handleSubmit = async () => {
+    //     if (!form.employeeIds.length || !form.leaveType || !form.singleDate || !form.reason) {
+    //         alert("Please fill all required fields");
+    //         return;
+    //     }
+
+    //     setLoading(true);
+    //     const token = localStorage.getItem("accessToken");
+
+    //     const fd = new FormData();
+
+    //     fd.append(
+    //         "leaveData",
+    //         JSON.stringify({
+    //             employeeIds: form.employeeIds,
+    //             leaveType: form.leaveType,
+    //             durationType: form.durationType,
+    //             singleDate: form.singleDate,
+    //             reason: form.reason,
+    //             status: form.status,
+    //         })
+    //     );
+
+    //     files.forEach((f) => fd.append("documents", f));
+
+    //     const res = await fetch(`${BASE_URL}/employee/api/leaves/admin/apply`, {
+    //         method: "POST",
+    //         headers: { Authorization: `Bearer ${token}` },
+    //         body: fd,
+    //     });
+
+    //     if (!res.ok) {
+    //         alert("Failed to apply leave");
+    //         setLoading(false);
+    //         return;
+    //     }
+
+    //     onSuccess();
+    //     onClose();
+    //     setLoading(false);
+    // };
     const handleSubmit = async () => {
-        if (!form.employeeIds.length || !form.leaveType || !form.singleDate || !form.reason) {
+        if (!form.employeeIds.length || !form.leaveType || !form.reason) {
             alert("Please fill all required fields");
+            return;
+        }
+
+        if (
+            form.durationType === "MULTIPLE_DAYS" &&
+            (!form.startDate || !form.endDate)
+        ) {
+            alert("Please select start & end date");
+            return;
+        }
+
+        if (
+            form.durationType !== "MULTIPLE_DAYS" &&
+            !form.singleDate
+        ) {
+            alert("Please select date");
             return;
         }
 
         setLoading(true);
         const token = localStorage.getItem("accessToken");
 
+        const leavePayload: any = {
+            employeeIds: form.employeeIds,
+            leaveType: form.leaveType,
+            durationType:
+                form.durationType === "MULTIPLE_DAYS"
+                    ? "MULTIPLE"
+                    : form.durationType,
+            reason: form.reason,
+            status: form.status,
+        };
+
+        if (form.durationType === "MULTIPLE_DAYS") {
+            leavePayload.startDate = form.startDate;
+            leavePayload.endDate = form.endDate;
+        } else {
+            leavePayload.singleDate = form.singleDate;
+        }
+
         const fd = new FormData();
-
-        fd.append(
-            "leaveData",
-            JSON.stringify({
-                employeeIds: form.employeeIds,
-                leaveType: form.leaveType,
-                durationType: form.durationType,
-                singleDate: form.singleDate,
-                reason: form.reason,
-                status: form.status,
-            })
-        );
-
+        fd.append("leaveData", JSON.stringify(leavePayload));
         files.forEach((f) => fd.append("documents", f));
 
-        const res = await fetch(`${BASE_URL}/employee/api/leaves/admin/apply`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: fd,
-        });
+        const res = await fetch(
+            `${BASE_URL}/employee/api/leaves/admin/apply`,
+            {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+                body: fd,
+            }
+        );
 
         if (!res.ok) {
             alert("Failed to apply leave");
@@ -102,6 +170,7 @@ export default function NewLeaveDrawer({ open, onClose, onSuccess }: Props) {
         onClose();
         setLoading(false);
     };
+
 
     if (!open) return null;
 
@@ -237,18 +306,44 @@ export default function NewLeaveDrawer({ open, onClose, onSuccess }: Props) {
                             </div>
                         </div>
 
-                        {/* DATE */}
+                        {/* DATE SECTION */}
                         <div className="mt-6">
-                            <label className="text-sm font-medium">
-                                You can select multiple dates
-                            </label>
-                            <input
-                                type="date"
-                                className="w-full mt-1 border rounded px-3 py-2"
-                                onChange={(e) =>
-                                    setForm({ ...form, singleDate: e.target.value })
-                                }
-                            />
+                            {form.durationType === "MULTIPLE_DAYS" ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium">Start Date *</label>
+                                        <input
+                                            type="date"
+                                            className="w-full mt-1 border rounded px-3 py-2"
+                                            onChange={(e) =>
+                                                setForm({ ...form, startDate: e.target.value })
+                                            }
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-sm font-medium">End Date *</label>
+                                        <input
+                                            type="date"
+                                            className="w-full mt-1 border rounded px-3 py-2"
+                                            onChange={(e) =>
+                                                setForm({ ...form, endDate: e.target.value })
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="text-sm font-medium">Date *</label>
+                                    <input
+                                        type="date"
+                                        className="w-full mt-1 border rounded px-3 py-2"
+                                        onChange={(e) =>
+                                            setForm({ ...form, singleDate: e.target.value })
+                                        }
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         {/* REASON */}
@@ -279,6 +374,8 @@ export default function NewLeaveDrawer({ open, onClose, onSuccess }: Props) {
                         </div>
                     </div>
                 </div>
+
+
 
                 {/* FOOTER */}
                 <div className="flex justify-end gap-4 px-6 py-4 border-t">

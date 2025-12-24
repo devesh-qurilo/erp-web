@@ -81,7 +81,7 @@ export default function LeavesList() {
   };
 
 
-      ("sdc",leaves)
+  // ("sdc",leaves)
 
 
   /* ================= FETCH QUOTA ================= */
@@ -242,33 +242,33 @@ export default function LeavesList() {
           </>
         )}
 
-         {/* ================= PROFILE HEADER ================= */}
-      {view === "PROFILE" && employee && (
-        <div className="flex gap-6 mb-6">
-          <div className="flex items-center gap-4 border rounded-xl p-4 w-1/2">
-            <img
-              src={employee.profilePictureUrl || "/avatar.png"}
-              className="w-14 h-14 rounded-full object-cover"
-            />
-            <div>
-              <h3 className="font-semibold">{employee.name}</h3>
-              <p className="text-sm text-gray-500">
-                {employee.designationName} · {employee.departmentName}
-              </p>
-              <p className="text-xs text-gray-400">
-                Last login: {employee.createdAt?.split("T")[0]}
+        {/* ================= PROFILE HEADER ================= */}
+        {view === "PROFILE" && employee && (
+          <div className="flex gap-6 mb-6">
+            <div className="flex items-center gap-4 border rounded-xl p-4 w-1/2">
+              <img
+                src={employee.profilePictureUrl || "/avatar.png"}
+                className="w-14 h-14 rounded-full object-cover"
+              />
+              <div>
+                <h3 className="font-semibold">{employee.name}</h3>
+                <p className="text-sm text-gray-500">
+                  {employee.designationName} · {employee.departmentName}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Last login: {employee.createdAt?.split("T")[0]}
+                </p>
+              </div>
+            </div>
+
+            <div className="border rounded-xl p-4 w-1/2">
+              <p className="text-sm text-gray-500">Remaining Leaves</p>
+              <p className="text-2xl font-semibold text-blue-600">
+                {remainingLeaves}
               </p>
             </div>
           </div>
-
-          <div className="border rounded-xl p-4 w-1/2">
-            <p className="text-sm text-gray-500">Remaining Leaves</p>
-            <p className="text-2xl font-semibold text-blue-600">
-              {remainingLeaves}
-            </p>
-          </div>
-        </div>
-      )}
+        )}
 
         <div className="flex gap-2">
           <List onClick={() => setView("LIST")} />
@@ -277,10 +277,10 @@ export default function LeavesList() {
         </div>
       </div>
 
-     
 
 
- {/* ================= LEAVE QUOTA TABLE (RESTORED) ================= */}
+
+      {/* ================= LEAVE QUOTA TABLE (RESTORED) ================= */}
       {view === "PROFILE" && (
         <div className="overflow-x-auto">
           <table className="min-w-full border">
@@ -366,17 +366,17 @@ export default function LeavesList() {
                     <td className="px-6 py-4">{leave.durationType}</td>
                     <td className="px-6 py-4">{getDisplayDates(leave)}</td>
                     {/* <td className="px-6 py-4 max-w-xs truncate">{leave.paid}</td> */}
-      <td className="px-6 py-4">
-  <span
-    className={`px-2 py-1 text-xs rounded-full font-medium
+                    <td className="px-6 py-4">
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full font-medium
       ${leave.isPaid
-        ? "bg-green-100 text-green-700"
-        : "bg-red-100 text-red-700"
-      }`}
-  >
-    {leave.isPaid ? "Paid" : "Unpaid"}
-  </span>
-</td>
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                          }`}
+                      >
+                        {leave.isPaid ? "Paid" : "Unpaid"}
+                      </span>
+                    </td>
 
 
                     <td className="px-6 py-4">
@@ -417,14 +417,14 @@ export default function LeavesList() {
           </div>
 
           <div className="grid grid-cols-7 text-center font-medium mb-2">
-            {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d => <div key={d}>{d}</div>)}
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(d => <div key={d}>{d}</div>)}
           </div>
 
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: startDay }).map((_, i) => <div key={i} />)}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
-              const key = `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+              const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               return (
                 <div key={key} className="border rounded p-1 min-h-[90px]">
                   <div className="font-semibold">{day}</div>
