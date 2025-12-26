@@ -285,7 +285,7 @@ export default function LeavesList() {
           <div className="flex gap-6 mb-6">
             <div className="flex items-center gap-4 border rounded-xl p-4 w-1/2">
               <img
-                src={employee.profilePictureUrl || "/avatar.png"}
+                src={employee.profilePictureUrl || "/"}
                 className="w-14 h-14 rounded-full object-cover"
               />
               <div>
