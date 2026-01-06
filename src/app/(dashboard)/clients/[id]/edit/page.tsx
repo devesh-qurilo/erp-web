@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { X, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { CommonNavbar } from "@/components/Navbar";
 
 const API_BASE = `${process.env.NEXT_PUBLIC_MAIN}`;
 
@@ -666,6 +667,8 @@ export default function EditClientDetails() {
           </div>
         </div>
       )}
+<CommonNavbar />
+
     </div>
   );
 }

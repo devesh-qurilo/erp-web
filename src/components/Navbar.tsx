@@ -112,7 +112,7 @@ export const CommonNavbar: React.FC = () => {
         {/* Left block */}
         <div className="flex items-center">
           <div className="flex items-center justify-center bg-[#15173a] h-14 w-64 px-4">
-            <span className="text-white text-2xl font-bold tracking-tight">skavo</span>
+            <span className="text-white text-2xl font-bold tracking-tight">skavo </span>
   {/* <img
                src={employee?.profilePictureUrl || "/avatar.png"}
               alt="avatar"

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { X, CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import ClientDetailPage from "../[id]/page"
+import { CommonNavbar } from "@/components/Navbar"
 
 const API_BASE = `${process.env.NEXT_PUBLIC_MAIN}`
 
@@ -531,6 +532,11 @@ export default function AddClientDetails() {
           </div>
         </div>
       )}
+
+
+
+
+        <CommonNavbar />
     </div>
   )
 }
