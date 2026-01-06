@@ -1,7 +1,0 @@
-{
-  "headers": {
-    "x-nextjs-stale-time": "300",
-    "x-nextjs-prerender": "1",
-    "x-next-cache-tags": "_N_T_/layout,_N_T_/(employee)/layout,_N_T_/(employee)/employees/layout,_N_T_/(employee)/employees/work/layout,_N_T_/(employee)/employees/work/roadmap/layout,_N_T_/(employee)/employees/work/roadmap/page,_N_T_/employees/work/roadmap"
-  }
-}
