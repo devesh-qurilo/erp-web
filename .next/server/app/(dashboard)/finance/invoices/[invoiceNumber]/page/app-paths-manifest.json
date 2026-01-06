@@ -1,3 +1,0 @@
-{
-  "/(dashboard)/finance/invoices/[invoiceNumber]/page": "app/(dashboard)/finance/invoices/[invoiceNumber]/page.js"
-}

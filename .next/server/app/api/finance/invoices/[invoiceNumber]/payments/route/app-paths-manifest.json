@@ -1,3 +1,0 @@
-{
-  "/api/finance/invoices/[invoiceNumber]/payments/route": "app/api/finance/invoices/[invoiceNumber]/payments/route.js"
-}
