@@ -1,0 +1,41 @@
+name: VPS Deployment
+
+on:
+  push:
+    branches:
+      - main   # jis branch se deploy chahiye
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy project on VPS
+        run: |
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            cd ${{ secrets.VPS_PATH }}
+
+            echo "Pulling latest code..."
+            git pull origin main
+
+            echo "Installing dependencies..."
+            npm install
+
+            echo "Building project..."
+            npm run build
+
+            echo "Restarting app..."
+            pm2 restart ecosystem.config.js || pm2 start ecosystem.config.js
+
+            echo "Deployment completed 🚀"
+          EOF
