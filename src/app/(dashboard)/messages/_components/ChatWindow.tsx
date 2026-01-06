@@ -1,5 +1,3 @@
-
-
 // components/ChatWindow.tsx
 "use client";
 
@@ -51,13 +49,29 @@ const BASE_URL = `${process.env.NEXT_PUBLIC_MAIN}`;
 
 const fetcher = async (url: string) => {
   try {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-    const res = await fetch(url, { headers, cache: "no-store" });
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("accessToken")
+        : null;
+    const headers: HeadersInit = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
+    const res = await fetch(url, {
+      headers,
+      // credentials: "include", // ✅ REQUIRED
+      // cache: "no-store",
+    });
     if (!res.ok) {
       const contentType = res.headers.get("content-type") || "";
-      const errBody = contentType.includes("application/json") ? await res.json().catch(() => ({})) : await res.text().catch(() => "");
-      const message = (errBody && typeof errBody === "object" && (errBody.error || errBody.message)) || errBody || `Failed to fetch (${res.status})`;
+      const errBody = contentType.includes("application/json")
+        ? await res.json().catch(() => ({}))
+        : await res.text().catch(() => "");
+      const message =
+        (errBody &&
+          typeof errBody === "object" &&
+          (errBody.error || errBody.message)) ||
+        errBody ||
+        `Failed to fetch (${res.status})`;
       throw new Error(message);
     }
     return res.json();
@@ -68,7 +82,11 @@ const fetcher = async (url: string) => {
   }
 };
 
-export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatWindowProps) {
+export default function ChatWindow({
+  chatRoomId,
+  employeeid,
+  receiverId,
+}: ChatWindowProps) {
   const [currentUserId, setCurrentUserId] = useState(employeeid || "");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -86,7 +104,11 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
     }
   }, [employeeid]);
 
-  const historyUrl = receiverId ? `${process.env.NEXT_PUBLIC_MAIN}/api/chat/history/${encodeURIComponent(receiverId)}` : null;
+  const historyUrl = receiverId
+    ? `${process.env.NEXT_PUBLIC_MAIN}/api/chat/history/${encodeURIComponent(
+        receiverId
+      )}`
+    : null;
 
   const { data, error, isLoading, mutate } = useSWR<Message[]>(
     historyUrl,
@@ -99,9 +121,10 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
   // receiver details: prefer explicit receiver info from messages, fallback to first message sender
   const receiverDetails =
     messages.length > 0
-      ? messages.find((m) => m.receiverDetails?.employeeId === receiverId)?.receiverDetails ||
-      messages[0]?.senderDetails ||
-      null
+      ? messages.find((m) => m.receiverDetails?.employeeId === receiverId)
+          ?.receiverDetails ||
+        messages[0]?.senderDetails ||
+        null
       : null;
 
   // Auto-scroll on new messages (including when STOMP pushes new items)
@@ -148,18 +171,31 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
               if (payload && payload.type === "message" && payload.data) {
                 const incoming: Message = payload.data;
                 mutate((prev) => {
-                  const already = prev && prev.some((m) => m.id === incoming.id);
-                  return already ? prev : prev ? [...prev, incoming] : [incoming];
+                  const already =
+                    prev && prev.some((m) => m.id === incoming.id);
+                  return already
+                    ? prev
+                    : prev
+                    ? [...prev, incoming]
+                    : [incoming];
                 }, false);
               } else if (payload && payload.id) {
                 const incoming: Message = payload;
-                mutate((prev) => (prev && prev.some((m) => m.id === incoming.id) ? prev : prev ? [...prev, incoming] : [incoming]), false);
+                mutate(
+                  (prev) =>
+                    prev && prev.some((m) => m.id === incoming.id)
+                      ? prev
+                      : prev
+                      ? [...prev, incoming]
+                      : [incoming],
+                  false
+                );
               }
             } catch (e) {
               console.error("Error parsing topic message", e);
             }
           });
-        } catch (e) { }
+        } catch (e) {}
 
         try {
           client.subscribe(`/user/queue/messages`, (msg: IMessage) => {
@@ -169,32 +205,58 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
               if (payload.type === "message" && payload.data) {
                 const incoming: Message = payload.data;
                 mutate((prev) => {
-                  const already = prev && prev.some((m) => m.id === incoming.id);
-                  return already ? prev : prev ? [...prev, incoming] : [incoming];
+                  const already =
+                    prev && prev.some((m) => m.id === incoming.id);
+                  return already
+                    ? prev
+                    : prev
+                    ? [...prev, incoming]
+                    : [incoming];
                 }, false);
               } else if (payload.id) {
                 const incoming: Message = payload;
-                mutate((prev) => (prev && prev.some((m) => m.id === incoming.id) ? prev : prev ? [...prev, incoming] : [incoming]), false);
+                mutate(
+                  (prev) =>
+                    prev && prev.some((m) => m.id === incoming.id)
+                      ? prev
+                      : prev
+                      ? [...prev, incoming]
+                      : [incoming],
+                  false
+                );
               }
             } catch (e) {
               console.error("Error parsing user queue message", e);
             }
           });
-        } catch (e) { }
+        } catch (e) {}
 
         try {
-          client.subscribe(`/topic/chat.${chatRoomId}.deleted`, (msg: IMessage) => {
-            try {
-              const payload = JSON.parse(msg.body);
-              const messageId = payload?.messageId ?? payload?.id;
-              if (messageId != null) {
-                mutate((prev) => (prev ? prev.map((m) => (m.id === messageId ? { ...m, deletedForCurrentUser: true } : m)) : prev), false);
+          client.subscribe(
+            `/topic/chat.${chatRoomId}.deleted`,
+            (msg: IMessage) => {
+              try {
+                const payload = JSON.parse(msg.body);
+                const messageId = payload?.messageId ?? payload?.id;
+                if (messageId != null) {
+                  mutate(
+                    (prev) =>
+                      prev
+                        ? prev.map((m) =>
+                            m.id === messageId
+                              ? { ...m, deletedForCurrentUser: true }
+                              : m
+                          )
+                        : prev,
+                    false
+                  );
+                }
+              } catch (e) {
+                console.error("Error parsing deleted event", e);
               }
-            } catch (e) {
-              console.error("Error parsing deleted event", e);
             }
-          });
-        } catch (e) { }
+          );
+        } catch (e) {}
       },
       onStompError: (frame) => {
         console.error("Broker reported error: " + frame.headers["message"]);
@@ -211,14 +273,17 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
           stompClientRef.current.deactivate();
           stompClientRef.current = null;
         }
-      } catch (e) { }
+      } catch (e) {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receiverId, chatRoomId, mutate]);
 
   // Delete flow: mark deletedForCurrentUser true on success
   const deleteMessage = async (messageId: number) => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem("accessToken")
+        : null;
     setDeleting(true);
 
     // optimistic update: mark deletedForCurrentUser for this user
@@ -226,14 +291,16 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
       (prev) =>
         prev
           ? prev.map((m) =>
-            m.id === messageId ? { ...m, deletedForCurrentUser: true } : m
-          )
+              m.id === messageId ? { ...m, deletedForCurrentUser: true } : m
+            )
           : prev,
       false
     );
 
     try {
-      const url = `${BASE_URL}/api/chat/message/${encodeURIComponent(String(messageId))}`;
+      const url = `${BASE_URL}/api/chat/message/${encodeURIComponent(
+        String(messageId)
+      )}`;
 
       const res = await fetch(url, {
         method: "DELETE",
@@ -269,18 +336,24 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
   };
 
   // Render file attachment UI (image thumbnail or file card)
-  const Attachment = ({ attachment, isMine }: { attachment: { fileName: string; fileUrl: string } | null; isMine: boolean }) => {
+  const Attachment = ({
+    attachment,
+    isMine,
+  }: {
+    attachment: { fileName: string; fileUrl: string } | null;
+    isMine: boolean;
+  }) => {
     if (!attachment) return null;
     const image = isImageFilename(attachment.fileName);
 
     if (image) {
       return (
         <a
-          href={attachment.fileUrl} download={attachment.fileName}
+          href={attachment.fileUrl}
+          download={attachment.fileName}
           target="_blank"
           rel="noopener noreferrer"
           className="block relative w-30  mt-2 rounded-md overflow-hidden border border-border"
-
         >
           {/* next/image requires width/height; using fixed height and letting width auto via css */}
           <div className="relative w-full h-48">
@@ -300,21 +373,40 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
     // non-image file card
     return (
       <div
-        className={`mt-2 flex items-center gap-3 p-3 rounded-md border ${isMine ? "bg-primary/5 border-primary/40" : "bg-white border-border"
-          }`}
+        className={`mt-2 flex items-center gap-3 p-3 rounded-md border ${
+          isMine ? "bg-primary/5 border-primary/40" : "bg-white border-border"
+        }`}
       >
         <div className="flex-none w-10 h-10 rounded-md flex items-center justify-center bg-muted">
           {/* simple paperclip/file icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 01-7.78-7.78l9.19-9.19a3.5 3.5 0 014.95 4.95L9.9 17.36a1.5 1.5 0 01-2.12-2.12l8.49-8.49" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5 h-5 text-gray-600"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+          >
+            <path
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 01-7.78-7.78l9.19-9.19a3.5 3.5 0 014.95 4.95L9.9 17.36a1.5 1.5 0 01-2.12-2.12l8.49-8.49"
+            />
           </svg>
         </div>
 
         <div className="flex-1 min-w-0">
-          <a href={attachment.fileUrl} target="_blank" rel="noopener noreferrer" className="block truncate font-medium">
+          <a
+            href={attachment.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block truncate font-medium"
+          >
             {attachment.fileName}
           </a>
-          <p className="text-xs text-muted-foreground mt-1 truncate">Click to download / open</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            Click to download / open
+          </p>
         </div>
       </div>
     );
@@ -326,7 +418,10 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
   };
 
   const formatTime = (iso: string) =>
-    new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    new Date(iso).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return (
     <div className="flex flex-col h-full border border-border rounded-lg overflow-hidden bg-white">
@@ -335,7 +430,10 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
         <div className="flex items-center gap-4 px-6 py-4 bg-white border-b border-border">
           <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
             <Image
-              src={receiverDetails?.profileUrl ?? "/placeholder.svg?height=64&width=64&query=User%20avatar"}
+              src={
+                receiverDetails?.profileUrl ??
+                "/placeholder.svg?height=64&width=64&query=User%20avatar"
+              }
               alt={receiverDetails?.name ?? "User"}
               width={56}
               height={56}
@@ -345,9 +443,15 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
           </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-foreground leading-tight">{receiverDetails?.name ?? "Unknown"}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{receiverDetails?.designation || "No designation"}</p>
-            <p className="text-sm text-muted-foreground">{receiverDetails?.department || "No department"}</p>
+            <h2 className="text-lg font-semibold text-foreground leading-tight">
+              {receiverDetails?.name ?? "Unknown"}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {receiverDetails?.designation || "No designation"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {receiverDetails?.department || "No department"}
+            </p>
           </div>
         </div>
       )}
@@ -360,10 +464,18 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
           if (msg.deletedForCurrentUser) {
             // Deleted placeholder
             return (
-              <div key={msg.id} className={`flex items-start gap-3 ${isMine ? "justify-end" : "justify-start"}`}>
+              <div
+                key={msg.id}
+                className={`flex items-start gap-3 ${
+                  isMine ? "justify-end" : "justify-start"
+                }`}
+              >
                 {!isMine && (
                   <Image
-                    src={msg.senderDetails?.profileUrl ?? "/placeholder.svg?height=32&width=32&query=User%20avatar"}
+                    src={
+                      msg.senderDetails?.profileUrl ??
+                      "/placeholder.svg?height=32&width=32&query=User%20avatar"
+                    }
                     alt={msg.senderDetails?.name ?? "Unknown"}
                     width={32}
                     height={32}
@@ -383,10 +495,18 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
             : "bg-white border border-border text-foreground";
 
           return (
-            <div key={msg.id} className={`relative flex items-start gap-3 ${isMine ? "justify-end" : "justify-start"}`}>
+            <div
+              key={msg.id}
+              className={`relative flex items-start gap-3 ${
+                isMine ? "justify-end" : "justify-start"
+              }`}
+            >
               {!isMine && (
                 <Image
-                  src={msg.senderDetails?.profileUrl ?? "/placeholder.svg?height=32&width=32&query=User%20avatar"}
+                  src={
+                    msg.senderDetails?.profileUrl ??
+                    "/placeholder.svg?height=32&width=32&query=User%20avatar"
+                  }
                   alt={msg.senderDetails?.name ?? "Unknown"}
                   width={32}
                   height={32}
@@ -395,16 +515,27 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
                 />
               )}
 
-              <div className={`px-4 py-3 rounded-2xl max-w-[75%] break-words ${bubbleClasses}`} onClick={() => handleBubbleClick(msg.id)}>
+              <div
+                className={`px-4 py-3 rounded-2xl max-w-[75%] break-words ${bubbleClasses}`}
+                onClick={() => handleBubbleClick(msg.id)}
+              >
                 {/* Message text */}
-                {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                {msg.content && (
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                )}
 
                 {/* Attachment preview */}
                 {msg.fileAttachment && (
                   <Attachment attachment={msg.fileAttachment} isMine={isMine} />
                 )}
 
-                <div className={`text-[11px] mt-1 ${isMine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                <div
+                  className={`text-[11px] mt-1 ${
+                    isMine
+                      ? "text-primary-foreground/80"
+                      : "text-muted-foreground"
+                  }`}
+                >
                   <span>{formatTime(msg.createdAt)}</span>
                 </div>
               </div>
@@ -416,7 +547,9 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
                     {/* Confirm step */}
                     {confirmDeleteId === msg.id ? (
                       <div className="px-3">
-                        <p className="text-sm text-muted-foreground mb-2">Are you sure?</p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Are you sure?
+                        </p>
                         <div className="flex gap-2">
                           <button
                             className="flex-1 px-2 py-1 rounded-md border text-sm"
@@ -466,11 +599,12 @@ export default function ChatWindow({ chatRoomId, employeeid, receiverId }: ChatW
       </div>
 
       {/* Input (kept identical in behavior) */}
-      <ChatInput chatRoomId={chatRoomId} senderId={currentUserId} receiverId={receiverId} onMessageSent={handleMessageSent} />
+      <ChatInput
+        chatRoomId={chatRoomId}
+        senderId={currentUserId}
+        receiverId={receiverId}
+        onMessageSent={handleMessageSent}
+      />
     </div>
   );
 }
-
-
-
-

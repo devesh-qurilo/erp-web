@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -23,7 +22,7 @@ type Employee = {
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
   return match ? decodeURIComponent(match[2]) : null;
 }
 
@@ -33,7 +32,7 @@ export default function MessagesLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const BASE_URL =  `${process.env.NEXT_PUBLIC_MAIN}`;
+  const BASE_URL = `${process.env.NEXT_PUBLIC_MAIN}`;
   const API_PATH = "/employee/all";
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -51,7 +50,9 @@ export default function MessagesLayout({
       // Use the same key your ChatRoomsList expects: 'accessToken' in localStorage.
       // Also fallback to cookie 'token' if present.
       const localToken =
-        typeof window !== "undefined" ? window.localStorage.getItem("accessToken") : null;
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("accessToken")
+          : null;
       const cookieToken = getCookie("token");
       const token = localToken || cookieToken || null;
 
@@ -83,7 +84,8 @@ export default function MessagesLayout({
             // ignore
           }
 
-          const msg = "Unauthorized: You need to be logged in to fetch employees. (401)";
+          const msg =
+            "Unauthorized: You need to be logged in to fetch employees. (401)";
           setEmployees([]);
           setError(msg);
           setLoading(false);
@@ -116,7 +118,10 @@ export default function MessagesLayout({
           setEmployees([]);
           if (process.env.NODE_ENV !== "production") {
             // eslint-disable-next-line no-console
-            console.warn("[MessagesLayout] Unexpected employee API shape:", data);
+            console.warn(
+              "[MessagesLayout] Unexpected employee API shape:",
+              data
+            );
           }
         }
       } catch (err: any) {
@@ -201,4 +206,3 @@ export default function MessagesLayout({
     </div>
   );
 }
-
