@@ -186,7 +186,7 @@ import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS: Record<string, string> = {
 
-   "/dashboard": "Dashboard",
+  "/dashboard": "Dashboard",
   "/leads/admin/get": "Leads",
   "/deals/get": "Deals",
   "/clients": "Client",
