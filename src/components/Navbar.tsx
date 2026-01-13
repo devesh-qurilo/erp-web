@@ -7,7 +7,6 @@ import { Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NAV_ITEMS: Record<string, string> = {
-
   "/dashboard": "Dashboard",
   "/leads/admin/get": "Leads",
   "/deals/get": "Deals",
@@ -38,22 +37,59 @@ const NAV_ITEMS: Record<string, string> = {
   "/employees/hr/leave/admin": "Leave",
   "/employees/hr/holiday": "Holiday",
   "/employees/hr/appreciation": "Appreciations",
-  
+
   "/employees/messages": "Messages",
   "/employees/settings/profile-settings": "Profile Settings",
 };
+
+interface EmployeeProfile {
+  profilePictureUrl?: string;
+  name?: string;
+}
 
 export const CommonNavbar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const pageTitle = NAV_ITEMS[pathname] || "Page";
 
+  const BASE_URL = process.env.NEXT_PUBLIC_MAIN || "";
+
+  const [employee, setEmployee] = useState<EmployeeProfile | null>(null);
   const [openMenu, setOpenMenu] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+
   const menuRef = useRef<HTMLDivElement>(null);
 
+  /* =========================
+     Fetch employee profile
+  ========================== */
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${BASE_URL}/employee/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setEmployee(data);
+      } catch (err) {
+        console.error("Failed to fetch employee", err);
+      }
+    };
+
+    fetchEmployee();
+  }, [BASE_URL]);
+
+  /* =========================
+     Google Translate
+  ========================== */
   const handleLanguageChange = (lang: string) => {
-    const select = document.querySelector(".goog-te-combo") as HTMLSelectElement;
+    const select = document.querySelector(
+      ".goog-te-combo"
+    ) as HTMLSelectElement;
+
     if (select) {
       select.value = lang;
       select.dispatchEvent(new Event("change"));
@@ -61,11 +97,19 @@ export const CommonNavbar: React.FC = () => {
     setLangOpen(false);
   };
 
+  /* =========================
+     Logout
+  ========================== */
   const handleLogout = () => {
     if (!confirm("Are you sure you want to logout?")) return;
+
+    localStorage.clear();
     router.push("/login");
   };
 
+  /* =========================
+     Outside click close
+  ========================== */
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -78,36 +122,27 @@ export const CommonNavbar: React.FC = () => {
   }, []);
 
   return (
-    
-  <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
-      <div className="flex h-14 items-center justify-between px-0">
-         {/* Left block */}
-         <div className="flex items-center">
-             <div className="flex items-center justify-center bg-[#15173a] h-14 w-64 px-4">
-             <span className="text-white text-2xl font-bold tracking-tight">skavo </span>
-  {/* <img
-               src={employee?.profilePictureUrl || "/avatar.png"}
-              alt="avatar"
-              className="h-full w-full object-cover"
-            /> */}
-
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b">
+      <div className="flex h-14 items-center justify-between">
+        {/* ================= LEFT ================= */}
+        <div className="flex items-center">
+          <div className="flex items-center justify-center bg-[#15173a] h-14 w-64">
+            <span className="text-white text-2xl font-bold">skavo</span>
           </div>
 
-           <div className="pl-6">
+          <div className="pl-6">
             <h2 className="text-lg font-medium text-gray-800">{pageTitle}</h2>
           </div>
         </div>
 
-
-
-
-        <div className="flex items-center gap-3 relative" ref={menuRef}>
+        {/* ================= RIGHT ================= */}
+        <div className="flex items-center gap-3 pr-6 relative" ref={menuRef}>
           {/* Bell */}
           <Button variant="ghost" size="icon">
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4 w-4 text-gray-600" />
           </Button>
 
-          {/* 🌐 Language */}
+          {/* Language */}
           <div className="relative">
             <button
               onClick={() => setLangOpen(!langOpen)}
@@ -117,7 +152,7 @@ export const CommonNavbar: React.FC = () => {
             </button>
 
             {langOpen && (
-              <div className="absolute right-0 mt-2 bg-white border shadow rounded-md w-32 z-50">
+              <div className="absolute right-0 mt-2 bg-white border shadow rounded-md w-36 z-50">
                 {[
                   { code: "en", label: "English" },
                   { code: "hi", label: "हिंदी" },
@@ -143,15 +178,19 @@ export const CommonNavbar: React.FC = () => {
             onClick={() => setOpenMenu(!openMenu)}
             className="h-9 w-9 rounded-full overflow-hidden ring-2 ring-gray-100 cursor-pointer"
           >
-            <img src="/avatar.png" className="h-full w-full object-cover" />
+            <img
+              src={employee?.profilePictureUrl || "/avatar.png"}
+              alt="avatar"
+              className="h-full w-full object-cover"
+            />
           </div>
 
-          {/* Logout */}
+          {/* Dropdown */}
           {openMenu && (
             <div className="absolute top-12 right-0 bg-white shadow rounded-md px-4 py-2 w-32 border">
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-sm hover:text-black"
+                className="flex items-center gap-2 text-sm text-gray-700 hover:text-black"
               >
                 <LogOut size={16} /> Logout
               </button>
